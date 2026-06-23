@@ -1,0 +1,16 @@
+{
+  "name": "word-harmony",
+  "version": "2.0.0",
+  "scripts": {
+    "start": "node server/index.js",
+    "build": "cd client && npm install && npm run build",
+    "dev": "node server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.2",
+    "uuid": "^9.0.0"
+  }
+}
