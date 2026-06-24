@@ -95,11 +95,16 @@ io.on('connection',(socket)=>{
   socket.on('pass_card',({sessionId,playerId,cardToPass})=>{
     const s=getSession(sessionId); if(!s||s.phase!=='playing')return;
     if(currentTurnPlayerId(s)!==playerId){socket.emit('error',{message:"Not your turn."});return;}
-    let hand=[...s.cards[playerId]];
-    if(s.incomingCard[playerId]){hand.push(s.incomingCard[playerId]);delete s.incomingCard[playerId];}
-    if(!hand.includes(cardToPass)){socket.emit('error',{message:'Card not in hand.'});return;}
+    // Player's hand already includes the incoming card (added immediately on arrival)
+    const hand=s.cards[playerId];
+    if(!hand||!hand.includes(cardToPass)){socket.emit('error',{message:'Card not in hand.'});return;}
+    // Remove passed card from hand
     s.cards[playerId]=hand.filter(c=>c!==cardToPass);
-    const next=nextPlayerId(s,playerId); s.incomingCard[next]=cardToPass;
+    // Add passed card immediately to next player's hand (they now have 4)
+    const next=nextPlayerId(s,playerId);
+    s.cards[next].push(cardToPass);
+    // Clear any pending incoming since we now add immediately
+    delete s.incomingCard[next];
     if(playerId===s.starterPlayerId&&!s.firstRoundOver) s.firstRoundOver=true;
     advanceTurn(s); io.to(sessionId).emit('session_update',sanitize(s)); broadcastHands(s);
     io.to(sessionId).emit('card_incoming',{toPlayerId:next,fromPlayerName:s.players.find(p=>p.id===playerId)?.name});
