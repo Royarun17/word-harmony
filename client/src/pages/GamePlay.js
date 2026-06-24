@@ -5,12 +5,11 @@ import PlayerList from '../components/PlayerList';
 
 export default function GamePlay({ session, playerId }) {
   const [hand, setHand] = useState([]);
-  const [incomingCard, setIncomingCard] = useState(null);
   const [isStarter, setIsStarter] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
   const [buzzerLog, setBuzzerLog] = useState([]);
   const [hasBuzzed, setHasBuzzed] = useState(false);
-  const [incomingFrom, setIncomingFrom] = useState(null);
+  const [justReceivedCard, setJustReceivedCard] = useState(false);
 
   const isMyTurn = session.turnOrder?.[session.currentTurnIndex] === playerId;
   const isBuzzingPhase = session.phase === 'buzzing';
@@ -19,27 +18,29 @@ export default function GamePlay({ session, playerId }) {
   const currentTurnPlayer = session.players?.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
   const starterPlayer = session.players?.find(p => p.id === session.starterPlayerId);
 
-  // Effective hand = current hand + incoming (when it's my turn)
-  const effectiveHand = isMyTurn && incomingCard ? [...hand, incomingCard] : hand;
-
+  // Listen for hand updates
   useEffect(() => {
-    const fn = ({ hand: h, incomingCard: ic, isStarter: s }) => {
+    const fn = ({ hand: h, isStarter: s }) => {
       setHand(h || []);
-      setIncomingCard(ic || null);
       setIsStarter(!!s);
     };
     socket.on(`hand_update_${playerId}`, fn);
     return () => socket.off(`hand_update_${playerId}`, fn);
   }, [playerId]);
 
+  // Show flash when card arrives
   useEffect(() => {
-    const fn = ({ toPlayerId, fromPlayerName }) => {
-      if (toPlayerId === playerId) setIncomingFrom(fromPlayerName);
+    const fn = ({ toPlayerId }) => {
+      if (toPlayerId === playerId) {
+        setJustReceivedCard(true);
+        setTimeout(() => setJustReceivedCard(false), 2000);
+      }
     };
     socket.on('card_incoming', fn);
     return () => socket.off('card_incoming', fn);
   }, [playerId]);
 
+  // Buzzer events
   useEffect(() => {
     const fn = ({ playerId: bid, buzzerLog: log }) => {
       setBuzzerLog(log);
@@ -49,11 +50,12 @@ export default function GamePlay({ session, playerId }) {
     return () => socket.off('buzzer_pressed', fn);
   }, [playerId]);
 
+  // Reset on new round
   useEffect(() => {
     setHasBuzzed(false);
     setBuzzerLog([]);
     setSelectedCard(null);
-    setIncomingCard(null);
+    setJustReceivedCard(false);
   }, [session.currentRound]);
 
   function handleSelectCard(word) {
@@ -103,9 +105,23 @@ export default function GamePlay({ session, playerId }) {
             <div>
               <p style={{ fontWeight: 700, color: '#7A5200', fontSize: 15 }}>You start this round!</p>
               <p style={{ fontSize: 13, color: '#7A5200' }}>
-                You have 4 cards. Select one to pass — the buzzer unlocks for everyone after you pass.
+                You have 4 cards. Select one to pass — buzzer unlocks for everyone after your first pass.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Card received flash */}
+        {justReceivedCard && !isMyTurn && (
+          <div style={{
+            background: 'var(--teal-light)', border: '2px solid var(--teal)',
+            borderRadius: 'var(--radius-md)', padding: '12px 18px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', gap: 10
+          }}>
+            <span style={{ fontSize: 20 }}>📨</span>
+            <p style={{ fontSize: 14, color: 'var(--teal)', fontWeight: 600 }}>
+              A card was added to your hand! You now have {hand.length} cards.
+            </p>
           </div>
         )}
 
@@ -115,23 +131,9 @@ export default function GamePlay({ session, playerId }) {
             {/* Turn banner */}
             <div className={`turn-banner ${isMyTurn ? '' : 'waiting'}`} style={{ marginBottom: 16 }}>
               {isMyTurn
-                ? `🎯 Your turn — you have ${effectiveHand.length} cards, select one to pass`
+                ? `🎯 Your turn — you have ${hand.length} cards, select one to pass`
                 : `Waiting for ${currentTurnPlayer?.name || '…'} to pass a card`}
             </div>
-
-            {/* Incoming card notice */}
-            {!isMyTurn && incomingCard && (
-              <div style={{
-                background: 'var(--teal-light)', border: '2px solid var(--teal)',
-                borderRadius: 'var(--radius-md)', padding: '12px 18px', marginBottom: 16,
-                display: 'flex', alignItems: 'center', gap: 10
-              }}>
-                <span style={{ fontSize: 20 }}>📨</span>
-                <p style={{ fontSize: 14, color: 'var(--teal)', fontWeight: 500 }}>
-                  A card is coming from {incomingFrom || 'the previous player'} — it will be added to your hand on your turn.
-                </p>
-              </div>
-            )}
 
             {/* Hand */}
             <div className="panel" style={{ marginBottom: 20 }}>
@@ -140,14 +142,16 @@ export default function GamePlay({ session, playerId }) {
                   <h3 style={{ fontSize: 16, fontFamily: 'var(--font-body)', fontWeight: 600 }}>
                     Your Hand
                     <span className="badge badge-muted" style={{ marginLeft: 10, fontSize: 12 }}>
-                      {isMyTurn ? effectiveHand.length : hand.length} card{(isMyTurn ? effectiveHand.length : hand.length) !== 1 ? 's' : ''}
+                      {hand.length} card{hand.length !== 1 ? 's' : ''}
                     </span>
-                    {(isStarter && !session.firstRoundOver) && (
-                      <span className="badge badge-gold" style={{ marginLeft: 8, fontSize: 12 }}>Starter — 4 cards</span>
+                    {hand.length === 4 && (
+                      <span className="badge badge-gold" style={{ marginLeft: 8, fontSize: 12 }}>
+                        {isMyTurn ? 'Pick one to pass!' : 'Card received!'}
+                      </span>
                     )}
                   </h3>
                   <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                    {isMyTurn ? 'Select a card to pass to the next player' : 'Collect 3 cards with the same meaning'}
+                    {isMyTurn ? 'Select a card to pass clockwise' : 'Collect 3 cards with the same meaning'}
                   </p>
                 </div>
                 {isMyTurn && selectedCard && !isBuzzingPhase && (
@@ -157,14 +161,14 @@ export default function GamePlay({ session, playerId }) {
                 )}
               </div>
 
-              {effectiveHand.length === 0 ? (
+              {hand.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)' }}>
                   <div className="spinner" style={{ margin: '0 auto 12px' }} />
                   <p>Dealing cards…</p>
                 </div>
               ) : (
                 <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
-                  {(isMyTurn ? effectiveHand : hand).map((word, i) => (
+                  {hand.map((word, i) => (
                     <GameCard
                       key={`${word}-${i}`}
                       word={word}
@@ -172,13 +176,12 @@ export default function GamePlay({ session, playerId }) {
                       onClick={() => handleSelectCard(word)}
                       disabled={!isMyTurn || isBuzzingPhase}
                       label={isMyTurn && !isBuzzingPhase ? 'tap to select' : ''}
-                      incoming={isMyTurn && incomingCard === word}
                     />
                   ))}
                 </div>
               )}
 
-              {isMyTurn && !selectedCard && !isBuzzingPhase && effectiveHand.length > 0 && (
+              {isMyTurn && !selectedCard && !isBuzzingPhase && hand.length > 0 && (
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12, textAlign: 'center' }}>
                   ↑ Tap a card to select it, then click Pass
                 </p>
@@ -194,7 +197,7 @@ export default function GamePlay({ session, playerId }) {
                 {!buzzerEnabled
                   ? `🔒 Locked until ${starterPlayer?.name} makes their first pass`
                   : hasBuzzed ? '✅ You buzzed!'
-                  : isMyTurn ? '🟢 It\'s your turn — buzz if you have 3 synonyms!'
+                  : isMyTurn ? '🟢 Your turn — buzz if you have 3 synonyms!'
                   : '⏳ Wait for your turn to buzz'}
               </p>
 
@@ -229,7 +232,7 @@ export default function GamePlay({ session, playerId }) {
                   })}
                   {isBuzzingPhase && buzzerLog.length < (session.players?.length || 0) && (
                     <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>
-                      Waiting for {(session.players?.length || 0) - buzzerLog.length} more player{(session.players?.length || 0) - buzzerLog.length !== 1 ? 's' : ''} to buzz…
+                      Waiting for {(session.players?.length || 0) - buzzerLog.length} more to buzz…
                     </p>
                   )}
                 </div>
