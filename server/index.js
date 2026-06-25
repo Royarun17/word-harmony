@@ -15,6 +15,60 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*', methods: ['GET', 'POST'] } });
 
 const sessions = {};
+const turnTimers = {}; // sessionId -> timeout
+
+const TURN_TIME_LIMIT = 10; // seconds
+
+function clearTurnTimer(sessionId) {
+  if (turnTimers[sessionId]) {
+    clearTimeout(turnTimers[sessionId]);
+    delete turnTimers[sessionId];
+  }
+}
+
+function startTurnTimer(sessionId) {
+  clearTurnTimer(sessionId);
+  const s = getSession(sessionId);
+  if (!s || s.phase !== 'playing') return;
+
+  // Broadcast timer start to all players
+  io.to(sessionId).emit('turn_timer', {
+    playerId: currentTurnPlayerId(s),
+    seconds: TURN_TIME_LIMIT
+  });
+
+  turnTimers[sessionId] = setTimeout(() => {
+    const s = getSession(sessionId);
+    if (!s || s.phase !== 'playing') return;
+
+    const playerId = currentTurnPlayerId(s);
+    const hand = s.cards[playerId];
+    if (!hand || hand.length === 0) return;
+
+    // Auto-pass a random card
+    const randomCard = hand[Math.floor(Math.random() * hand.length)];
+    s.cards[playerId] = hand.filter(c => c !== randomCard);
+
+    const next = nextPlayerId(s, playerId);
+    s.cards[next].push(randomCard);
+
+    if (playerId === s.starterPlayerId && !s.firstRoundOver) s.firstRoundOver = true;
+
+    advanceTurn(s);
+
+    io.to(sessionId).emit('auto_passed', {
+      playerId,
+      playerName: s.players.find(p => p.id === playerId)?.name,
+      card: randomCard
+    });
+
+    io.to(sessionId).emit('session_update', sanitize(s));
+    broadcastHands(s);
+
+    // Start timer for next player
+    startTurnTimer(sessionId);
+  }, TURN_TIME_LIMIT * 1000);
+}
 
 function createSession(hostId, hostName, rounds) {
   const id = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -108,6 +162,7 @@ io.on('connection',(socket)=>{
     if(playerId===s.starterPlayerId&&!s.firstRoundOver) s.firstRoundOver=true;
     advanceTurn(s); io.to(sessionId).emit('session_update',sanitize(s)); broadcastHands(s);
     io.to(sessionId).emit('card_incoming',{toPlayerId:next,fromPlayerName:s.players.find(p=>p.id===playerId)?.name});
+    startTurnTimer(sessionId);
   });
   socket.on('press_buzzer',({sessionId,playerId})=>{
     const s=getSession(sessionId); if(!s)return;
@@ -115,7 +170,7 @@ io.on('connection',(socket)=>{
     if(!s.firstRoundOver){socket.emit('error',{message:'Buzzer locked! Wait for starter to pass.'});return;}
     if(currentTurnPlayerId(s)!==playerId&&s.phase==='playing'){socket.emit('error',{message:'Wait for your turn.'});return;}
     if(s.buzzerLog.find(b=>b.playerId===playerId))return;
-    if(s.phase==='playing'){s.phase='buzzing';s.buzzerLog=[];}
+    if(s.phase==='playing'){s.phase='buzzing';s.buzzerLog=[];clearTurnTimer(sessionId);}
     s.buzzerLog.push({playerId,timestamp:Date.now()});
     io.to(sessionId).emit('buzzer_pressed',{playerId,playerName:s.players.find(p=>p.id===playerId)?.name,buzzerLog:s.buzzerLog});
     if(s.buzzerLog.length===s.players.length){
@@ -131,10 +186,12 @@ io.on('connection',(socket)=>{
   socket.on('next_round',({sessionId})=>{
     const s=getSession(sessionId); if(!s||s.phase!=='scoring')return;
     if(s.currentRound>=s.rounds){
+      clearTurnTimer(sessionId);
       s.phase='ended';
       io.to(sessionId).emit('game_ended',{finalScores:s.players.map(p=>({playerId:p.id,playerName:p.name,total:s.totalScores[p.id]||0})).sort((a,b)=>b.total-a.total)});
       io.to(sessionId).emit('session_update',sanitize(s));
     }else{
+      clearTurnTimer(sessionId);
       s.currentRound++; s.phase='submit'; s.wordSubmissions={}; s.synonymClusters={}; s.cards={};
       s.incomingCard={}; s.buzzerLog=[]; s.roundScores=[]; s.starterPlayerId=null; s.firstRoundOver=false;
       io.to(sessionId).emit('session_update',sanitize(s));
