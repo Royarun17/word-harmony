@@ -274,7 +274,7 @@ export default function GamePlay({ session, playerId }) {
 
               <div className="flex justify-center" style={{ marginBottom: 16 }}>
                 <button
-                  className={`buzzer-btn ${canBuzz ? 'ready' : ''}`}
+                  className={`buzzer-btn ${canBuzz ? 'ready' : ''} ${buzzerEnabled && !hasBuzzed ? 'unlocked' : ''}`}
                   onClick={handleBuzzer}
                   disabled={!canBuzz}
                   aria-label="Press buzzer"
