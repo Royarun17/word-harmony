@@ -10,6 +10,8 @@ export default function GamePlay({ session, playerId }) {
   const [buzzerLog, setBuzzerLog] = useState([]);
   const [hasBuzzed, setHasBuzzed] = useState(false);
   const [justReceivedCard, setJustReceivedCard] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const timerRef = React.useRef(null);
 
   const isMyTurn = session.turnOrder?.[session.currentTurnIndex] === playerId;
   const isBuzzingPhase = session.phase === 'buzzing';
@@ -17,6 +19,36 @@ export default function GamePlay({ session, playerId }) {
   const canBuzz = buzzerEnabled && !hasBuzzed && isMyTurn && (session.phase === 'playing' || session.phase === 'buzzing');
   const currentTurnPlayer = session.players?.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
   const starterPlayer = session.players?.find(p => p.id === session.starterPlayerId);
+
+  // Turn timer countdown
+  useEffect(() => {
+    const fn = ({ playerId: timerPlayerId, seconds }) => {
+      // Clear any existing countdown
+      if (timerRef.current) clearInterval(timerRef.current);
+      setTimeLeft(seconds);
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    };
+    socket.on('turn_timer', fn);
+    return () => { socket.off('turn_timer', fn); if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  // Auto-pass notification
+  useEffect(() => {
+    const fn = ({ playerName, card }) => {
+      setTimeLeft(null);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+    socket.on('auto_passed', fn);
+    return () => socket.off('auto_passed', fn);
+  }, []);
 
   // Listen for hand updates
   useEffect(() => {
@@ -128,12 +160,37 @@ export default function GamePlay({ session, playerId }) {
         <div className="flex gap-24" style={{ alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
 
-            {/* Turn banner */}
-            <div className={`turn-banner ${isMyTurn ? '' : 'waiting'}`} style={{ marginBottom: 16 }}>
+            {/* Turn banner + Timer */}
+            <div className={`turn-banner ${isMyTurn ? '' : 'waiting'}`} style={{ marginBottom: 8 }}>
               {isMyTurn
                 ? `🎯 Your turn — you have ${hand.length} cards, select one to pass`
                 : `Waiting for ${currentTurnPlayer?.name || '…'} to pass a card`}
             </div>
+
+            {/* Timer bar */}
+            {timeLeft !== null && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, color: timeLeft <= 3 ? 'var(--danger)' : 'var(--muted)', fontWeight: 600 }}>
+                    {isMyTurn ? `⏱ ${timeLeft}s to pass or a card auto-passes!` : `⏱ ${timeLeft}s remaining`}
+                  </span>
+                  <span style={{
+                    fontSize: 22, fontWeight: 900,
+                    color: timeLeft <= 3 ? 'var(--danger)' : timeLeft <= 6 ? 'var(--gold)' : 'var(--teal)'
+                  }}>
+                    {timeLeft}
+                  </span>
+                </div>
+                <div style={{ height: 10, background: 'var(--blush)', borderRadius: 5, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 5,
+                    background: timeLeft <= 3 ? 'var(--danger)' : timeLeft <= 6 ? 'var(--gold)' : 'var(--teal)',
+                    width: `${(timeLeft / 10) * 100}%`,
+                    transition: 'width 1s linear, background 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            )}
 
             {/* Hand */}
             <div className="panel" style={{ marginBottom: 20 }}>
