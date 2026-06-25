@@ -16,7 +16,7 @@ const io = new Server(server, { cors: { origin: '*', methods: ['GET', 'POST'] } 
 
 const sessions = {};
 const turnTimers = {};
-const TURN_TIME_LIMIT = 10;
+const TURN_TIME_LIMIT = 30;
 
 // ─── Timer helpers ────────────────────────────────────────────────────────────
 function clearTurnTimer(sessionId) {
@@ -114,9 +114,10 @@ function isCompleteSet(hand, clusters) {
 function scoreRound(s) {
   const pts = [10, 7, 5, 3, 1]; const res = []; let vi = 0;
   s.buzzerLog.forEach((e, i) => {
-    const complete = isCompleteSet(s.cards[e.playerId], s.synonymClusters);
+    // Invalid if buzzed before round 1, auto-buzzed, or incomplete set
+    const complete = !e.invalid && !e.autoBuzzed && isCompleteSet(s.cards[e.playerId], s.synonymClusters);
     const points = complete ? (pts[vi] || 1) : 0; if (complete) vi++;
-    res.push({ playerId: e.playerId, points, hasCompleteSet: complete, buzzerOrder: i + 1 });
+    res.push({ playerId: e.playerId, points, hasCompleteSet: complete, invalid: e.invalid || false, buzzerOrder: i + 1 });
     s.totalScores[e.playerId] = (s.totalScores[e.playerId] || 0) + points;
   });
   s.roundScores = res; return res;
@@ -201,10 +202,8 @@ io.on('connection', (socket) => {
     const s = getSession(sessionId); if (!s) return;
     if (s.phase !== 'playing' && s.phase !== 'buzzing') return;
 
-    // Must wait for round 1 to complete
-    if (!s.firstRoundOver) {
-      socket.emit('error', { message: 'Buzzer locked! Wait for Round 1 to complete.' }); return;
-    }
+    // If Round 1 not over, buzz is allowed but counted as invalid (0 points)
+    const buzzerBeforeRound1 = !s.firstRoundOver;
 
     // Can only buzz on your own turn
     if (currentTurnPlayerId(s) !== playerId) {
@@ -223,15 +222,18 @@ io.on('connection', (socket) => {
     }
 
     // Immediately check if this player has a complete set
+    // Invalid if buzzed before round 1 completes
     const hand = s.cards[playerId];
-    const hasCompleteSet = isCompleteSet(hand, s.synonymClusters);
+    const hasCompleteSet = !buzzerBeforeRound1 && isCompleteSet(hand, s.synonymClusters);
+    const invalid = buzzerBeforeRound1;
 
-    s.buzzerLog.push({ playerId, timestamp: Date.now(), hasCompleteSet });
+    s.buzzerLog.push({ playerId, timestamp: Date.now(), hasCompleteSet, invalid });
 
     io.to(sessionId).emit('buzzer_pressed', {
       playerId,
       playerName: s.players.find(p => p.id === playerId)?.name,
       hasCompleteSet,
+      invalid,
       buzzerLog: s.buzzerLog
     });
 
