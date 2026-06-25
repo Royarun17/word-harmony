@@ -17,7 +17,7 @@ export default function GamePlay({ session, playerId }) {
   const isMyTurn = session.turnOrder?.[session.currentTurnIndex] === playerId;
   const isBuzzingPhase = session.phase === 'buzzing';
   const buzzerEnabled = session.firstRoundOver;
-  const canBuzz = buzzerEnabled && !hasBuzzed && isMyTurn;
+  const canBuzz = !hasBuzzed && isMyTurn;
   const currentTurnPlayer = session.players?.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
   const starterPlayer = session.players?.find(p => p.id === session.starterPlayerId);
   const medals = ['🥇', '🥈', '🥉'];
@@ -122,8 +122,8 @@ export default function GamePlay({ session, playerId }) {
           </div>
           <div className="flex gap-8 items-center">
             {!buzzerEnabled
-              ? <span className="badge badge-muted">🔒 Buzzer locked — Round 1 in progress</span>
-              : <span className="badge badge-teal">🔓 Buzzer unlocked</span>}
+              ? <span className="badge badge-gold">⚠️ Round 1 active — buzzer invalid</span>
+              : <span className="badge badge-teal">🔓 Buzzer open</span>}
             <span className="badge badge-ink">Round {session.currentRound}/{session.rounds}</span>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function GamePlay({ session, playerId }) {
             <div>
               <p style={{ fontWeight: 700, color: '#7A5200', fontSize: 15 }}>You start this round!</p>
               <p style={{ fontSize: 13, color: '#7A5200' }}>
-                You have 4 cards. Pass one to begin — buzzer unlocks after cards go all the way around back to you.
+                You have 4 cards. Pass one to begin — buzzing before cards go all the way around counts as invalid!
               </p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function GamePlay({ session, playerId }) {
                   <div style={{
                     height: '100%', borderRadius: 5,
                     background: timeLeft <= 3 ? 'var(--danger)' : timeLeft <= 6 ? 'var(--gold)' : 'var(--teal)',
-                    width: `${(timeLeft / 10) * 100}%`,
+                    width: `${(timeLeft / 30) * 100}%`,
                     transition: 'width 1s linear, background 0.3s ease'
                   }} />
                 </div>
@@ -265,9 +265,8 @@ export default function GamePlay({ session, playerId }) {
                 Buzzer
               </p>
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-                {!buzzerEnabled
-                  ? `🔒 Locked — cards must travel all the way around to ${starterPlayer?.name} first`
-                  : hasBuzzed ? '✅ You buzzed!'
+                {hasBuzzed ? '✅ You buzzed!'
+                  : !buzzerEnabled && isMyTurn ? '⚠️ Round 1 still active — buzzing now scores 0 points!'
                   : isBuzzingPhase && isMyTurn ? '🚨 Someone buzzed — now it\'s your turn to buzz!'
                   : isMyTurn ? '🟢 Your turn — buzz if you have 3 synonyms!'
                   : '⏳ Wait for your turn to buzz'}
@@ -285,7 +284,7 @@ export default function GamePlay({ session, playerId }) {
               </div>
 
               <p style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {buzzerEnabled ? 'Buzz on your turn — system checks your cards automatically' : 'Buzzer unlocks after Round 1 completes'}
+                {buzzerEnabled ? 'Buzz on your turn — system checks your cards automatically' : '⚠️ Buzzing now counts as invalid — wait for Round 1 to complete'}
               </p>
 
               {buzzerLog.length > 0 && (
@@ -343,7 +342,7 @@ export default function GamePlay({ session, playerId }) {
               </h3>
               <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.8 }}>
                 <p><strong>Starter:</strong> {starterPlayer?.name || '—'}</p>
-                <p><strong>Buzzer:</strong> {buzzerEnabled ? '🔓 Open' : '🔒 Locked'}</p>
+                <p><strong>Buzzer:</strong> {buzzerEnabled ? '🔓 Open' : '⚠️ Invalid'}</p>
                 <p><strong>Phase:</strong> {isBuzzingPhase ? '🚨 Buzzing!' : '🃏 Trading'}</p>
               </div>
             </div>
