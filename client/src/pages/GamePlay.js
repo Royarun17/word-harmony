@@ -11,16 +11,30 @@ export default function GamePlay({ session, playerId }) {
   const [hasBuzzed, setHasBuzzed] = useState(false);
   const [justReceivedCard, setJustReceivedCard] = useState(false);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [buzzerWindowOpen, setBuzzerWindowOpen] = useState(false);
+  const [buzzerWindowTime, setBuzzerWindowTime] = useState(null);
+  const [buzzerRaceActive, setBuzzerRaceActive] = useState(false);
   const [buzzerUnlockedMsg, setBuzzerUnlockedMsg] = useState(false);
   const timerRef = React.useRef(null);
+  const buzzerTimerRef = React.useRef(null);
 
   const isMyTurn = session.turnOrder?.[session.currentTurnIndex] === playerId;
-  const isFunMode = session?.gameMode === 'fun';
   const isBuzzingPhase = session.phase === 'buzzing';
   const buzzerEnabled = session.firstRoundOver;
-  const canBuzz = !hasBuzzed && isMyTurn;
-  const currentTurnPlayer = session.players?.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
+  const isFunMode = session?.gameMode === 'fun';
   const starterPlayer = session.players?.find(p => p.id === session.starterPlayerId);
+  const currentTurnPlayer = session.players?.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
+
+  // Can buzz if:
+  // - Race mode active (someone already buzzed) OR
+  // - Buzzer window open (just passed a card) OR  
+  // - It's their turn
+  const canBuzz = !hasBuzzed && (
+    buzzerRaceActive ||
+    buzzerWindowOpen ||
+    (buzzerEnabled && isMyTurn)
+  );
+
   const medals = ['🥇', '🥈', '🥉'];
 
   // Hand updates
@@ -42,7 +56,7 @@ export default function GamePlay({ session, playerId }) {
     return () => socket.off('card_incoming', fn);
   }, [playerId]);
 
-  // Turn timer countdown
+  // Turn timer
   useEffect(() => {
     const fn = ({ seconds }) => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -58,19 +72,57 @@ export default function GamePlay({ session, playerId }) {
     return () => { socket.off('turn_timer', fn); if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
-  // Auto-passed notification
+  // Auto passed
   useEffect(() => {
     const fn = () => { setTimeLeft(null); if (timerRef.current) clearInterval(timerRef.current); };
     socket.on('auto_passed', fn);
     return () => socket.off('auto_passed', fn);
   }, []);
 
-  // Buzzer unlocked notification
+  // Buzzer window open (3 seconds after passing)
   useEffect(() => {
-    const fn = () => {
-      setBuzzerUnlockedMsg(true);
-      setTimeout(() => setBuzzerUnlockedMsg(false), 4000);
+    const fn = ({ playerId: pid, seconds }) => {
+      if (pid === playerId) {
+        setBuzzerWindowOpen(true);
+        setBuzzerWindowTime(seconds);
+        if (buzzerTimerRef.current) clearInterval(buzzerTimerRef.current);
+        buzzerTimerRef.current = setInterval(() => {
+          setBuzzerWindowTime(prev => {
+            if (prev <= 1) {
+              clearInterval(buzzerTimerRef.current);
+              setBuzzerWindowOpen(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
     };
+    socket.on('buzzer_window_open', fn);
+    return () => { socket.off('buzzer_window_open', fn); };
+  }, [playerId]);
+
+  // Buzzer window closed
+  useEffect(() => {
+    const fn = ({ playerId: pid }) => {
+      if (pid === playerId) { setBuzzerWindowOpen(false); setBuzzerWindowTime(null); }
+    };
+    socket.on('buzzer_window_closed', fn);
+    return () => socket.off('buzzer_window_closed', fn);
+  }, [playerId]);
+
+  // Buzzer race started — everyone can buzz now
+  useEffect(() => {
+    const fn = ({ firstPlayerName }) => {
+      setBuzzerRaceActive(true);
+    };
+    socket.on('buzzer_race_started', fn);
+    return () => socket.off('buzzer_race_started', fn);
+  }, []);
+
+  // Buzzer unlocked
+  useEffect(() => {
+    const fn = () => { setBuzzerUnlockedMsg(true); setTimeout(() => setBuzzerUnlockedMsg(false), 4000); };
     socket.on('buzzer_unlocked', fn);
     return () => socket.off('buzzer_unlocked', fn);
   }, []);
@@ -92,7 +144,11 @@ export default function GamePlay({ session, playerId }) {
     setSelectedCard(null);
     setJustReceivedCard(false);
     setTimeLeft(null);
+    setBuzzerWindowOpen(false);
+    setBuzzerWindowTime(null);
+    setBuzzerRaceActive(false);
     if (timerRef.current) clearInterval(timerRef.current);
+    if (buzzerTimerRef.current) clearInterval(buzzerTimerRef.current);
   }, [session.currentRound]);
 
   function handleSelectCard(word) {
@@ -111,6 +167,15 @@ export default function GamePlay({ session, playerId }) {
     socket.emit('press_buzzer', { sessionId: session.id, playerId });
   }
 
+  const buzzerStatusText = () => {
+    if (hasBuzzed) return '✅ You buzzed!';
+    if (buzzerRaceActive) return '🚨 Race! Buzz now before others!';
+    if (buzzerWindowOpen) return `⚡ ${buzzerWindowTime}s buzz window — BUZZ NOW!`;
+    if (!buzzerEnabled && isMyTurn) return '⚠️ Round 1 active — buzzing scores 0 points!';
+    if (buzzerEnabled && isMyTurn) return '🟢 Your turn — buzz if you have 3 synonyms!';
+    return '⏳ Pass a card to open your buzz window';
+  };
+
   return (
     <div className="page" style={{ paddingTop: 24 }}>
       <div className="container-lg">
@@ -122,8 +187,10 @@ export default function GamePlay({ session, playerId }) {
             <p style={{ color: 'var(--muted)', fontSize: 13 }}>Round {session.currentRound} of {session.rounds}</p>
           </div>
           <div className="flex gap-8 items-center">
-            {!buzzerEnabled
-              ? <span className="badge badge-gold">⚠️ Round 1 active — buzzer invalid</span>
+            {buzzerRaceActive
+              ? <span className="badge badge-ink" style={{ background: 'var(--danger)', color: 'white' }}>🚨 Buzzer Race!</span>
+              : !buzzerEnabled
+              ? <span className="badge badge-gold">⚠️ Round 1 — buzz invalid</span>
               : <span className="badge badge-teal">🔓 Buzzer open</span>}
             <span className="badge badge-ink">Round {session.currentRound}/{session.rounds}</span>
           </div>
@@ -132,12 +199,21 @@ export default function GamePlay({ session, playerId }) {
         {/* Buzzer unlocked flash */}
         {buzzerUnlockedMsg && (
           <div style={{
-            background: 'var(--teal)', color: 'white',
-            borderRadius: 'var(--radius-md)', padding: '14px 20px', marginBottom: 16,
-            textAlign: 'center', fontWeight: 700, fontSize: 16,
-            animation: 'slideDown 0.3s ease'
+            background: 'var(--teal)', color: 'white', borderRadius: 'var(--radius-md)',
+            padding: '14px 20px', marginBottom: 16, textAlign: 'center', fontWeight: 700, fontSize: 16
           }}>
-            🔓 Round 1 complete! Buzzer is now unlocked — buzz on your turn!
+            🔓 Round 1 complete! Pass a card — then buzz in the 3 second window!
+          </div>
+        )}
+
+        {/* Buzzer race banner */}
+        {buzzerRaceActive && !hasBuzzed && (
+          <div style={{
+            background: 'var(--danger)', color: 'white', borderRadius: 'var(--radius-md)',
+            padding: '14px 20px', marginBottom: 16, textAlign: 'center', fontWeight: 700, fontSize: 18,
+            animation: 'buzzer-pulse 0.8s infinite'
+          }}>
+            🚨 BUZZER RACE — Everyone buzz now!
           </div>
         )}
 
@@ -152,7 +228,7 @@ export default function GamePlay({ session, playerId }) {
             <div>
               <p style={{ fontWeight: 700, color: '#7A5200', fontSize: 15 }}>You start this round!</p>
               <p style={{ fontSize: 13, color: '#7A5200' }}>
-                You have 4 cards. Pass one to begin — buzzing before cards go all the way around counts as invalid!
+                You have 4 cards. Pass one — after cards travel all the way around, buzzer activates!
               </p>
             </div>
           </div>
@@ -167,7 +243,7 @@ export default function GamePlay({ session, playerId }) {
           }}>
             <span style={{ fontSize: 20 }}>📨</span>
             <p style={{ fontSize: 14, color: 'var(--teal)', fontWeight: 600 }}>
-              A card was added to your hand! You now have {hand.length} cards.
+              Card received! You now have {hand.length} cards.
             </p>
           </div>
         )}
@@ -178,34 +254,47 @@ export default function GamePlay({ session, playerId }) {
             {/* Turn banner */}
             <div className={`turn-banner ${isMyTurn ? '' : 'waiting'}`} style={{ marginBottom: 8 }}>
               {isBuzzingPhase
-                ? isMyTurn ? '🚨 Your turn to buzz!' : `Waiting for ${currentTurnPlayer?.name} to buzz…`
+                ? '🚨 Buzzer race — buzz as fast as you can!'
                 : isMyTurn
                   ? `🎯 Your turn — ${hand.length} cards, select one to pass`
                   : `Waiting for ${currentTurnPlayer?.name || '…'} to pass a card`}
             </div>
 
-            {/* Timer bar */}
-            {timeLeft !== null && (
+            {/* Turn timer bar */}
+            {timeLeft !== null && !isBuzzingPhase && (
               <div style={{ marginBottom: 16 }}>
                 <div className="flex justify-between items-center" style={{ marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: timeLeft <= 3 ? 'var(--danger)' : 'var(--muted)', fontWeight: 600 }}>
-                    {isMyTurn
-                      ? isBuzzingPhase ? `⏱ ${timeLeft}s to buzz or auto-buzzed!` : `⏱ ${timeLeft}s to pass or auto-passes!`
-                      : `⏱ ${timeLeft}s remaining`}
+                  <span style={{ fontSize: 13, color: timeLeft <= 5 ? 'var(--danger)' : 'var(--muted)', fontWeight: 600 }}>
+                    {isMyTurn ? `⏱ ${timeLeft}s to pass` : `⏱ ${timeLeft}s remaining`}
                   </span>
-                  <span style={{
-                    fontSize: 22, fontWeight: 900,
-                    color: timeLeft <= 3 ? 'var(--danger)' : timeLeft <= 6 ? 'var(--gold)' : 'var(--teal)'
-                  }}>{timeLeft}</span>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: timeLeft <= 5 ? 'var(--danger)' : timeLeft <= 10 ? 'var(--gold)' : 'var(--teal)' }}>
+                    {timeLeft}
+                  </span>
                 </div>
                 <div style={{ height: 10, background: 'var(--blush)', borderRadius: 5, overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: 5,
-                    background: timeLeft <= 3 ? 'var(--danger)' : timeLeft <= 6 ? 'var(--gold)' : 'var(--teal)',
+                    background: timeLeft <= 5 ? 'var(--danger)' : timeLeft <= 10 ? 'var(--gold)' : 'var(--teal)',
                     width: `${(timeLeft / 30) * 100}%`,
                     transition: 'width 1s linear, background 0.3s ease'
                   }} />
                 </div>
+              </div>
+            )}
+
+            {/* Buzzer window timer */}
+            {buzzerWindowOpen && buzzerWindowTime !== null && (
+              <div style={{
+                background: 'var(--danger)', borderRadius: 'var(--radius-md)',
+                padding: '10px 16px', marginBottom: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>
+                  ⚡ Buzz window open!
+                </span>
+                <span style={{ color: 'white', fontWeight: 900, fontSize: 28 }}>
+                  {buzzerWindowTime}s
+                </span>
               </div>
             )}
 
@@ -225,7 +314,7 @@ export default function GamePlay({ session, playerId }) {
                     )}
                   </h3>
                   <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                    {isBuzzingPhase ? 'Buzzing phase — wait for your turn to buzz' : isMyTurn ? 'Select a card to pass clockwise' : isFunMode ? 'Collect 3 cards from the same topic' : 'Collect 3 cards with the same meaning'}
+                    {isBuzzingPhase ? 'Buzzer race active!' : isMyTurn ? 'Select a card to pass clockwise' : isFunMode ? 'Collect 3 cards from the same topic' : 'Collect 3 cards with the same meaning'}
                   </p>
                 </div>
                 {isMyTurn && selectedCard && !isBuzzingPhase && (
@@ -265,12 +354,8 @@ export default function GamePlay({ session, playerId }) {
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Buzzer
               </p>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-                {hasBuzzed ? '✅ You buzzed!'
-                  : !buzzerEnabled && isMyTurn ? '⚠️ Round 1 still active — buzzing now scores 0 points!'
-                  : isBuzzingPhase && isMyTurn ? '🚨 Someone buzzed — now it\'s your turn to buzz!'
-                  : isMyTurn ? '🟢 Your turn — buzz if you have 3 synonyms!'
-                  : '⏳ Wait for your turn to buzz'}
+              <p style={{ fontSize: 13, color: hasBuzzed ? 'var(--success)' : buzzerRaceActive || buzzerWindowOpen ? 'var(--danger)' : 'var(--muted)', marginBottom: 20, fontWeight: 600 }}>
+                {buzzerStatusText()}
               </p>
 
               <div className="flex justify-center" style={{ marginBottom: 16 }}>
@@ -285,7 +370,11 @@ export default function GamePlay({ session, playerId }) {
               </div>
 
               <p style={{ fontSize: 12, color: 'var(--muted)' }}>
-                {buzzerEnabled ? 'Buzz on your turn — system checks your cards automatically' : '⚠️ Buzzing now counts as invalid — wait for Round 1 to complete'}
+                {buzzerRaceActive
+                  ? 'Race mode — buzz anytime now!'
+                  : buzzerEnabled
+                  ? 'Pass a card → 3 second window opens → BUZZ!'
+                  : 'Buzzing before Round 1 ends = 0 points'}
               </p>
 
               {buzzerLog.length > 0 && (
@@ -300,14 +389,14 @@ export default function GamePlay({ session, playerId }) {
                           {p?.name} {b.playerId === playerId ? '(you)' : ''}
                         </span>
                         <span className={`badge ${b.hasCompleteSet ? 'badge-teal' : 'badge-muted'}`} style={{ marginLeft: 'auto', fontSize: 11 }}>
-                          {b.autoBuzzed ? 'auto' : b.hasCompleteSet ? '✓ valid' : '✗ invalid'}
+                          {b.invalid ? '⚠️ invalid' : b.autoBuzzed ? 'auto' : b.hasCompleteSet ? '✓ valid' : '✗ no match'}
                         </span>
                       </div>
                     );
                   })}
                   {isBuzzingPhase && buzzerLog.length < (session.players?.length || 0) && (
-                    <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>
-                      Waiting for {(session.players?.length || 0) - buzzerLog.length} more to buzz…
+                    <p style={{ fontSize: 13, color: 'var(--danger)', marginTop: 8, fontWeight: 600 }}>
+                      🚨 {(session.players?.length || 0) - buzzerLog.length} player{(session.players?.length || 0) - buzzerLog.length !== 1 ? 's' : ''} haven't buzzed yet!
                     </p>
                   )}
                 </div>
@@ -331,9 +420,9 @@ export default function GamePlay({ session, playerId }) {
               </h3>
               <ol style={{ paddingLeft: 18, fontSize: 13, color: 'var(--muted)', lineHeight: 2 }}>
                 <li>{isFunMode ? 'Collect 3 topic cards' : 'Collect 3 synonym cards'}</li>
-                <li>Wait for your turn</li>
-                <li>Press buzzer silently</li>
-                <li>Buzz first = most points</li>
+                <li>Pass a card on your turn</li>
+                <li>Buzz in 3 second window</li>
+                <li>Buzz order = points!</li>
               </ol>
             </div>
 
@@ -344,7 +433,8 @@ export default function GamePlay({ session, playerId }) {
               <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.8 }}>
                 <p><strong>Starter:</strong> {starterPlayer?.name || '—'}</p>
                 <p><strong>Buzzer:</strong> {buzzerEnabled ? '🔓 Open' : '⚠️ Invalid'}</p>
-                <p><strong>Phase:</strong> {isBuzzingPhase ? '🚨 Buzzing!' : '🃏 Trading'}</p>
+                <p><strong>Phase:</strong> {isBuzzingPhase ? '🚨 Race!' : '🃏 Trading'}</p>
+                <p><strong>Mode:</strong> {isFunMode ? '🎉 Fun' : '📚 Education'}</p>
               </div>
             </div>
           </div>
