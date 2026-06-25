@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const synonymEngine = require('./synonymEngine');
+const { getSynonyms, getAssociations } = require('./synonymEngine');
 
 const app = express();
 app.use(cors());
@@ -77,10 +77,10 @@ function checkFirstRoundComplete(s, passingPlayerId) {
 }
 
 // ─── Session factory ──────────────────────────────────────────────────────────
-function createSession(hostId, hostName, rounds) {
+function createSession(hostId, hostName, rounds, gameMode) {
   const id = Math.random().toString(36).substring(2, 7).toUpperCase();
   sessions[id] = {
-    id, hostId, rounds: rounds || 5, currentRound: 0, phase: 'lobby',
+    id, hostId, rounds: rounds || 5, currentRound: 0, phase: 'lobby', gameMode: gameMode || 'education',
     players: [], wordSubmissions: {}, synonymClusters: {}, cards: {},
     turnOrder: [], currentTurnIndex: 0,
     starterPlayerId: null,
@@ -125,9 +125,9 @@ function scoreRound(s) {
 
 // ─── REST ─────────────────────────────────────────────────────────────────────
 app.post('/session/create', (req, res) => {
-  const { playerName, rounds } = req.body; const playerId = uuidv4();
-  const s = createSession(playerId, playerName, rounds); addPlayer(s, playerId, playerName);
-  res.json({ sessionId: s.id, playerId });
+  const { playerName, rounds, gameMode } = req.body; const playerId = uuidv4();
+  const s = createSession(playerId, playerName, rounds, gameMode); addPlayer(s, playerId, playerName);
+  res.json({ sessionId: s.id, playerId, gameMode: s.gameMode });
 });
 app.get('/session/:id', (req, res) => {
   const s = getSession(req.params.id);
@@ -331,7 +331,10 @@ function finishRound(sessionId) {
 // ─── Card dealing ─────────────────────────────────────────────────────────────
 async function dealCards(s) {
   for (const [, word] of Object.entries(s.wordSubmissions)) {
-    const syn = await synonymEngine.getSynonyms(word); s.synonymClusters[word] = syn;
+    const words = s.gameMode === 'fun'
+      ? await getAssociations(word)
+      : await getSynonyms(word);
+    s.synonymClusters[word] = words;
   }
   const pids = s.players.map(p => p.id);
   pids.forEach(pid => { s.cards[pid] = []; s.incomingCard[pid] = null; });
@@ -371,7 +374,7 @@ function broadcastHands(s) {
 
 function sanitize(s) {
   return {
-    id: s.id, hostId: s.hostId, phase: s.phase, currentRound: s.currentRound, rounds: s.rounds,
+    id: s.id, hostId: s.hostId, phase: s.phase, currentRound: s.currentRound, rounds: s.rounds, gameMode: s.gameMode,
     players: s.players, wordSubmissions: s.wordSubmissions, turnOrder: s.turnOrder,
     currentTurnIndex: s.currentTurnIndex, starterPlayerId: s.starterPlayerId,
     starterHasPassed: s.starterHasPassed, firstRoundOver: s.firstRoundOver,
