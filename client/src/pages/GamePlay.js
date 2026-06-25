@@ -15,6 +15,7 @@ export default function GamePlay({ session, playerId }) {
   const timerRef = React.useRef(null);
 
   const isMyTurn = session.turnOrder?.[session.currentTurnIndex] === playerId;
+  const isFunMode = session?.gameMode === 'fun';
   const isBuzzingPhase = session.phase === 'buzzing';
   const buzzerEnabled = session.firstRoundOver;
   const canBuzz = !hasBuzzed && isMyTurn;
@@ -224,7 +225,7 @@ export default function GamePlay({ session, playerId }) {
                     )}
                   </h3>
                   <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                    {isBuzzingPhase ? 'Buzzing phase — wait for your turn to buzz' : isMyTurn ? 'Select a card to pass clockwise' : 'Collect 3 cards with the same meaning'}
+                    {isBuzzingPhase ? 'Buzzing phase — wait for your turn to buzz' : isMyTurn ? 'Select a card to pass clockwise' : isFunMode ? 'Collect 3 cards from the same topic' : 'Collect 3 cards with the same meaning'}
                   </p>
                 </div>
                 {isMyTurn && selectedCard && !isBuzzingPhase && (
@@ -329,7 +330,7 @@ export default function GamePlay({ session, playerId }) {
                 How to Win
               </h3>
               <ol style={{ paddingLeft: 18, fontSize: 13, color: 'var(--muted)', lineHeight: 2 }}>
-                <li>Collect 3 synonym cards</li>
+                <li>{isFunMode ? 'Collect 3 topic cards' : 'Collect 3 synonym cards'}</li>
                 <li>Wait for your turn</li>
                 <li>Press buzzer silently</li>
                 <li>Buzz first = most points</li>
