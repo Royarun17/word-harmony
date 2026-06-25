@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import socket from '../utils/socket';
 
 export default function SubmitWord({ session, playerId }) {
+  const isFunMode = session?.gameMode === 'fun';
   const [word, setWord] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +37,9 @@ export default function SubmitWord({ session, playerId }) {
             Round {session.currentRound || 1} of {session.rounds}
           </span>
           <h1 style={{ fontSize: 38, marginBottom: 8 }}>Submit Your Word</h1>
+          <span className={`badge ${isFunMode ? 'badge-gold' : 'badge-teal'}`} style={{ fontSize: 13 }}>
+            {isFunMode ? '🎉 Fun Mode — word associations' : '📚 Education Mode — synonyms'}
+          </span>
           <p style={{ color: 'var(--muted)', fontSize: 15 }}>
             The system will generate 3 synonyms from your word for the round.
           </p>
@@ -84,13 +88,13 @@ export default function SubmitWord({ session, playerId }) {
             <form onSubmit={handleSubmit} className="flex-col gap-16">
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--muted)' }}>
-                  ENTER A WORD (adjectives work best)
+                  {isFunMode ? 'ENTER A WORD (nouns work best — e.g. doctor, pizza, ocean)' : 'ENTER A WORD (adjectives work best — e.g. happy, brave, fast)'}
                 </label>
                 <input
                   className="input"
                   value={word}
                   onChange={e => setWord(e.target.value)}
-                  placeholder="e.g. happy, vast, clever…"
+                  placeholder={isFunMode ? 'e.g. doctor, pizza, football…' : 'e.g. happy, vast, clever…'}
                   autoFocus
                   disabled={submitted}
                   style={{ fontSize: 20, textAlign: 'center' }}
