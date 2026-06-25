@@ -197,6 +197,12 @@ h1, h2, h3 { font-family: var(--font-display); color: var(--ink); }
   box-shadow: 0 4px 0 #8B1A1A, var(--shadow-card);
 }
 .buzzer-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.buzzer-btn.unlocked:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  background: radial-gradient(circle at 38% 35%, #C04040 0%, #8B1A1A 60%);
+  box-shadow: 0 8px 0 #5A0A0A, var(--shadow-lift);
+}
 .buzzer-btn.ready {
   animation: buzzer-pulse 1.4s infinite;
 }
