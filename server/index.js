@@ -268,49 +268,117 @@ io.on('connection', (socket) => {
 
 async function dealCards(s) {
   const pids = s.players.map(p => p.id);
-  // Fetch clusters
+  const numPlayers = pids.length;
+  // Total cards needed = numPlayers * 3 + 1 (starter's extra card)
+  // ALL must be unique words
+
+  // Step 1: Fetch word clusters for each player
   for (const pid of pids) {
     const word = s.wordSubmissions[pid];
     const words = s.gameMode === 'fun'
       ? await getAssociations(word, s.difficulty)
       : await getSynonyms(word, s.difficulty);
-    s.synonymClusters[word] = [...new Set(words.map(w => w.toLowerCase().trim()))].slice(0, 3);
+    s.synonymClusters[word] = words.map(w => w.toLowerCase().trim());
   }
 
-  // Ensure no duplicate words across clusters
-  const seen = new Set();
+  // Step 2: Build a GLOBAL unique word pool — no duplicates allowed
+  // If a word appears in multiple clusters, remove it from later clusters
+  const globalSeen = new Set();
   for (const [word, cluster] of Object.entries(s.synonymClusters)) {
-    s.synonymClusters[word] = cluster.filter(w => { if (seen.has(w)) return false; seen.add(w); return true; });
+    const uniqueCluster = [];
+    for (const w of cluster) {
+      const lower = w.toLowerCase().trim();
+      if (!globalSeen.has(lower)) {
+        globalSeen.add(lower);
+        uniqueCluster.push(lower);
+      }
+    }
+    // If cluster has fewer than 3 unique words, fetch more
+    if (uniqueCluster.length < 3) {
+      const extraWords = s.gameMode === 'fun'
+        ? await getAssociations(word, s.difficulty)
+        : await getSynonyms(word, s.difficulty);
+      for (const w of extraWords) {
+        if (uniqueCluster.length >= 3) break;
+        const lower = w.toLowerCase().trim();
+        if (!globalSeen.has(lower)) {
+          globalSeen.add(lower);
+          uniqueCluster.push(lower);
+        }
+      }
+    }
+    // Pad with word+number if still not enough (last resort)
+    let padIdx = 1;
+    while (uniqueCluster.length < 3) {
+      const padWord = `${word}${padIdx}`;
+      if (!globalSeen.has(padWord)) { globalSeen.add(padWord); uniqueCluster.push(padWord); }
+      padIdx++;
+    }
+    s.synonymClusters[word] = uniqueCluster.slice(0, 3);
   }
 
-  // Deal: each player gets 1 card from each cluster (rotated)
+  // Step 3: Collect all unique cards into one pool
+  // Pool = all cluster words (numPlayers * 3 unique words)
+  const cardPool = Object.values(s.synonymClusters).flat();
+  console.log(`Card pool (${cardPool.length} cards):`, cardPool.join(', '));
+
+  // Step 4: Deal cards — each player gets exactly 3 cards
+  // Distribute so cards from the SAME cluster go to DIFFERENT players
   pids.forEach(pid => { s.cards[pid] = []; });
   const clusters = Object.values(s.synonymClusters);
   clusters.forEach((cluster, ci) => {
     cluster.forEach((card, ki) => {
-      const receiver = pids[(ci + ki) % pids.length];
-      if (!s.cards[receiver].includes(card)) s.cards[receiver].push(card);
+      // Rotate which player receives each card from this cluster
+      const receiverIdx = (ci + ki) % numPlayers;
+      s.cards[pids[receiverIdx]].push(card);
     });
   });
 
-  // Enforce exactly 3 cards per player
-  pids.forEach(pid => { s.cards[pid] = s.cards[pid].slice(0, 3); });
+  // Step 5: Enforce exactly 3 cards per player
+  pids.forEach(pid => {
+    s.cards[pid] = [...new Set(s.cards[pid])].slice(0, 3);
+  });
 
-  // Give starter a 4th card
-  const si = Math.floor(Math.random() * pids.length);
+  // Step 6: Give starter the 4th card
+  // Must be a word NOT already in ANY player's hand
+  const si = Math.floor(Math.random() * numPlayers);
   const sid = pids[si];
   s.starterPlayerId = sid;
-  const allDealt = Object.values(s.cards).flat();
-  const allGenerated = Object.values(s.synonymClusters).flat();
-  const available = allGenerated.filter(w => !allDealt.includes(w));
-  const fourthCard = available.length > 0
-    ? available[Math.floor(Math.random() * available.length)]
-    : allGenerated[0];
-  s.cards[sid].push(fourthCard);
 
+  const allDealt = new Set(Object.values(s.cards).flat().map(w => w.toLowerCase().trim()));
+  const allGenerated = cardPool.filter(w => !allDealt.has(w.toLowerCase().trim()));
+
+  let fourthCard;
+  if (allGenerated.length > 0) {
+    // Pick a card from the same cluster as the starter's word (strategic)
+    const starterWord = s.wordSubmissions[sid];
+    const starterCluster = s.synonymClusters[starterWord] || [];
+    const fromStarter = starterCluster.find(w => !allDealt.has(w.toLowerCase().trim()));
+    fourthCard = fromStarter || allGenerated[Math.floor(Math.random() * allGenerated.length)];
+  } else {
+    // All cluster cards already dealt — generate a completely fresh word
+    const starterWord = s.wordSubmissions[sid];
+    const fresh = s.gameMode === 'fun'
+      ? await getAssociations(starterWord, s.difficulty)
+      : await getSynonyms(starterWord, s.difficulty);
+    fourthCard = fresh.find(w => !allDealt.has(w.toLowerCase().trim())) || `extra${Date.now()}`;
+  }
+
+  s.cards[sid].push(fourthCard.toLowerCase().trim());
+
+  // Step 7: Final verification — ensure ALL cards across ALL players are unique
+  const finalAllCards = Object.values(s.cards).flat();
+  const finalUnique = new Set(finalAllCards);
+  if (finalUnique.size !== finalAllCards.length) {
+    console.error('DUPLICATE CARDS DETECTED:', finalAllCards.filter((w,i) => finalAllCards.indexOf(w) !== i));
+  } else {
+    console.log(`✅ All ${finalAllCards.length} cards are unique (expected: ${numPlayers * 3 + 1})`);
+  }
+
+  // Log each player's hand
   pids.forEach(pid => {
     const name = s.players.find(p => p.id === pid)?.name;
-    console.log(`${name}: [${s.cards[pid].join(', ')}] (${s.cards[pid].length})`);
+    console.log(`${name} (${s.cards[pid].length} cards): [${s.cards[pid].join(', ')}]`);
   });
 }
 
