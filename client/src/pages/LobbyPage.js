@@ -7,6 +7,7 @@ export default function LobbyPage({ onJoined }) {
   const [tab, setTab] = useState('create'); // create | join
   const [name, setName] = useState('');
   const [rounds, setRounds] = useState(5);
+  const [gameMode, setGameMode] = useState('education');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +17,7 @@ export default function LobbyPage({ onJoined }) {
     if (!name.trim()) { setError('Enter your name.'); return; }
     setLoading(true); setError('');
     try {
-      const { data } = await axios.post('/session/create', { playerName: name.trim(), rounds });
+      const { data } = await axios.post('/session/create', { playerName: name.trim(), rounds, gameMode });
       const { sessionId, playerId } = data;
       socket.connect();
       socket.emit('join_session', { sessionId, playerId, playerName: name.trim() });
@@ -103,6 +104,30 @@ export default function LobbyPage({ onJoined }) {
                     >{r}</button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: 'block', color: 'var(--muted)' }}>GAME MODE</label>
+                <div className="flex gap-8">
+                  <button type="button"
+                    className={`btn ${gameMode === 'education' ? 'btn-teal' : 'btn-outline'}`}
+                    style={{ flex: 1 }}
+                    onClick={() => setGameMode('education')}
+                  >
+                    📚 Education
+                  </button>
+                  <button type="button"
+                    className={`btn ${gameMode === 'fun' ? 'btn-gold' : 'btn-outline'}`}
+                    style={{ flex: 1 }}
+                    onClick={() => setGameMode('fun')}
+                  >
+                    🎉 Fun
+                  </button>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+                  {gameMode === 'education'
+                    ? '📚 Match synonyms — words with the same meaning'
+                    : '🎉 Match associations — words related to the same topic'}
+                </p>
               </div>
               <button className="btn btn-gold btn-lg w-full" type="submit" disabled={loading}>
                 {loading ? 'Creating…' : 'Create Game'}
