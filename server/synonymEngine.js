@@ -61,12 +61,27 @@ const MEDIUM_PLUS = new Set([
   'eloquent','aesthetic','ambiguous','meticulous','voracious',
 ]);
 
-function isGoodWord(w, difficulty='medium') {
+// Check if word shares the same root as the original — e.g. "summery" from "summer"
+// Blocks lazy variants (prefix/suffix of original word) that aren't real distinct concepts
+function isSameRoot(word, original) {
+  const w = word.toLowerCase();
+  const o = original.toLowerCase();
+  if (w === o) return true;
+  // One contains the other as a substring (e.g. "summer" inside "midsummer"/"summery")
+  if (w.includes(o) || o.includes(w)) return true;
+  // Share first 4+ letters (common root, e.g. "happy"/"happily")
+  const minLen = Math.min(w.length, o.length);
+  if (minLen >= 4 && w.slice(0, 4) === o.slice(0, 4)) return true;
+  return false;
+}
+
+function isGoodWord(w, difficulty='medium', original=null) {
   if (!w || typeof w !== 'string') return false;
   const clean = w.toLowerCase().trim();
   if (clean.length < 4 || clean.length > 14) return false;
   if (!/^[a-z]+$/.test(clean)) return false;
   if (ALWAYS_BLOCKED.has(clean)) return false;
+  if (original && isSameRoot(clean, original)) return false; // block "summery" for "summer"
   if (difficulty === 'easy') {
     if (HARD_ONLY.has(clean) || MEDIUM_PLUS.has(clean)) return false;
     if (clean.length > 9) return false;
@@ -80,20 +95,30 @@ function isGoodWord(w, difficulty='medium') {
 async function getSynonyms(word, difficulty='medium') {
   const lower = word.toLowerCase().trim();
   try {
-    const [r1, r2] = await Promise.all([
-      axios.get(DATAMUSE, { params:{ ml:lower, max:30 }, timeout:5000 }),
-      axios.get(DATAMUSE, { params:{ rel_syn:lower, max:20 }, timeout:5000 }),
-    ]);
-    const words = [
-      ...(r1.data||[]).map(r=>r.word.toLowerCase()),
-      ...(r2.data||[]).map(r=>r.word.toLowerCase()),
-    ].filter(w => w!==lower && isGoodWord(w,difficulty))
-     .filter((v,i,a) => a.indexOf(v)===i)
-     .slice(0,3);
-    if (words.length >= 3) return words;
+    // Priority 1: rel_syn = STRICT synonyms only (most accurate, no antonyms/related words)
+    const r2 = await axios.get(DATAMUSE, { params:{ rel_syn:lower, max:20 }, timeout:5000 });
+    const strictSynonyms = (r2.data||[])
+      .map(r=>r.word.toLowerCase())
+      .filter(w => w!==lower && isGoodWord(w,difficulty,lower))
+      .filter((v,i,a) => a.indexOf(v)===i);
+
+    if (strictSynonyms.length >= 3) return strictSynonyms.slice(0,3);
+
+    // Priority 2: ml (means-like) as backup, but filter out antonym-prone results
+    const r1 = await axios.get(DATAMUSE, { params:{ ml:lower, max:40 }, timeout:5000 });
+    const meansLike = (r1.data||[])
+      .map(r=>r.word.toLowerCase())
+      .filter(w => w!==lower && isGoodWord(w,difficulty,lower))
+      .filter(w => !strictSynonyms.includes(w))
+      .filter((v,i,a) => a.indexOf(v)===i);
+
+    const combined = [...strictSynonyms, ...meansLike].slice(0,3);
+    if (combined.length >= 3) return combined;
+
     if (SYN_FALLBACKS[lower]) return SYN_FALLBACKS[lower];
     return ['alike','similar','matching'];
   } catch(e) {
+    console.warn(`Synonym error for "${word}":`, e.message);
     return SYN_FALLBACKS[lower] || ['alike','similar','matching'];
   }
 }
@@ -106,7 +131,7 @@ async function getAssociations(word, difficulty='medium') {
     const r1 = await axios.get(DATAMUSE, { params:{ rel_trg:lower, max:50 }, timeout:5000 });
     const trigger = (r1.data||[])
       .map(r=>r.word.toLowerCase())
-      .filter(w => w!==lower && isGoodWord(w,difficulty))
+      .filter(w => w!==lower && isGoodWord(w,difficulty,lower))
       .filter((v,i,a) => a.indexOf(v)===i)
       .slice(0,3);
     if (trigger.length >= 3) return trigger;
@@ -116,7 +141,7 @@ async function getAssociations(word, difficulty='medium') {
     });
     const concept = (r2.data?.related||[])
       .map(r => r['@id'].split('/').pop().replace(/_/g,'').toLowerCase())
-      .filter(w => w!==lower && isGoodWord(w,difficulty))
+      .filter(w => w!==lower && isGoodWord(w,difficulty,lower))
       .filter((v,i,a) => a.indexOf(v)===i);
 
     const combined = [...new Set([...trigger,...concept])].slice(0,3);
