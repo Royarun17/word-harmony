@@ -1,4 +1,5 @@
 import React from 'react';
+import { AvatarDisplay } from './AvatarPicker';
 
 export default function PlayerList({ players, hostId, currentTurnId, totalScores }) {
   return (
@@ -8,9 +9,7 @@ export default function PlayerList({ players, hostId, currentTurnId, totalScores
           key={p.id}
           className={`player-chip ${p.id === hostId ? 'host' : ''} ${p.id === currentTurnId ? 'active' : ''} ${!p.connected ? 'disconnected' : ''}`}
         >
-          <div className="avatar">
-            {p.name.charAt(0).toUpperCase()}
-          </div>
+          <AvatarDisplay avatar={p.avatar} size={40} fallbackLetter={p.name.charAt(0).toUpperCase()} />
           <div className="flex-col" style={{ flex: 1 }}>
             <span style={{ fontWeight: 600, fontSize: 14 }}>
               {p.name}
