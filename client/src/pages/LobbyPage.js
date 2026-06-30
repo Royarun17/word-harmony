@@ -3,7 +3,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
 
-export default function LobbyPage({ onJoined }) {
+export default function LobbyPage({ onJoined, onShowTutorial }) {
   const [tab, setTab] = useState('create');
   const [name, setName] = useState('');
   const [rounds, setRounds] = useState(5);
@@ -114,8 +114,22 @@ export default function LobbyPage({ onJoined }) {
             </form>
           )}
         </div>
+
+        {onShowTutorial && (
+          <div className="text-center" style={{ marginTop: 16 }}>
+            <button
+              onClick={onShowTutorial}
+              className="btn btn-outline btn-sm"
+              style={{ borderColor: 'rgba(247,242,232,0.3)', color: 'var(--parchment)' }}
+            >
+              📖 How to Play
+            </button>
+          </div>
+        )}
+
         <p style={{ textAlign:'center', marginTop:20, color:'rgba(247,242,232,0.35)', fontSize:13 }}>Word Harmony · Vocabulary Card Game</p>
       </div>
     </div>
+
   );
 }
