@@ -54,12 +54,19 @@ export default function ScoringPage({ session, playerId, isHost, scoringData }) 
           </h3>
           <div className="flex-col gap-12">
             {Object.entries(scoringData.synonymClusters).map(([word, synonyms]) => (
-              <div key={word} style={{ background: 'var(--blush)', borderRadius: 'var(--radius-md)', padding: '12px 16px' }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 8 }}>
+              <div key={word} style={{ background: 'var(--blush)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 10 }}>
                   {isFunMode ? 'Topic:' : 'Based on:'} <strong style={{ color: 'var(--ink)' }}>{word}</strong>
                 </p>
-                <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
-                  {synonyms.map(s => <span key={s} className="badge badge-ink" style={{ fontSize: 13 }}>{s}</span>)}
+                <div className="flex-col gap-8">
+                  {synonyms.map(s => (
+                    <div key={s} style={{ background: 'var(--white)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', border: '1px solid var(--border)' }}>
+                      <span className="badge badge-ink" style={{ fontSize: 13, marginBottom: 6, display: 'inline-block' }}>{s}</span>
+                      <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginTop: 4 }}>
+                        {scoringData.definitions?.[s] || 'Definition not available.'}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
