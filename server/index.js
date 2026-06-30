@@ -270,70 +270,67 @@ async function dealCards(s) {
   const pids = s.players.map(p => p.id);
   const numPlayers = pids.length;
   // Total cards needed = numPlayers * 3 + 1 (starter's extra card)
-  // ALL must be unique words
+  // ALL must be unique words across the ENTIRE game
 
-  // Step 1: Fetch word clusters for each player
-  for (const pid of pids) {
-    const word = s.wordSubmissions[pid];
-    const words = s.gameMode === 'fun'
-      ? await getAssociations(word, s.difficulty)
-      : await getSynonyms(word, s.difficulty);
-    // Strip the player's own submitted word from results — never show it as a card
-    s.synonymClusters[word] = words
-      .map(w => w.toLowerCase().trim())
-      .filter(w => w !== word.toLowerCase().trim());
+  const globalSeen = new Set(); // tracks every word used so far, across ALL clusters
+  const GENERIC_BACKUP = ['nice','good','fine','okay','plain','basic','simple','common','usual','normal','steady','gentle','quiet','calm','clear'];
+  let genericIdx = 0;
+
+  function takeUnique(words, excludeWord) {
+    // Filters a word list down to ones not yet used anywhere, and not the submitted word itself
+    const out = [];
+    for (const w of words) {
+      const lower = (w || '').toLowerCase().trim();
+      if (!lower) continue;
+      if (lower === excludeWord) continue;
+      if (globalSeen.has(lower)) continue;
+      if (!/^[a-z]+$/.test(lower)) continue;
+      globalSeen.add(lower);
+      out.push(lower);
+    }
+    return out;
   }
 
-  // Step 2: Build a GLOBAL unique word pool — no duplicates allowed
-  // If a word appears in multiple clusters, remove it from later clusters
-  const globalSeen = new Set();
-  for (const [word, cluster] of Object.entries(s.synonymClusters)) {
-    const uniqueCluster = [];
-    for (const w of cluster) {
-      const lower = w.toLowerCase().trim();
-      if (!globalSeen.has(lower)) {
-        globalSeen.add(lower);
-        uniqueCluster.push(lower);
+  // Step 1: For each player's submitted word, build a 3-word cluster
+  // guaranteed unique against every other cluster generated so far
+  for (const pid of pids) {
+    const word = s.wordSubmissions[pid];
+    const excludeWord = word.toLowerCase().trim();
+    let cluster = [];
+
+    // Attempt 1: normal fetch at requested difficulty
+    const first = s.gameMode === 'fun'
+      ? await getAssociations(word, s.difficulty)
+      : await getSynonyms(word, s.difficulty);
+    cluster.push(...takeUnique(first, excludeWord));
+
+    // Attempt 2: fetch at 'hard' difficulty — wider word pool, likely gives NEW words
+    if (cluster.length < 3) {
+      const second = s.gameMode === 'fun'
+        ? await getAssociations(word, 'hard')
+        : await getSynonyms(word, 'hard');
+      cluster.push(...takeUnique(second, excludeWord));
+    }
+
+    // Attempt 3: fetch using a plural/variant of the word — different API results
+    if (cluster.length < 3) {
+      const third = s.gameMode === 'fun'
+        ? await getAssociations(word + 's', 'hard')
+        : await getSynonyms(word + 'ness', 'hard');
+      cluster.push(...takeUnique(third, excludeWord));
+    }
+
+    // Final fallback: generic backup words (never numbers, never duplicates)
+    while (cluster.length < 3 && genericIdx < GENERIC_BACKUP.length) {
+      const candidate = GENERIC_BACKUP[genericIdx];
+      genericIdx++;
+      if (!globalSeen.has(candidate)) {
+        globalSeen.add(candidate);
+        cluster.push(candidate);
       }
     }
-    // If cluster has fewer than 3 unique words, fetch more
-    if (uniqueCluster.length < 3) {
-      const extraWords = s.gameMode === 'fun'
-        ? await getAssociations(word, s.difficulty)
-        : await getSynonyms(word, s.difficulty);
-      for (const w of extraWords) {
-        if (uniqueCluster.length >= 3) break;
-        const lower = w.toLowerCase().trim();
-        if (!globalSeen.has(lower)) {
-          globalSeen.add(lower);
-          uniqueCluster.push(lower);
-        }
-      }
-    }
-    // If still not enough real words, try fetching from a broader pool
-    // NEVER use numbered placeholders - always use real words
-    if (uniqueCluster.length < 3) {
-      const broaderWords = s.gameMode === 'fun'
-        ? await getAssociations(word + 's', s.difficulty) // try plural variant
-        : await getSynonyms(word, 'hard'); // try hard difficulty for more options
-      for (const w of broaderWords) {
-        if (uniqueCluster.length >= 3) break;
-        const lower = w.toLowerCase().trim();
-        if (!globalSeen.has(lower) && /^[a-z]+$/.test(lower)) {
-          globalSeen.add(lower);
-          uniqueCluster.push(lower);
-        }
-      }
-    }
-    // Absolute last resort: use a curated generic word list (never numbers)
-    const GENERIC_BACKUP = ['nice','good','fine','okay','plain','basic','simple','common','usual','normal'];
-    let backupIdx = 0;
-    while (uniqueCluster.length < 3 && backupIdx < GENERIC_BACKUP.length) {
-      const candidate = GENERIC_BACKUP[backupIdx];
-      if (!globalSeen.has(candidate)) { globalSeen.add(candidate); uniqueCluster.push(candidate); }
-      backupIdx++;
-    }
-    s.synonymClusters[word] = uniqueCluster.slice(0, 3);
+
+    s.synonymClusters[word] = cluster.slice(0, 3);
   }
 
   // Step 3: Collect all unique cards into one pool
@@ -359,34 +356,57 @@ async function dealCards(s) {
   });
 
   // Step 6: Give starter the 4th card
-  // Must be a word NOT already in ANY player's hand
+  // CRITICAL: with numPlayers clusters of exactly 3 words each, ALL generated
+  // words are always fully dealt out — there is NEVER a leftover card sitting
+  // unused. So the 4th card MUST be a brand new word, fetched fresh, and
+  // checked against the starter's OWN hand specifically (not just the global set).
   const si = Math.floor(Math.random() * numPlayers);
   const sid = pids[si];
   s.starterPlayerId = sid;
 
+  // allDealt = every word currently in ANY player's hand, including starter's own 3
   const allDealt = new Set(Object.values(s.cards).flat().map(w => w.toLowerCase().trim()));
-  const allGenerated = cardPool.filter(w => !allDealt.has(w.toLowerCase().trim()));
+  const starterHandSet = new Set(s.cards[sid].map(w => w.toLowerCase().trim()));
 
-  let fourthCard;
-  if (allGenerated.length > 0) {
-    // Pick a card from the same cluster as the starter's word (strategic)
-    const starterWord = s.wordSubmissions[sid];
-    const starterCluster = s.synonymClusters[starterWord] || [];
-    const fromStarter = starterCluster.find(w => !allDealt.has(w.toLowerCase().trim()));
-    fourthCard = fromStarter || allGenerated[Math.floor(Math.random() * allGenerated.length)];
-  } else {
-    // All cluster cards already dealt — generate a completely fresh word
-    const starterWord = s.wordSubmissions[sid];
-    const fresh = s.gameMode === 'fun'
-      ? await getAssociations(starterWord, s.difficulty)
-      : await getSynonyms(starterWord, s.difficulty);
-    const GENERIC_4TH = ['extra','bonus','spare','additional','supplementary'];
-    fourthCard = fresh.find(w => !allDealt.has(w.toLowerCase().trim()))
-      || GENERIC_4TH.find(w => !allDealt.has(w))
-      || 'wildcard';
+  const starterWord = s.wordSubmissions[sid];
+  const excludeWord = starterWord.toLowerCase().trim();
+
+  // Try multiple fetch strategies until we get a word that is:
+  //  1. Not the starter's own submitted word
+  //  2. Not already in ANY player's hand (including starter's own 3 cards)
+  let fourthCard = null;
+  const attempts = [
+    () => s.gameMode === 'fun' ? getAssociations(starterWord, s.difficulty) : getSynonyms(starterWord, s.difficulty),
+    () => s.gameMode === 'fun' ? getAssociations(starterWord, 'hard') : getSynonyms(starterWord, 'hard'),
+    () => s.gameMode === 'fun' ? getAssociations(starterWord + 's', 'hard') : getSynonyms(starterWord + 'ness', 'hard'),
+  ];
+
+  for (const attempt of attempts) {
+    if (fourthCard) break;
+    const results = await attempt();
+    for (const w of results) {
+      const lower = (w || '').toLowerCase().trim();
+      if (!lower || lower === excludeWord) continue;
+      if (allDealt.has(lower) || starterHandSet.has(lower)) continue;
+      if (!/^[a-z]+$/.test(lower)) continue;
+      fourthCard = lower;
+      break;
+    }
   }
 
-  s.cards[sid].push(fourthCard.toLowerCase().trim());
+  // Absolute last resort — guaranteed not in starter's hand or anyone else's
+  if (!fourthCard) {
+    const GENERIC_4TH = ['extra','bonus','spare','wildcard','surprise','mystery','secret','hidden','golden','silver'];
+    fourthCard = GENERIC_4TH.find(w => !allDealt.has(w) && !starterHandSet.has(w)) || `bonus${si}`;
+  }
+
+  // Final safety check before pushing — must never equal something starter already holds
+  if (starterHandSet.has(fourthCard)) {
+    console.error(`4th card "${fourthCard}" was already in starter's hand! Forcing safe fallback.`);
+    fourthCard = 'mystery';
+  }
+
+  s.cards[sid].push(fourthCard);
 
   // Step 7: Final verification — ensure ALL cards across ALL players are unique
   const finalAllCards = Object.values(s.cards).flat();
