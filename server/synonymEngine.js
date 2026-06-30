@@ -153,4 +153,52 @@ async function getAssociations(word, difficulty='medium') {
   }
 }
 
-module.exports = { getSynonyms, getAssociations };
+// ─── Word Definitions (for results screen) ───────────────────────────────────
+const DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en';
+
+// Curated 2-3 sentence definitions for common fallback words (used if API fails)
+const DEFINITION_FALLBACKS = {
+  joyful: 'Feeling or showing great happiness and delight. A joyful person radiates positive energy and often smiles or laughs easily. This word is commonly used to describe both emotions and celebratory occasions.',
+  elated: 'Extremely happy and excited, often after hearing good news or achieving something. Being elated is a stronger feeling than simply being pleased — it suggests a burst of joy. The word comes from the idea of being lifted up emotionally.',
+  content: 'Feeling satisfied and at peace with one\'s situation, without needing more. A content person is comfortable with what they have rather than constantly wanting change. This is a calmer, quieter form of happiness compared to excitement.',
+};
+
+async function getDefinition(word) {
+  const lower = word.toLowerCase().trim();
+  try {
+    const response = await axios.get(`${DICTIONARY_API}/${encodeURIComponent(lower)}`, { timeout: 5000 });
+    const entry = response.data?.[0];
+    const meaning = entry?.meanings?.[0];
+    const definition = meaning?.definitions?.[0]?.definition;
+    const example = meaning?.definitions?.[0]?.example;
+    const partOfSpeech = meaning?.partOfSpeech;
+
+    if (definition) {
+      let result = definition;
+      // Ensure it ends with a period
+      if (!result.endsWith('.')) result += '.';
+      // Add example sentence if available, to reach 2-3 sentences
+      if (example) {
+        result += ` For example: "${example}".`;
+      } else {
+        result += ` This is typically used as a${partOfSpeech ? ' ' + partOfSpeech : ''} in everyday language.`;
+      }
+      return result;
+    }
+    throw new Error('No definition found');
+  } catch (err) {
+    if (DEFINITION_FALLBACKS[lower]) return DEFINITION_FALLBACKS[lower];
+    return `"${word}" is a word used in this round's word cluster. Its exact dictionary definition could not be retrieved right now, but it relates closely to the other words shown alongside it.`;
+  }
+}
+
+// Fetch definitions for multiple words at once (used for scoring screen)
+async function getDefinitions(words) {
+  const results = {};
+  await Promise.all(words.map(async (w) => {
+    results[w] = await getDefinition(w);
+  }));
+  return results;
+}
+
+module.exports = { getSynonyms, getAssociations, getDefinition, getDefinitions };
