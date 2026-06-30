@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import socket from './utils/socket';
 import { useSocketEvent } from './hooks/useSocketEvent';
 import { useToast, ToastContainer } from './components/Toast';
 
+import TutorialPage from './pages/TutorialPage';
 import LobbyPage   from './pages/LobbyPage';
 import WaitingRoom from './pages/WaitingRoom';
 import SubmitWord  from './pages/SubmitWord';
@@ -10,7 +11,12 @@ import GamePlay    from './pages/GamePlay';
 import ScoringPage from './pages/ScoringPage';
 import GameEnded   from './pages/GameEnded';
 
+const TUTORIAL_SEEN_KEY = 'wordHarmonyTutorialSeen';
+
 export default function App() {
+  // Show tutorial automatically on first-ever visit, then on demand via Lobby button
+  const [showTutorial, setShowTutorial] = useState(true);
+
   const [gameState, setGameState]     = useState('lobby');
   const [session, setSession]         = useState(null);
   const [myInfo, setMyInfo]           = useState(null);
@@ -18,6 +24,26 @@ export default function App() {
   const [scoringData, setScoringData] = useState(null);
 
   const { toasts, show: showToast } = useToast();
+
+  // Remember tutorial completion across reloads using localStorage,
+  // falling back gracefully if unavailable
+  useEffect(() => {
+    try {
+      const seen = window.localStorage.getItem(TUTORIAL_SEEN_KEY);
+      if (seen === 'true') setShowTutorial(false);
+    } catch (e) {
+      // localStorage unavailable — tutorial will show every fresh session
+    }
+  }, []);
+
+  function completeTutorial() {
+    setShowTutorial(false);
+    try { window.localStorage.setItem(TUTORIAL_SEEN_KEY, 'true'); } catch (e) {}
+  }
+
+  function openTutorialManually() {
+    setShowTutorial(true);
+  }
 
   useSocketEvent('session_update', (s) => {
     setSession(s);
@@ -56,9 +82,15 @@ export default function App() {
     setGameState('lobby');
   }
 
+  // Tutorial takes over the whole screen when active —
+  // shown automatically before Lobby on first visit, or anytime via the Lobby button
+  if (showTutorial) {
+    return <TutorialPage onDone={completeTutorial} />;
+  }
+
   return (
     <>
-      {gameState === 'lobby'   && <LobbyPage onJoined={handleJoined} />}
+      {gameState === 'lobby'   && <LobbyPage onJoined={handleJoined} onShowTutorial={openTutorialManually} />}
       {gameState === 'waiting' && session && myInfo && <WaitingRoom session={session} playerId={myInfo.playerId} isHost={myInfo.isHost} />}
       {gameState === 'submit'  && session && myInfo && <SubmitWord  session={session} playerId={myInfo.playerId} />}
       {gameState === 'playing' && session && myInfo && <GamePlay    session={session} playerId={myInfo.playerId} />}
