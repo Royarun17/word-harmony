@@ -97,8 +97,7 @@ export default function TutorialPage({ onDone }) {
       startDemoBuzzTimer();
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stepIndex]);
+  }, [stepIndex]); // eslint-disable-line
 
   return (
     <div className="page-center" style={{ background: 'var(--ink)', minHeight: '100vh' }}>
