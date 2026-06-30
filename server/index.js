@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { getSynonyms, getAssociations } = require('./synonymEngine');
+const { getSynonyms, getAssociations, getDefinitions } = require('./synonymEngine');
 
 const app = express();
 app.use(cors());
@@ -107,7 +107,10 @@ function doPassCard(s, playerId, cardToPass, sessionId, isAutoPass = false) {
   checkFirstRoundComplete(s, playerId);
 
   // Open 3 second buzzer window for passer
-  if (s.firstRoundOver && !s.buzzerActive) {
+  // EXCEPTION: the starter cannot buzz in the very round they received their 4th card —
+  // their buzzer only activates from Round 2 onwards, even after firstRoundOver is true
+  const isStarterFirstRound = (playerId === s.starterPlayerId && s.currentRound === 1);
+  if (s.firstRoundOver && !s.buzzerActive && !isStarterFirstRound) {
     s.buzzerWindowOpen[playerId] = true;
     setTimeout(() => {
       if (s.buzzerWindowOpen) s.buzzerWindowOpen[playerId] = false;
@@ -130,17 +133,28 @@ function doPassCard(s, playerId, cardToPass, sessionId, isAutoPass = false) {
   if (!isAutoPass) startTurnTimer(sessionId);
 }
 
-function finishRound(sessionId) {
+async function finishRound(sessionId) {
   clearTurnTimer(sessionId);
   const s = getSession(sessionId); if (!s) return;
   const res = scoreRound(s);
   s.phase = 'scoring';
+
+  // Fetch definitions for every word shown in this round's clusters
+  const allWords = Object.values(s.synonymClusters).flat();
+  let definitions = {};
+  try {
+    definitions = await getDefinitions(allWords);
+  } catch (e) {
+    console.warn('Failed to fetch definitions:', e.message);
+  }
+
   io.to(sessionId).emit('round_scored', {
     roundScores: res.map(r => ({
       ...r, playerName: s.players.find(p => p.id === r.playerId)?.name, hand: s.cards[r.playerId]
     })),
     totalScores: s.players.map(p => ({ playerId: p.id, playerName: p.name, total: s.totalScores[p.id] || 0 })),
-    synonymClusters: s.synonymClusters, round: s.currentRound
+    synonymClusters: s.synonymClusters, round: s.currentRound,
+    definitions
   });
   io.to(sessionId).emit('session_update', sanitize(s));
 }
@@ -177,9 +191,39 @@ io.on('connection', (socket) => {
   socket.on('submit_word', async ({ sessionId, playerId, word }) => {
     const s = getSession(sessionId); if (!s || s.phase !== 'submit') return;
     const cleaned = word.trim().toLowerCase();
-    if (Object.values(s.wordSubmissions).map(w => w.toLowerCase()).includes(cleaned)) {
+    const existing = Object.values(s.wordSubmissions).map(w => w.toLowerCase());
+
+    if (existing.includes(cleaned)) {
       socket.emit('word_error', { message: 'Word already submitted. Try another.' }); return;
     }
+
+    // Education mode: also block words too similar in MEANING to existing submissions
+    // (e.g. "joy" rejected if "happy" already submitted, since their synonym clusters would overlap)
+    if (s.gameMode !== 'fun' && existing.length > 0) {
+      socket.emit('checking_word', { message: 'Checking word...' });
+      try {
+        const candidateSynonyms = await getSynonyms(cleaned, 'hard');
+        const candidateSet = new Set([cleaned, ...candidateSynonyms.map(w => w.toLowerCase())]);
+        for (const existingWord of existing) {
+          if (candidateSet.has(existingWord)) {
+            socket.emit('word_error', { message: `"${cleaned}" is too similar in meaning to an already-submitted word. Try a more different word.` });
+            return;
+          }
+          // Also check the reverse — is the existing word's synonym set overlapping with this candidate?
+          const existingSynonyms = s._tempSynonymCache?.[existingWord];
+          if (existingSynonyms && existingSynonyms.includes(cleaned)) {
+            socket.emit('word_error', { message: `"${cleaned}" is too similar in meaning to "${existingWord}". Try a more different word.` });
+            return;
+          }
+        }
+        // Cache this word's synonyms so future submissions can check against it too
+        if (!s._tempSynonymCache) s._tempSynonymCache = {};
+        s._tempSynonymCache[cleaned] = candidateSynonyms.map(w => w.toLowerCase());
+      } catch (e) {
+        console.warn('Similarity check failed, allowing word:', e.message);
+      }
+    }
+
     s.wordSubmissions[playerId] = cleaned;
     io.to(sessionId).emit('session_update', sanitize(s));
     if (Object.keys(s.wordSubmissions).length === s.players.length) {
@@ -207,7 +251,7 @@ io.on('connection', (socket) => {
     doPassCard(s, playerId, cardToPass, sessionId, false);
   });
 
-  socket.on('press_buzzer', ({ sessionId, playerId }) => {
+  socket.on('press_buzzer', async ({ sessionId, playerId }) => {
     const s = getSession(sessionId); if (!s) return;
     if (s.phase !== 'playing' && s.phase !== 'buzzing') return;
     if (s.buzzerLog.find(b => b.playerId === playerId)) return;
@@ -215,6 +259,11 @@ io.on('connection', (socket) => {
     const buzzerBeforeRound1 = !s.firstRoundOver;
 
     if (!s.buzzerActive) {
+      // Starter cannot buzz at all during Round 1 — even on their own turn
+      if (playerId === s.starterPlayerId && s.currentRound === 1) {
+        socket.emit('error', { message: 'As the starter, your buzzer activates from Round 2 onwards!' });
+        return;
+      }
       const inWindow = s.buzzerWindowOpen && s.buzzerWindowOpen[playerId];
       const isTheirTurn = currentTurnPlayerId(s) === playerId;
       if (!inWindow && !isTheirTurn) {
@@ -234,7 +283,7 @@ io.on('connection', (socket) => {
       hasCompleteSet, invalid: buzzerBeforeRound1, buzzerLog: s.buzzerLog
     });
     io.to(sessionId).emit('session_update', sanitize(s));
-    if (s.buzzerLog.length === s.players.length) finishRound(sessionId);
+    if (s.buzzerLog.length === s.players.length) await finishRound(sessionId);
   });
 
   socket.on('next_round', ({ sessionId }) => {
