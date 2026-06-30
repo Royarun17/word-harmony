@@ -69,7 +69,7 @@ function createSession(hostId, hostName, rounds, gameMode, difficulty) {
 function getSession(id) { return sessions[id]; }
 function addPlayer(s, pid, name) {
   if (s.players.find(p => p.id === pid)) return;
-  s.players.push({ id: pid, name, connected: true });
+  s.players.push({ id: pid, name, connected: true, avatar: null });
   s.totalScores[pid] = 0;
 }
 function currentTurnPlayerId(s) { return s.turnOrder[s.currentTurnIndex]; }
@@ -180,6 +180,20 @@ io.on('connection', (socket) => {
     const s = getSession(sessionId);
     if (!s) { socket.emit('error', { message: 'Session not found' }); return; }
     addPlayer(s, playerId, playerName); socket.join(sessionId); socket.data = { sessionId, playerId };
+    io.to(sessionId).emit('session_update', sanitize(s));
+  });
+
+  socket.on('update_avatar', ({ sessionId, playerId, avatar }) => {
+    const s = getSession(sessionId);
+    if (!s) return;
+    const player = s.players.find(p => p.id === playerId);
+    if (!player) return;
+    // Basic guard against absurdly large payloads slipping through despite client-side resize
+    if (avatar?.type === 'photo' && avatar.value && avatar.value.length > 300000) {
+      socket.emit('error', { message: 'Photo too large after processing — try a different image.' });
+      return;
+    }
+    player.avatar = avatar;
     io.to(sessionId).emit('session_update', sanitize(s));
   });
 
