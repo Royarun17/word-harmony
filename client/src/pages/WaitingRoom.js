@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import socket from '../utils/socket';
 import PlayerList from '../components/PlayerList';
+import AvatarPicker from '../components/AvatarPicker';
 
 export default function WaitingRoom({ session, playerId, isHost }) {
   const minPlayers = 3;
   const canStart = session.players.length >= minPlayers;
 
+  const myPlayer = session.players.find(p => p.id === playerId);
+  const [avatar, setAvatar] = useState(myPlayer?.avatar || null);
+  const [pickerOpen, setPickerOpen] = useState(!myPlayer?.avatar);
+
   function startGame() {
     socket.emit('start_submission', { sessionId: session.id });
+  }
+
+  function handleAvatarChange(newAvatar) {
+    setAvatar(newAvatar);
+    socket.emit('update_avatar', { sessionId: session.id, playerId, avatar: newAvatar });
   }
 
   return (
@@ -20,7 +30,6 @@ export default function WaitingRoom({ session, playerId, isHost }) {
           </p>
         </div>
 
-        {/* Session code */}
         <div style={{
           background: 'var(--ink)', color: 'var(--gold)',
           borderRadius: 'var(--radius-lg)', padding: '24px 32px',
@@ -30,7 +39,6 @@ export default function WaitingRoom({ session, playerId, isHost }) {
           <span style={{ fontFamily: 'monospace', fontSize: 44, fontWeight: 900, letterSpacing: '0.18em' }}>{session.id}</span>
         </div>
 
-        {/* Info row */}
         <div className="flex gap-12 justify-center" style={{ marginBottom: 28 }}>
           <span className="badge badge-teal">{session.rounds} Rounds</span>
           <span className="badge badge-gold">{session.players.length} / 8 Players</span>
@@ -39,7 +47,26 @@ export default function WaitingRoom({ session, playerId, isHost }) {
           )}
         </div>
 
-        {/* Players */}
+        <div className="panel" style={{ marginBottom: 24 }}>
+          <div
+            className="flex justify-between items-center"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setPickerOpen(o => !o)}
+          >
+            <h3 style={{ fontSize: 16, fontFamily: 'var(--font-body)', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Choose Your Avatar
+            </h3>
+            <span style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600 }}>
+              {pickerOpen ? 'Hide ▲' : 'Edit ▼'}
+            </span>
+          </div>
+          {pickerOpen && (
+            <div style={{ marginTop: 16 }}>
+              <AvatarPicker value={avatar} onChange={handleAvatarChange} />
+            </div>
+          )}
+        </div>
+
         <div className="panel" style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 16, marginBottom: 16, fontFamily: 'var(--font-body)', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Players Joined
