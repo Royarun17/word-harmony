@@ -278,7 +278,10 @@ async function dealCards(s) {
     const words = s.gameMode === 'fun'
       ? await getAssociations(word, s.difficulty)
       : await getSynonyms(word, s.difficulty);
-    s.synonymClusters[word] = words.map(w => w.toLowerCase().trim());
+    // Strip the player's own submitted word from results — never show it as a card
+    s.synonymClusters[word] = words
+      .map(w => w.toLowerCase().trim())
+      .filter(w => w !== word.toLowerCase().trim());
   }
 
   // Step 2: Build a GLOBAL unique word pool — no duplicates allowed
@@ -307,12 +310,28 @@ async function dealCards(s) {
         }
       }
     }
-    // Pad with word+number if still not enough (last resort)
-    let padIdx = 1;
-    while (uniqueCluster.length < 3) {
-      const padWord = `${word}${padIdx}`;
-      if (!globalSeen.has(padWord)) { globalSeen.add(padWord); uniqueCluster.push(padWord); }
-      padIdx++;
+    // If still not enough real words, try fetching from a broader pool
+    // NEVER use numbered placeholders - always use real words
+    if (uniqueCluster.length < 3) {
+      const broaderWords = s.gameMode === 'fun'
+        ? await getAssociations(word + 's', s.difficulty) // try plural variant
+        : await getSynonyms(word, 'hard'); // try hard difficulty for more options
+      for (const w of broaderWords) {
+        if (uniqueCluster.length >= 3) break;
+        const lower = w.toLowerCase().trim();
+        if (!globalSeen.has(lower) && /^[a-z]+$/.test(lower)) {
+          globalSeen.add(lower);
+          uniqueCluster.push(lower);
+        }
+      }
+    }
+    // Absolute last resort: use a curated generic word list (never numbers)
+    const GENERIC_BACKUP = ['nice','good','fine','okay','plain','basic','simple','common','usual','normal'];
+    let backupIdx = 0;
+    while (uniqueCluster.length < 3 && backupIdx < GENERIC_BACKUP.length) {
+      const candidate = GENERIC_BACKUP[backupIdx];
+      if (!globalSeen.has(candidate)) { globalSeen.add(candidate); uniqueCluster.push(candidate); }
+      backupIdx++;
     }
     s.synonymClusters[word] = uniqueCluster.slice(0, 3);
   }
@@ -361,7 +380,10 @@ async function dealCards(s) {
     const fresh = s.gameMode === 'fun'
       ? await getAssociations(starterWord, s.difficulty)
       : await getSynonyms(starterWord, s.difficulty);
-    fourthCard = fresh.find(w => !allDealt.has(w.toLowerCase().trim())) || `extra${Date.now()}`;
+    const GENERIC_4TH = ['extra','bonus','spare','additional','supplementary'];
+    fourthCard = fresh.find(w => !allDealt.has(w.toLowerCase().trim()))
+      || GENERIC_4TH.find(w => !allDealt.has(w))
+      || 'wildcard';
   }
 
   s.cards[sid].push(fourthCard.toLowerCase().trim());
