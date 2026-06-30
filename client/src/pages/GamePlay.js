@@ -27,7 +27,8 @@ export default function GamePlay({ session, playerId }) {
   const currentTurnPlayer = session.players?.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
   const medals = ['🥇','🥈','🥉'];
 
-  const canBuzz = !hasBuzzed && (buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn));
+  const isStarterLockedThisRound = isStarter && session.currentRound === 1;
+  const canBuzz = !hasBuzzed && !isStarterLockedThisRound && (buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn));
 
   useEffect(() => {
     const fn = ({ hand: h, isStarter: s }) => { setHand(h||[]); setIsStarter(!!s); };
@@ -103,6 +104,7 @@ export default function GamePlay({ session, playerId }) {
 
   const buzzerStatus = () => {
     if (hasBuzzed) return '✅ You buzzed!';
+    if (isStarterLockedThisRound) return '🔒 As starter, your buzzer activates from Round 2!';
     if (buzzerRaceActive) return '🚨 Race! Buzz now!';
     if (buzzerWindowOpen) return `⚡ ${buzzerWindowTime}s window — BUZZ NOW!`;
     if (!buzzerEnabled && isMyTurn) return '⚠️ Round 1 active — buzzing scores 0 pts!';
