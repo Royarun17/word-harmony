@@ -4,8 +4,9 @@ import PlayerList from '../components/PlayerList';
 import AvatarPicker from '../components/AvatarPicker';
 
 export default function WaitingRoom({ session, playerId, isHost }) {
-  const minPlayers = 3;
-  const canStart = session.players.length >= minPlayers;
+  const minPlayers = 1; // bots fill empty spots up to 3
+  const realPlayers = session.players.filter(p => !p.isBot).length;
+  const canStart = realPlayers >= minPlayers;
 
   const myPlayer = session.players.find(p => p.id === playerId);
   const [avatar, setAvatar] = useState(myPlayer?.avatar || null);
@@ -42,8 +43,8 @@ export default function WaitingRoom({ session, playerId, isHost }) {
         <div className="flex gap-12 justify-center" style={{ marginBottom: 28 }}>
           <span className="badge badge-teal">{session.rounds} Rounds</span>
           <span className="badge badge-gold">{session.players.length} / 8 Players</span>
-          {!canStart && (
-            <span className="badge badge-muted">Need {minPlayers - session.players.length} more</span>
+          {realPlayers < 3 && (
+            <span className="badge badge-muted">🤖 {3 - realPlayers} bot{3 - realPlayers !== 1 ? 's' : ''} will fill in</span>
           )}
         </div>
 
@@ -80,7 +81,7 @@ export default function WaitingRoom({ session, playerId, isHost }) {
             onClick={startGame}
             disabled={!canStart}
           >
-            {canStart ? 'Start Game →' : `Waiting for ${minPlayers - session.players.length} more player${minPlayers - session.players.length !== 1 ? 's' : ''}…`}
+            {canStart ? (realPlayers < 3 ? `Start with ${3 - realPlayers} Bot${3 - realPlayers !== 1 ? 's' : ''} →` : 'Start Game →') : 'Need at least 1 player'}
           </button>
         ) : (
           <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 14, padding: '16px 0' }}>
