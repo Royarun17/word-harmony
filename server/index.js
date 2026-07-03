@@ -36,6 +36,8 @@ function startTurnTimer(sessionId) {
     if (!hand || hand.length === 0) return;
     const randomCard = hand[Math.floor(Math.random() * hand.length)];
     doPassCard(s, playerId, randomCard, sessionId, true);
+    // After auto-pass, check if next is a bot
+    scheduleBotTurn(sessionId);
   }, TURN_TIME_LIMIT * 1000);
 }
 
@@ -130,7 +132,11 @@ function doPassCard(s, playerId, cardToPass, sessionId, isAutoPass = false) {
   io.to(sessionId).emit('card_incoming', {
     toPlayerId: next, fromPlayerName: s.players.find(p => p.id === playerId)?.name
   });
-  if (!isAutoPass) startTurnTimer(sessionId);
+  if (!isAutoPass) {
+    startTurnTimer(sessionId);
+    // If the next player is a bot, schedule their turn
+    scheduleBotTurn(sessionId);
+  }
 }
 
 async function finishRound(sessionId) {
@@ -219,7 +225,13 @@ io.on('connection', (socket) => {
 
   socket.on('start_submission', ({ sessionId }) => {
     const s = getSession(sessionId); if (!s) return;
+    // Fill empty player slots with bots before starting
+    fillWithBots(s);
     s.phase = 'submit'; io.to(sessionId).emit('session_update', sanitize(s));
+    // Trigger bot word submissions after a short delay
+    s.players.filter(p => p.isBot).forEach((bot, i) => {
+      setTimeout(() => botSubmitWord(sessionId, bot.id), 1500 + i * 1000);
+    });
   });
 
   socket.on('submit_word', async ({ sessionId, playerId, word }) => {
@@ -272,7 +284,10 @@ io.on('connection', (socket) => {
         // Delay timer start by 3 seconds to give all clients time to receive cards
         setTimeout(() => {
           const current = getSession(sessionId);
-          if (current && current.phase === 'playing') startTurnTimer(sessionId);
+          if (current && current.phase === 'playing') {
+            startTurnTimer(sessionId);
+            scheduleBotTurn(sessionId);
+          }
         }, 3000);
       } catch (err) {
         console.error(err); s.phase = 'submit';
@@ -342,6 +357,10 @@ io.on('connection', (socket) => {
       s.starterPlayerId = null; s.starterHasPassed = false;
       s.firstRoundOver = false; s.buzzerActive = false; s.buzzerWindowOpen = {};
       io.to(sessionId).emit('session_update', sanitize(s));
+      // Trigger bot word submissions for next round
+      s.players.filter(p => p.isBot).forEach((bot, i) => {
+        setTimeout(() => botSubmitWord(sessionId, bot.id), 1500 + i * 1000);
+      });
     }
   });
 
@@ -538,3 +557,234 @@ function sanitize(s) {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`Word Harmony running on port ${PORT}`));
+
+// ─── BOT SYSTEM ───────────────────────────────────────────────────────────────
+
+const BOT_NAMES = ['WordBot', 'LexiBot', 'SynBot', 'QuizBot', 'BuzzBot'];
+const BOT_AVATARS = [
+  { type: 'preset', value: 'robot' },  // fallback to initial letter 'W','L' etc
+];
+
+// Bot IDs are prefixed so we can identify them easily
+function isBotPlayer(playerId) { return playerId.startsWith('bot_'); }
+
+// Add bots to fill up to minPlayers (3) when game starts
+function fillWithBots(session) {
+  const minPlayers = 3;
+  const realPlayers = session.players.filter(p => !isBotPlayer(p.id));
+  const existingBots = session.players.filter(p => isBotPlayer(p.id));
+  const needed = minPlayers - session.players.length;
+  if (needed <= 0) return;
+
+  const usedNames = session.players.map(p => p.name);
+  const availableNames = BOT_NAMES.filter(n => !usedNames.includes(n));
+
+  for (let i = 0; i < needed; i++) {
+    const botId = `bot_${Date.now()}_${i}`;
+    const botName = availableNames[i] || `Bot${i + 1}`;
+    session.players.push({
+      id: botId, name: botName, connected: true, avatar: null, isBot: true,
+    });
+    session.totalScores[botId] = 0;
+  }
+  console.log(`Added ${needed} bot(s) to session ${session.id}`);
+}
+
+// Bot thinking delays (ms) — makes it feel more natural
+function botDelay(difficulty) {
+  if (difficulty === 'easy')   return 2000 + Math.random() * 2000; // 2-4s
+  if (difficulty === 'hard')   return 500  + Math.random() * 1000; // 0.5-1.5s
+  return 1000 + Math.random() * 1500; // medium: 1-2.5s
+}
+
+// Bot card passing logic
+function botChooseCard(hand, synonymClusters, difficulty) {
+  if (!hand || hand.length === 0) return null;
+
+  if (difficulty === 'easy') {
+    // Easy: pass a random card
+    return hand[Math.floor(Math.random() * hand.length)];
+  }
+
+  // Medium/Hard: keep cards that belong to the same cluster as other cards in hand
+  // Find which cluster each card belongs to
+  function getCluster(card) {
+    for (const [word, cluster] of Object.entries(synonymClusters)) {
+      if (cluster.map(w => w.toLowerCase()).includes(card.toLowerCase())) return word;
+    }
+    return null;
+  }
+
+  const clusterCounts = {};
+  hand.forEach(card => {
+    const c = getCluster(card);
+    if (c) clusterCounts[c] = (clusterCounts[c] || 0) + 1;
+  });
+
+  // Find the cluster the bot holds the most of
+  const bestCluster = Object.entries(clusterCounts).sort((a,b) => b[1]-a[1])[0]?.[0];
+
+  if (difficulty === 'hard') {
+    // Hard: pass a card NOT from the best cluster (keep matching cards)
+    const nonBest = hand.filter(card => getCluster(card) !== bestCluster);
+    if (nonBest.length > 0) return nonBest[Math.floor(Math.random() * nonBest.length)];
+    return hand[Math.floor(Math.random() * hand.length)];
+  }
+
+  // Medium: 70% chance to pass non-matching, 30% random
+  if (Math.random() < 0.7) {
+    const nonBest = hand.filter(card => getCluster(card) !== bestCluster);
+    if (nonBest.length > 0) return nonBest[Math.floor(Math.random() * nonBest.length)];
+  }
+  return hand[Math.floor(Math.random() * hand.length)];
+}
+
+// Should the bot buzz this turn?
+function botShouldBuzz(hand, synonymClusters, difficulty, firstRoundOver) {
+  if (!firstRoundOver) return false;
+  const hasSet = isCompleteSet(hand, synonymClusters);
+  if (!hasSet) return false;
+
+  if (difficulty === 'easy')   return Math.random() < 0.4; // 40% chance even with set
+  if (difficulty === 'medium') return Math.random() < 0.75; // 75% chance
+  return true; // hard always buzzes when it has a set
+}
+
+// Main bot turn handler — called after each card pass
+function scheduleBotTurn(sessionId) {
+  const s = getSession(sessionId);
+  if (!s || s.phase !== 'playing') return;
+
+  const currentPlayerId = currentTurnPlayerId(s);
+  if (!isBotPlayer(currentPlayerId)) return; // not a bot's turn
+
+  const delay = botDelay(s.difficulty);
+
+  setTimeout(() => {
+    const s = getSession(sessionId);
+    if (!s || s.phase !== 'playing') return;
+    if (currentTurnPlayerId(s) !== currentPlayerId) return; // turn changed
+
+    const hand = s.cards[currentPlayerId];
+    if (!hand || hand.length === 0) return;
+
+    // Should bot buzz instead of passing?
+    if (botShouldBuzz(hand.slice(0, 3), s.synonymClusters, s.difficulty, s.firstRoundOver)) {
+      // Bot buzzes
+      const buzzerBeforeRound1 = !s.firstRoundOver;
+      if (!s.buzzerActive) {
+        s.buzzerActive = true; s.phase = 'buzzing'; s.buzzerLog = [];
+        clearTurnTimer(sessionId);
+        io.to(sessionId).emit('buzzer_race_started', {
+          firstPlayerId: currentPlayerId,
+          firstPlayerName: s.players.find(p => p.id === currentPlayerId)?.name
+        });
+      }
+      if (!s.buzzerLog.find(b => b.playerId === currentPlayerId)) {
+        const hasCompleteSet = isCompleteSet(hand, s.synonymClusters);
+        s.buzzerLog.push({ playerId: currentPlayerId, timestamp: Date.now(), hasCompleteSet, invalid: buzzerBeforeRound1 });
+        io.to(sessionId).emit('buzzer_pressed', {
+          playerId: currentPlayerId,
+          playerName: s.players.find(p => p.id === currentPlayerId)?.name,
+          hasCompleteSet, invalid: buzzerBeforeRound1, buzzerLog: s.buzzerLog
+        });
+        io.to(sessionId).emit('session_update', sanitize(s));
+        // Trigger other bots to buzz after a short delay
+        scheduleBotBuzzing(sessionId);
+        if (s.buzzerLog.length === s.players.length) {
+          finishRound(sessionId);
+        }
+      }
+      return;
+    }
+
+    // Bot passes a card
+    const cardToPass = botChooseCard(hand, s.synonymClusters, s.difficulty);
+    if (!cardToPass) return;
+
+    clearTurnTimer(sessionId);
+    doPassCard(s, currentPlayerId, cardToPass, sessionId, false);
+    // scheduleBotTurn is called again inside doPassCard → startTurnTimer → next turn
+  }, delay);
+}
+
+// After first buzz, make bots buzz in buzzing phase
+function scheduleBotBuzzing(sessionId) {
+  const s = getSession(sessionId);
+  if (!s || s.phase !== 'buzzing') return;
+
+  s.players.filter(p => isBotPlayer(p.id) && !s.buzzerLog.find(b => b.playerId === p.id))
+    .forEach((bot, i) => {
+      setTimeout(() => {
+        const s = getSession(sessionId);
+        if (!s || s.phase !== 'buzzing') return;
+        if (s.buzzerLog.find(b => b.playerId === bot.id)) return;
+
+        const hand = s.cards[bot.id] || [];
+        const hasCompleteSet = isCompleteSet(hand, s.synonymClusters);
+        s.buzzerLog.push({ playerId: bot.id, timestamp: Date.now(), hasCompleteSet, invalid: false });
+
+        io.to(sessionId).emit('buzzer_pressed', {
+          playerId: bot.id,
+          playerName: bot.name,
+          hasCompleteSet, buzzerLog: s.buzzerLog
+        });
+        io.to(sessionId).emit('session_update', sanitize(s));
+
+        if (s.buzzerLog.length === s.players.length) {
+          finishRound(sessionId);
+        }
+      }, 1500 + i * 800 + Math.random() * 1000);
+    });
+}
+
+// Bot word submission
+async function botSubmitWord(sessionId, botId) {
+  const s = getSession(sessionId);
+  if (!s) return;
+
+  // Pick a random word appropriate for the mode and difficulty
+  const easyWords  = ['happy','sad','fast','slow','big','small','hot','cold','kind','brave'];
+  const medWords   = ['angry','funny','strong','tired','pretty','smart','rich','weak','old','new'];
+  const hardWords  = ['jovial','melancholy','tenacious','vivacious','eloquent','astute','frugal','candid','serene','pensive'];
+  const funWords   = ['doctor','school','football','pizza','ocean','music','computer','kitchen','wedding','space'];
+
+  let pool;
+  if (s.gameMode === 'fun') pool = funWords;
+  else if (s.difficulty === 'hard') pool = hardWords;
+  else if (s.difficulty === 'medium') pool = medWords;
+  else pool = easyWords;
+
+  // Pick a word not already submitted
+  const used = Object.values(s.wordSubmissions).map(w => w.toLowerCase());
+  const available = pool.filter(w => !used.includes(w));
+  const word = available[Math.floor(Math.random() * available.length)] || pool[0];
+
+  s.wordSubmissions[botId] = word;
+  io.to(sessionId).emit('session_update', sanitize(s));
+  console.log(`Bot ${s.players.find(p=>p.id===botId)?.name} submitted: ${word}`);
+
+  // If all players have now submitted, trigger card dealing
+  if (Object.keys(s.wordSubmissions).length === s.players.length) {
+    s.phase = 'loading'; io.to(sessionId).emit('session_update', sanitize(s));
+    try {
+      await dealCards(s);
+      s.currentRound = 1; s.firstRoundOver = false; s.starterHasPassed = false;
+      s.buzzerActive = false; s.buzzerWindowOpen = {};
+      buildTurnOrder(s); s.phase = 'playing';
+      io.to(sessionId).emit('session_update', sanitize(s));
+      broadcastHands(s);
+      setTimeout(() => {
+        const current = getSession(sessionId);
+        if (current && current.phase === 'playing') {
+          startTurnTimer(sessionId);
+          scheduleBotTurn(sessionId);
+        }
+      }, 3000);
+    } catch (err) {
+      console.error(err); s.phase = 'submit';
+      io.to(sessionId).emit('error', { message: 'Error generating words. Try again.' });
+      io.to(sessionId).emit('session_update', sanitize(s));
+    }
+  }
+}
