@@ -328,6 +328,8 @@ io.on('connection', (socket) => {
       io.to(sessionId).emit('buzzer_race_started', {
         firstPlayerId: playerId, firstPlayerName: s.players.find(p => p.id === playerId)?.name
       });
+      // Human started buzzing — schedule all bots to buzz after delays
+      scheduleBotBuzzing(sessionId);
     }
 
     const hasCompleteSet = !buzzerBeforeRound1 && isCompleteSet(s.cards[playerId], s.synonymClusters);
@@ -708,34 +710,51 @@ function scheduleBotTurn(sessionId) {
   }, delay);
 }
 
-// After first buzz, make bots buzz in buzzing phase
+// After first buzz, make ALL remaining bots buzz in sequence
 function scheduleBotBuzzing(sessionId) {
   const s = getSession(sessionId);
-  if (!s || s.phase !== 'buzzing') return;
+  if (!s) return;
 
-  s.players.filter(p => isBotPlayer(p.id) && !s.buzzerLog.find(b => b.playerId === p.id))
-    .forEach((bot, i) => {
-      setTimeout(() => {
-        const s = getSession(sessionId);
-        if (!s || s.phase !== 'buzzing') return;
-        if (s.buzzerLog.find(b => b.playerId === bot.id)) return;
+  // Find bots that haven't buzzed yet
+  const pendingBots = s.players.filter(p => p.isBot && !s.buzzerLog.find(b => b.playerId === p.id));
+  if (pendingBots.length === 0) return;
 
-        const hand = s.cards[bot.id] || [];
-        const hasCompleteSet = isCompleteSet(hand, s.synonymClusters);
-        s.buzzerLog.push({ playerId: bot.id, timestamp: Date.now(), hasCompleteSet, invalid: false });
+  pendingBots.forEach((bot, i) => {
+    // Stagger each bot's buzz by 1-2 seconds so they don't all buzz simultaneously
+    const delay = 1200 + i * 900 + Math.random() * 800;
+    setTimeout(async () => {
+      const s = getSession(sessionId);
+      // Re-check session state — may have changed
+      if (!s || (s.phase !== 'buzzing' && s.phase !== 'playing')) return;
+      if (s.buzzerLog.find(b => b.playerId === bot.id)) return; // already buzzed
 
-        io.to(sessionId).emit('buzzer_pressed', {
-          playerId: bot.id,
-          playerName: bot.name,
-          hasCompleteSet, buzzerLog: s.buzzerLog
+      // If still in playing phase (bot is first to buzz), start buzzing phase
+      if (s.phase === 'playing') {
+        s.buzzerActive = true; s.phase = 'buzzing'; s.buzzerLog = [];
+        clearTurnTimer(sessionId);
+        io.to(sessionId).emit('buzzer_race_started', {
+          firstPlayerId: bot.id, firstPlayerName: bot.name
         });
-        io.to(sessionId).emit('session_update', sanitize(s));
+        // Schedule remaining bots
+        scheduleBotBuzzing(sessionId);
+      }
 
-        if (s.buzzerLog.length === s.players.length) {
-          finishRound(sessionId);
-        }
-      }, 1500 + i * 800 + Math.random() * 1000);
-    });
+      const hand = s.cards[bot.id] || [];
+      const hasCompleteSet = isCompleteSet(hand, s.synonymClusters);
+      s.buzzerLog.push({ playerId: bot.id, timestamp: Date.now(), hasCompleteSet, invalid: false });
+
+      io.to(sessionId).emit('buzzer_pressed', {
+        playerId: bot.id, playerName: bot.name,
+        hasCompleteSet, buzzerLog: s.buzzerLog
+      });
+      io.to(sessionId).emit('session_update', sanitize(s));
+
+      // If all players have now buzzed, finish the round
+      if (s.buzzerLog.length === s.players.length) {
+        await finishRound(sessionId);
+      }
+    }, delay);
+  });
 }
 
 // Bot word submission
