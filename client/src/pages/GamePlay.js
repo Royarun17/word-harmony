@@ -92,8 +92,8 @@ export default function GamePlay({ session, playerId }) {
   const difficulty = session?.difficulty || 'medium';
   const starterPlayer = players.find(p => p.id === session.starterPlayerId);
   const currentTurnPlayer = players.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
-  const isStarterLockedThisRound = isStarter && session.currentRound === 1;
-  const canBuzz = !hasBuzzed && !isStarterLockedThisRound && (buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn));
+  const isStarterLocked = isStarter && !session.firstRoundOver;
+  const canBuzz = !hasBuzzed && !isStarterLocked && (buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn));
   const diffLabel = difficulty==='easy'?'😊 Easy':difficulty==='hard'?'🔥 Hard':'🧠 Medium';
   const medals = ['🥇','🥈','🥉'];
 
@@ -106,6 +106,19 @@ export default function GamePlay({ session, playerId }) {
     socket.on(`hand_update_${playerId}`, fn);
     return () => socket.off(`hand_update_${playerId}`, fn);
   }, [playerId]);
+
+  // If hand is still empty 2.5 seconds after mounting in playing phase,
+  // re-join the session room to trigger a hand re-send from the server
+  useEffect(() => {
+    if (session.phase !== 'playing' && session.phase !== 'buzzing') return;
+    const retryTimer = setTimeout(() => {
+      if (hand.length === 0) {
+        console.log('Hand still empty after 2.5s — re-requesting from server');
+        socket.emit('request_hand', { sessionId: session.id, playerId });
+      }
+    }, 2500);
+    return () => clearTimeout(retryTimer);
+  }, [session.phase]); // eslint-disable-line
 
   useEffect(() => {
     const fn = ({ toPlayerId }) => { if (toPlayerId===playerId) { setJustReceived(true); setTimeout(()=>setJustReceived(false),2000); } };
@@ -173,7 +186,7 @@ export default function GamePlay({ session, playerId }) {
 
   const buzzerStatus = () => {
     if (hasBuzzed) return '✅ You buzzed!';
-    if (isStarterLockedThisRound) return '🔒 As starter, your buzzer activates from Round 2!';
+    if (isStarterLocked) return '🔒 Buzzer activates once cards travel all the way back to you!';
     if (buzzerRaceActive) return '🚨 Race! Buzz now!';
     if (buzzerWindowOpen) return `⚡ ${buzzerWindowTime}s — BUZZ NOW!`;
     if (!buzzerEnabled && isMyTurn) return '⚠️ Round 1 — buzzing scores 0 pts!';
