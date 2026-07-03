@@ -107,10 +107,10 @@ function doPassCard(s, playerId, cardToPass, sessionId, isAutoPass = false) {
   checkFirstRoundComplete(s, playerId);
 
   // Open 3 second buzzer window for passer
-  // EXCEPTION: the starter cannot buzz in the very round they received their 4th card —
-  // their buzzer only activates from Round 2 onwards, even after firstRoundOver is true
-  const isStarterFirstRound = (playerId === s.starterPlayerId && s.currentRound === 1);
-  if (s.firstRoundOver && !s.buzzerActive && !isStarterFirstRound) {
+  // Starter's buzzer activates as soon as firstRoundOver becomes true
+  // (i.e. when cards have traveled all the way around back to them)
+  const starterStillLocked = (playerId === s.starterPlayerId && !s.firstRoundOver);
+  if (s.firstRoundOver && !s.buzzerActive && !starterStillLocked) {
     s.buzzerWindowOpen[playerId] = true;
     setTimeout(() => {
       if (s.buzzerWindowOpen) s.buzzerWindowOpen[playerId] = false;
@@ -181,6 +181,15 @@ io.on('connection', (socket) => {
     if (!s) { socket.emit('error', { message: 'Session not found' }); return; }
     addPlayer(s, playerId, playerName); socket.join(sessionId); socket.data = { sessionId, playerId };
     io.to(sessionId).emit('session_update', sanitize(s));
+    // Re-send this player's hand in case they missed it (reconnect or late mount)
+    if (s.phase === 'playing' || s.phase === 'buzzing') {
+      if (s.cards[playerId]) {
+        socket.emit(`hand_update_${playerId}`, {
+          hand: s.cards[playerId] || [],
+          isStarter: playerId === s.starterPlayerId,
+        });
+      }
+    }
   });
 
   socket.on('update_avatar', ({ sessionId, playerId, avatar }) => {
@@ -195,6 +204,17 @@ io.on('connection', (socket) => {
     }
     player.avatar = avatar;
     io.to(sessionId).emit('session_update', sanitize(s));
+  });
+
+  // Player requests their hand re-sent (fallback if they missed the initial deal)
+  socket.on('request_hand', ({ sessionId, playerId }) => {
+    const s = getSession(sessionId); if (!s) return;
+    if (s.cards[playerId]) {
+      socket.emit(`hand_update_${playerId}`, {
+        hand: s.cards[playerId] || [],
+        isStarter: playerId === s.starterPlayerId,
+      });
+    }
   });
 
   socket.on('start_submission', ({ sessionId }) => {
@@ -248,7 +268,12 @@ io.on('connection', (socket) => {
         s.buzzerActive = false; s.buzzerWindowOpen = {};
         buildTurnOrder(s); s.phase = 'playing';
         io.to(sessionId).emit('session_update', sanitize(s));
-        broadcastHands(s); startTurnTimer(sessionId);
+        broadcastHands(s);
+        // Delay timer start by 3 seconds to give all clients time to receive cards
+        setTimeout(() => {
+          const current = getSession(sessionId);
+          if (current && current.phase === 'playing') startTurnTimer(sessionId);
+        }, 3000);
       } catch (err) {
         console.error(err); s.phase = 'submit';
         io.to(sessionId).emit('error', { message: 'Error generating words. Try again.' });
@@ -273,9 +298,9 @@ io.on('connection', (socket) => {
     const buzzerBeforeRound1 = !s.firstRoundOver;
 
     if (!s.buzzerActive) {
-      // Starter cannot buzz at all during Round 1 — even on their own turn
-      if (playerId === s.starterPlayerId && s.currentRound === 1) {
-        socket.emit('error', { message: 'As the starter, your buzzer activates from Round 2 onwards!' });
+      // Starter cannot buzz until firstRoundOver (cards traveled all the way around)
+      if (playerId === s.starterPlayerId && !s.firstRoundOver) {
+        socket.emit('error', { message: 'As the starter, buzz once cards travel all the way back to you!' });
         return;
       }
       const inWindow = s.buzzerWindowOpen && s.buzzerWindowOpen[playerId];
