@@ -14,7 +14,8 @@ export default function PlayerList({ players, hostId, currentTurnId, totalScores
             <span style={{ fontWeight: 600, fontSize: 14 }}>
               {p.name}
               {p.id === hostId && <span className="badge badge-gold" style={{ marginLeft: 8, fontSize: 10 }}>Host</span>}
-              {!p.connected && <span className="badge badge-muted" style={{ marginLeft: 8, fontSize: 10 }}>Away</span>}
+              {p.isBot && <span className="badge badge-muted" style={{ marginLeft: 8, fontSize: 10 }}>🤖 Bot</span>}
+              {!p.connected && !p.isBot && <span className="badge badge-muted" style={{ marginLeft: 8, fontSize: 10 }}>Away</span>}
             </span>
             {currentTurnId === p.id && (
               <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 500 }}>● Taking turn</span>
