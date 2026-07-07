@@ -11,39 +11,78 @@ import GamePlay    from './pages/GamePlay';
 import ScoringPage from './pages/ScoringPage';
 import GameEnded   from './pages/GameEnded';
 
-const TUTORIAL_SEEN_KEY = 'wordHarmonyTutorialSeen';
+const TUTORIAL_SEEN_KEY  = 'wordHarmonyTutorialSeen';
+const SESSION_STORAGE_KEY = 'wordHarmonySession';
 
 export default function App() {
-  // Show tutorial automatically on first-ever visit, then on demand via Lobby button
-  const [showTutorial, setShowTutorial] = useState(true);
-
-  const [gameState, setGameState]     = useState('lobby');
-  const [session, setSession]         = useState(null);
-  const [myInfo, setMyInfo]           = useState(null);
-  const [finalScores, setFinalScores] = useState(null);
-  const [scoringData, setScoringData] = useState(null);
+  const [showTutorial, setShowTutorial]   = useState(false);
+  const [gameState, setGameState]         = useState('lobby');
+  const [session, setSession]             = useState(null);
+  const [myInfo, setMyInfo]               = useState(null);
+  const [finalScores, setFinalScores]     = useState(null);
+  const [scoringData, setScoringData]     = useState(null);
+  const [rejoining, setRejoining]         = useState(false);
 
   const { toasts, show: showToast } = useToast();
 
-  // Remember tutorial completion across reloads using localStorage,
-  // falling back gracefully if unavailable
+  // On first load — check tutorial + check for saved session
   useEffect(() => {
     try {
+      // Tutorial check
       const seen = window.localStorage.getItem(TUTORIAL_SEEN_KEY);
-      if (seen === 'true') setShowTutorial(false);
+      if (seen !== 'true') setShowTutorial(true);
+
+      // Session check — try to rejoin if we have saved session info
+      const saved = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (saved) {
+        const { sessionId, playerId, playerName, isHost } = JSON.parse(saved);
+        if (sessionId && playerId) {
+          setRejoining(true);
+          setMyInfo({ sessionId, playerId, playerName, isHost });
+          socket.connect();
+          socket.emit('rejoin_session', { sessionId, playerId, playerName });
+        }
+      }
     } catch (e) {
-      // localStorage unavailable — tutorial will show every fresh session
+      // localStorage unavailable or parse error — just show lobby
     }
   }, []);
 
-  function completeTutorial() {
-    setShowTutorial(false);
-    try { window.localStorage.setItem(TUTORIAL_SEEN_KEY, 'true'); } catch (e) {}
+  // Save session to localStorage when player joins
+  function saveSession(info) {
+    try {
+      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(info));
+    } catch (e) {}
   }
 
-  function openTutorialManually() {
-    setShowTutorial(true);
+  // Clear session from localStorage when game ends or player leaves
+  function clearSession() {
+    try {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch (e) {}
   }
+
+  // Rejoin succeeded
+  useSocketEvent('rejoin_success', ({ sessionId, playerId, phase }) => {
+    setRejoining(false);
+    // State will be updated by session_update event
+  });
+
+  // Rejoin failed — clear saved session and show lobby
+  useSocketEvent('rejoin_failed', ({ message }) => {
+    setRejoining(false);
+    clearSession();
+    setGameState('lobby');
+    showToast(message || 'Could not rejoin session.', 'error');
+  });
+
+  useSocketEvent('player_reconnected', ({ playerName }) => {
+    showToast(`${playerName} rejoined the game!`, 'success');
+  });
+
+  useSocketEvent('player_disconnected', ({ playerName }) => {
+    showToast(`${playerName} disconnected — spot held for 2.5 minutes`, 'info');
+  });
 
   useSocketEvent('session_update', (s) => {
     setSession(s);
@@ -53,7 +92,7 @@ export default function App() {
     else if (s.phase === 'playing') setGameState(prev => prev === 'scoring' ? 'scoring' : 'playing');
     else if (s.phase === 'buzzing') setGameState(prev => prev === 'scoring' ? 'scoring' : 'playing');
     else if (s.phase === 'scoring') setGameState('scoring');
-    else if (s.phase === 'ended')   setGameState('ended');
+    else if (s.phase === 'ended')   { setGameState('ended'); clearSession(); }
   });
 
   useSocketEvent('round_scored', (data) => {
@@ -62,7 +101,9 @@ export default function App() {
   });
 
   useSocketEvent('game_ended', ({ finalScores: fs }) => {
-    setFinalScores(fs); setGameState('ended');
+    setFinalScores(fs);
+    setGameState('ended');
+    clearSession();
   });
 
   useSocketEvent('error',      ({ message }) => showToast(message, 'error'));
@@ -74,23 +115,47 @@ export default function App() {
     if (toPlayerId === myInfo?.playerId) showToast(`Card from ${fromPlayerName}!`, 'success');
   });
 
-  function handleJoined(info) { setMyInfo(info); setGameState('waiting'); }
+  function handleJoined(info) {
+    setMyInfo(info);
+    setGameState('waiting');
+    saveSession(info); // Save to localStorage for rejoin
+  }
 
   function handlePlayAgain() {
     socket.disconnect();
+    clearSession();
     setSession(null); setMyInfo(null); setFinalScores(null); setScoringData(null);
     setGameState('lobby');
   }
 
-  // Tutorial takes over the whole screen when active —
-  // shown automatically before Lobby on first visit, or anytime via the Lobby button
+  function completeTutorial() {
+    setShowTutorial(false);
+    try { window.localStorage.setItem(TUTORIAL_SEEN_KEY, 'true'); } catch (e) {}
+  }
+
+  // Show rejoining spinner while attempting to reconnect
+  if (rejoining) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--parchment)' }}>
+        <div className="spinner" style={{ marginBottom: 16 }} />
+        <p style={{ color: 'var(--muted)', fontSize: 15 }}>Rejoining your game…</p>
+        <button
+          onClick={() => { setRejoining(false); clearSession(); setGameState('lobby'); }}
+          style={{ marginTop: 20, background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          Go to Lobby instead
+        </button>
+      </div>
+    );
+  }
+
   if (showTutorial) {
     return <TutorialPage onDone={completeTutorial} />;
   }
 
   return (
     <>
-      {gameState === 'lobby'   && <LobbyPage onJoined={handleJoined} onShowTutorial={openTutorialManually} />}
+      {gameState === 'lobby'   && <LobbyPage onJoined={handleJoined} onShowTutorial={() => setShowTutorial(true)} />}
       {gameState === 'waiting' && session && myInfo && <WaitingRoom session={session} playerId={myInfo.playerId} isHost={myInfo.isHost} />}
       {gameState === 'submit'  && session && myInfo && <SubmitWord  session={session} playerId={myInfo.playerId} />}
       {gameState === 'playing' && session && myInfo && <GamePlay    session={session} playerId={myInfo.playerId} />}
