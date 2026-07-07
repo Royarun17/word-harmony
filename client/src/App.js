@@ -84,6 +84,10 @@ export default function App() {
     showToast(`${playerName} disconnected — spot held for 2.5 minutes`, 'info');
   });
 
+  useSocketEvent('player_turn_skipped', ({ playerName }) => {
+    showToast(`${playerName} is away — auto-passing their card`, 'info');
+  });
+
   useSocketEvent('session_update', (s) => {
     setSession(s);
     if      (s.phase === 'lobby')   setGameState('waiting');
