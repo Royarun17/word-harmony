@@ -359,8 +359,24 @@ io.on('connection', (socket) => {
       }
       const inWindow = s.buzzerWindowOpen && s.buzzerWindowOpen[playerId];
       const isTheirTurn = currentTurnPlayerId(s) === playerId;
-      if (!inWindow && !isTheirTurn) {
-        socket.emit('error', { message: 'Buzz right after passing a card!' }); return;
+      const playerHand = s.cards[playerId] || [];
+      const hasFourCards = playerHand.length >= 4;
+
+      // Rule:
+      // - 4 cards in hand → must pass first, then buzz in 3s window
+      // - 3 cards in hand → can buzz directly on your turn (no pass needed)
+      if (hasFourCards) {
+        // Has 4 cards — must pass first, buzz only in window
+        if (!inWindow) {
+          socket.emit('error', { message: 'You have 4 cards — pass one first, then buzz in the 3 second window!' });
+          return;
+        }
+      } else {
+        // Has 3 cards — can buzz on their turn directly
+        if (!inWindow && !isTheirTurn) {
+          socket.emit('error', { message: 'Buzz on your turn or right after passing a card!' });
+          return;
+        }
       }
       s.buzzerActive = true; s.phase = 'buzzing'; s.buzzerLog = [];
       clearTurnTimer(sessionId);
