@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { getSynonyms, getAssociations, getDefinitions } = require('./synonymEngine');
+const { getSynonyms, getAssociations, getDefinitions, getContextDefinition } = require('./synonymEngine');
 
 const app = express();
 app.use(cors());
@@ -148,10 +148,11 @@ async function finishRound(sessionId) {
   s.phase = 'scoring';
 
   // Fetch definitions for every word shown in this round's clusters
+  // Fun Mode: pass cluster map so definitions include topic context
   const allWords = Object.values(s.synonymClusters).flat();
   let definitions = {};
   try {
-    definitions = await getDefinitions(allWords);
+    definitions = await getDefinitions(allWords, s.gameMode, s.synonymClusters);
   } catch (e) {
     console.warn('Failed to fetch definitions:', e.message);
   }
@@ -240,6 +241,42 @@ io.on('connection', (socket) => {
     const s = getSession(sessionId); if (!s || s.phase !== 'submit') return;
     const cleaned = word.trim().toLowerCase();
     const existing = Object.values(s.wordSubmissions).map(w => w.toLowerCase());
+
+    // Basic format check first
+    if (!cleaned || cleaned.length < 2) {
+      socket.emit('word_error', { message: 'Word must be at least 2 letters.' }); return;
+    }
+    if (!/^[a-z]+$/.test(cleaned)) {
+      socket.emit('word_error', { message: 'Word must contain only letters — no numbers or spaces.' }); return;
+    }
+    // Reject obvious nonsense — no vowels or too many consecutive consonants
+    if (!/[aeiou]/.test(cleaned)) {
+      socket.emit('word_error', { message: `"${cleaned}" doesn't look like a real word. Please enter a valid English word.` }); return;
+    }
+    if (/[^aeiou]{5,}/.test(cleaned)) {
+      socket.emit('word_error', { message: `"${cleaned}" doesn't look like a real word. Please enter a valid English word.` }); return;
+    }
+
+    // Dictionary check — verify the word actually exists
+    socket.emit('checking_word', { message: 'Checking word...' });
+    try {
+      const dictResponse = await axios.get(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/\${encodeURIComponent(cleaned)}`,
+        { timeout: 4000 }
+      );
+      if (!dictResponse.data || dictResponse.data.length === 0) {
+        socket.emit('word_error', { message: `"\${cleaned}" was not found in the dictionary. Please enter a real English word.` });
+        return;
+      }
+    } catch (err) {
+      // If API returns 404 it means word not found
+      if (err.response?.status === 404) {
+        socket.emit('word_error', { message: `"\${cleaned}" was not found in the dictionary. Please enter a real English word.` });
+        return;
+      }
+      // If API is down or times out, allow the word through (don't block players)
+      console.warn('Dictionary check failed, allowing word:', err.message);
+    }
 
     if (existing.includes(cleaned)) {
       socket.emit('word_error', { message: 'Word already submitted. Try another.' }); return;
