@@ -156,49 +156,139 @@ async function getAssociations(word, difficulty='medium') {
 // ─── Word Definitions (for results screen) ───────────────────────────────────
 const DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 
-// Curated 2-3 sentence definitions for common fallback words (used if API fails)
+// Curated fallbacks for common words
 const DEFINITION_FALLBACKS = {
-  joyful: 'Feeling or showing great happiness and delight. A joyful person radiates positive energy and often smiles or laughs easily. This word is commonly used to describe both emotions and celebratory occasions.',
-  elated: 'Extremely happy and excited, often after hearing good news or achieving something. Being elated is a stronger feeling than simply being pleased — it suggests a burst of joy. The word comes from the idea of being lifted up emotionally.',
-  content: 'Feeling satisfied and at peace with one\'s situation, without needing more. A content person is comfortable with what they have rather than constantly wanting change. This is a calmer, quieter form of happiness compared to excitement.',
+  joyful: 'Feeling or showing great happiness and delight. A joyful person radiates positive energy and often smiles or laughs easily.',
+  elated: 'Extremely happy and excited, often after hearing good news or achieving something. Being elated is a stronger feeling than simply being pleased.',
+  content: 'Feeling satisfied and at peace with one\'s situation. A content person is comfortable with what they have rather than constantly wanting more.',
 };
 
+// ─── Education Mode definition (standard dictionary) ──────────────────────────
 async function getDefinition(word) {
   const lower = word.toLowerCase().trim();
   try {
     const response = await axios.get(`${DICTIONARY_API}/${encodeURIComponent(lower)}`, { timeout: 5000 });
     const entry = response.data?.[0];
-    const meaning = entry?.meanings?.[0];
-    const definition = meaning?.definitions?.[0]?.definition;
-    const example = meaning?.definitions?.[0]?.example;
-    const partOfSpeech = meaning?.partOfSpeech;
+    // Get all meanings and definitions
+    const allMeanings = entry?.meanings || [];
+    let bestDef = null;
+    let bestExample = null;
+    let partOfSpeech = null;
 
-    if (definition) {
-      let result = definition;
-      // Ensure it ends with a period
+    // Pick the most complete definition (longest one with an example preferred)
+    for (const meaning of allMeanings) {
+      for (const def of (meaning.definitions || [])) {
+        if (!bestDef || (def.example && !bestExample) || def.definition.length > (bestDef?.length || 0)) {
+          bestDef = def.definition;
+          bestExample = def.example;
+          partOfSpeech = meaning.partOfSpeech;
+        }
+      }
+    }
+
+    if (bestDef) {
+      let result = bestDef;
       if (!result.endsWith('.')) result += '.';
-      // Add example sentence if available, to reach 2-3 sentences
-      if (example) {
-        result += ` For example: "${example}".`;
+      if (bestExample) {
+        result += ` For example: "${bestExample}".`;
       } else {
-        result += ` This is typically used as a${partOfSpeech ? ' ' + partOfSpeech : ''} in everyday language.`;
+        result += ` This word is commonly used as a ${partOfSpeech || 'term'} in everyday language.`;
       }
       return result;
     }
     throw new Error('No definition found');
   } catch (err) {
     if (DEFINITION_FALLBACKS[lower]) return DEFINITION_FALLBACKS[lower];
-    return `"${word}" is a word used in this round's word cluster. Its exact dictionary definition could not be retrieved right now, but it relates closely to the other words shown alongside it.`;
+    return `"${word}" — definition not available right now.`;
   }
 }
 
-// Fetch definitions for multiple words at once (used for scoring screen)
-async function getDefinitions(words) {
+// ─── Fun Mode definition (context-aware — relates word back to topic) ─────────
+async function getContextDefinition(word, topicWord) {
+  const lower = word.toLowerCase().trim();
+  const topic = topicWord.toLowerCase().trim();
+
+  try {
+    const response = await axios.get(`${DICTIONARY_API}/${encodeURIComponent(lower)}`, { timeout: 5000 });
+    const entry = response.data?.[0];
+    const allMeanings = entry?.meanings || [];
+
+    // Try to find a definition that mentions the topic word or is most relevant
+    let bestDef = null;
+    let bestExample = null;
+    let partOfSpeech = null;
+    let topicRelatedDef = null;
+
+    for (const meaning of allMeanings) {
+      for (const def of (meaning.definitions || [])) {
+        const defLower = def.definition.toLowerCase();
+        // Prefer a definition that mentions the topic word
+        if (defLower.includes(topic) && !topicRelatedDef) {
+          topicRelatedDef = { def: def.definition, example: def.example, pos: meaning.partOfSpeech };
+        }
+        if (!bestDef || def.definition.length > bestDef.length) {
+          bestDef = def.definition;
+          bestExample = def.example;
+          partOfSpeech = meaning.partOfSpeech;
+        }
+      }
+    }
+
+    // Use topic-related definition if found, otherwise use best definition
+    const chosen = topicRelatedDef || { def: bestDef, example: bestExample, pos: partOfSpeech };
+
+    if (chosen.def) {
+      let result = chosen.def;
+      if (!result.endsWith('.')) result += '.';
+      // Always add context sentence linking back to the topic
+      if (chosen.example) {
+        result += ` For example: "${chosen.example}".`;
+      }
+      result += ` In the context of "${topicWord}", this word is associated because ${getContextReason(lower, topic)}.`;
+      return result;
+    }
+    throw new Error('No definition');
+  } catch (err) {
+    return `"${word}" relates to "${topicWord}" — ${getContextReason(lower, topic)}.`;
+  }
+}
+
+// Generate a short reason why the word relates to the topic
+function getContextReason(word, topic) {
+  const reasons = {
+    // Sports
+    football: { lineman: 'linemen are the players who block on the line of scrimmage', linebacker: 'linebackers defend against runs and passes behind the defensive line', league: 'football is organised into leagues and divisions', referee: 'referees officiate football matches', stadium: 'football matches are played in stadiums', goal: 'scoring goals is the objective of the game' },
+    doctor: { nurse: 'nurses work alongside doctors in healthcare', hospital: 'doctors work in hospitals', medicine: 'doctors prescribe medicine to treat patients', surgery: 'surgeons perform operations', stethoscope: 'doctors use stethoscopes to examine patients' },
+    school: { teacher: 'teachers instruct students at school', student: 'students attend school to learn', classroom: 'learning happens in classrooms at school', homework: 'teachers assign homework for students to complete' },
+  };
+  return reasons[topic]?.[word] || `it is commonly associated with the topic of ${topic}`;
+}
+
+// ─── Batch fetch definitions ──────────────────────────────────────────────────
+// clusterMap: { topicWord: [word1, word2, word3] } — used for Fun Mode context
+async function getDefinitions(words, mode = 'education', clusterMap = {}) {
   const results = {};
+
+  // Build reverse map: word → topicWord
+  const wordToTopic = {};
+  if (mode === 'fun' && clusterMap) {
+    for (const [topic, cluster] of Object.entries(clusterMap)) {
+      for (const w of cluster) {
+        wordToTopic[w.toLowerCase()] = topic;
+      }
+    }
+  }
+
   await Promise.all(words.map(async (w) => {
-    results[w] = await getDefinition(w);
+    const lower = w.toLowerCase().trim();
+    if (mode === 'fun' && wordToTopic[lower]) {
+      results[w] = await getContextDefinition(lower, wordToTopic[lower]);
+    } else {
+      results[w] = await getDefinition(lower);
+    }
   }));
+
   return results;
 }
 
-module.exports = { getSynonyms, getAssociations, getDefinition, getDefinitions };
+module.exports = { getSynonyms, getAssociations, getDefinition, getContextDefinition, getDefinitions };
