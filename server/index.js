@@ -36,7 +36,8 @@ function startTurnTimer(sessionId) {
     if (!hand || hand.length === 0) return;
     const randomCard = hand[Math.floor(Math.random() * hand.length)];
     doPassCard(s, playerId, randomCard, sessionId, true);
-    // After auto-pass, check if next is a bot
+    // scheduleBotTurn is called inside doPassCard's !isAutoPass path,
+    // but auto-pass skips that — so schedule bot turn here specifically
     scheduleBotTurn(sessionId);
   }, TURN_TIME_LIMIT * 1000);
 }
@@ -134,9 +135,10 @@ function doPassCard(s, playerId, cardToPass, sessionId, isAutoPass = false) {
   });
   if (!isAutoPass) {
     startTurnTimer(sessionId);
-    // If the next player is a bot, schedule their turn
-    scheduleBotTurn(sessionId);
   }
+  // Always schedule bot turn regardless of auto-pass or manual pass
+  // (scheduleBotTurn checks if next player is a bot before doing anything)
+  scheduleBotTurn(sessionId);
 }
 
 async function finishRound(sessionId) {
@@ -592,11 +594,16 @@ function fillWithBots(session) {
   console.log(`Added ${needed} bot(s) to session ${session.id}`);
 }
 
-// Bot thinking delays (ms) — makes it feel more natural
+// Bot passing delays — ALL difficulties wait 15-20s randomly
+// This gives human players a fair chance to strategize before the bot passes
 function botDelay(difficulty) {
-  if (difficulty === 'easy')   return 2000 + Math.random() * 2000; // 2-4s
-  if (difficulty === 'hard')   return 500  + Math.random() * 1000; // 0.5-1.5s
-  return 1000 + Math.random() * 1500; // medium: 1-2.5s
+  // All bots pass between 15-20 seconds (feels human, within 30s timer)
+  // Hard: 12-17s (faster, more competitive)
+  // Medium: 15-20s (balanced)
+  // Easy: 17-22s (slower, easier to beat)
+  if (difficulty === 'hard')   return 12000 + Math.random() * 5000; // 12-17s
+  if (difficulty === 'easy')   return 17000 + Math.random() * 5000; // 17-22s
+  return 15000 + Math.random() * 5000; // medium: 15-20s
 }
 
 // Bot card passing logic
@@ -721,7 +728,16 @@ function scheduleBotBuzzing(sessionId) {
 
   pendingBots.forEach((bot, i) => {
     // Stagger each bot's buzz by 1-2 seconds so they don't all buzz simultaneously
-    const delay = 1200 + i * 900 + Math.random() * 800;
+    // Give human players time to buzz first — bots wait at least 8 seconds
+    // Easy bots wait longer (12-20s), Hard bots are quicker (8-12s)
+    let buzzDelay;
+    const diff = s.difficulty || 'medium';
+    // Bots wait generously so human players can buzz first
+    // Each subsequent bot waits even longer (i * 4000 stagger)
+    if (diff === 'easy')   buzzDelay = 18000 + i * 4000 + Math.random() * 6000; // 18-28s
+    else if (diff === 'hard') buzzDelay = 10000 + i * 3000 + Math.random() * 4000; // 10-17s
+    else                   buzzDelay = 14000 + i * 3500 + Math.random() * 5000; // 14-23s
+    const delay = buzzDelay;
     setTimeout(async () => {
       const s = getSession(sessionId);
       // Re-check session state — may have changed
