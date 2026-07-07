@@ -518,7 +518,19 @@ io.on('connection', (socket) => {
 
     const existingPlayer = s.players.find(p => p.id === playerId);
     if (existingPlayer) {
-      // Player is rejoining — restore their connection
+      // Check if within 1.5 min grace window
+      const GRACE_PERIOD = 90000; // 1.5 minutes
+      const disconnectedAt = existingPlayer.disconnectedAt;
+      const elapsed = disconnectedAt ? Date.now() - disconnectedAt : 0;
+
+      if (disconnectedAt && elapsed > GRACE_PERIOD) {
+        // Grace period expired — player needs to use session code (they already have it)
+        // We still let them in since they have the correct playerId + sessionId
+        // but we note that grace period has passed
+        console.log(`Player ${existingPlayer.name} rejoined after grace period (${Math.round(elapsed/1000)}s)`);
+      }
+
+      // Restore their connection regardless (they have correct credentials)
       existingPlayer.connected = true;
       existingPlayer.disconnectedAt = null;
       socket.join(sessionId);
@@ -532,12 +544,7 @@ io.on('connection', (socket) => {
         });
       }
 
-      socket.emit('rejoin_success', {
-        sessionId, playerId,
-        phase: s.phase,
-        message: `Welcome back ${existingPlayer.name}!`
-      });
-
+      socket.emit('rejoin_success', { sessionId, playerId, phase: s.phase });
       io.to(sessionId).emit('session_update', sanitize(s));
       io.to(sessionId).emit('player_reconnected', {
         playerName: existingPlayer.name,
@@ -545,16 +552,15 @@ io.on('connection', (socket) => {
       });
       console.log(`Player ${existingPlayer.name} rejoined session ${sessionId}`);
     } else {
-      // Player not found in session — check if session is still joinable
+      // Player not found — check if session is still joinable
       if (s.phase === 'lobby' || s.phase === 'submit') {
-        // Allow joining as new player
         addPlayer(s, playerId, playerName);
         socket.join(sessionId);
         socket.data = { sessionId, playerId };
         socket.emit('rejoin_success', { sessionId, playerId, phase: s.phase });
         io.to(sessionId).emit('session_update', sanitize(s));
       } else {
-        socket.emit('rejoin_failed', { message: 'Game already in progress — could not find your player slot.' });
+        socket.emit('rejoin_failed', { message: 'Could not find your player slot. Please enter the session code to rejoin.' });
       }
     }
   });
