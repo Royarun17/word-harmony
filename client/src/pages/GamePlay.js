@@ -93,7 +93,14 @@ export default function GamePlay({ session, playerId }) {
   const starterPlayer = players.find(p => p.id === session.starterPlayerId);
   const currentTurnPlayer = players.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
   const isStarterLocked = isStarter && !session.firstRoundOver;
-  const canBuzz = !hasBuzzed && !isStarterLocked && (buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn));
+  const hasFourCards = hand.length >= 4;
+  // 4 cards → must pass first, then buzz in window
+  // 3 cards → can buzz directly on your turn
+  const canBuzz = !hasBuzzed && !isStarterLocked && (
+    buzzerRaceActive ||
+    buzzerWindowOpen ||
+    (buzzerEnabled && isMyTurn && !hasFourCards)
+  );
   const diffLabel = difficulty==='easy'?'😊 Easy':difficulty==='hard'?'🔥 Hard':'🧠 Medium';
   const medals = ['🥇','🥈','🥉'];
 
@@ -190,8 +197,9 @@ export default function GamePlay({ session, playerId }) {
     if (buzzerRaceActive) return '🚨 Race! Buzz now!';
     if (buzzerWindowOpen) return `⚡ ${buzzerWindowTime}s — BUZZ NOW!`;
     if (!buzzerEnabled && isMyTurn) return '⚠️ Round 1 — buzzing scores 0 pts!';
-    if (buzzerEnabled && isMyTurn) return '🟢 Your turn — buzz if you have 3 matching cards!';
-    return '⏳ Pass a card to open your 3s buzz window';
+    if (buzzerEnabled && isMyTurn && hasFourCards) return '⚠️ Pass one of your 4 cards first — then buzz in the 3s window!';
+    if (buzzerEnabled && isMyTurn && !hasFourCards) return '🟢 Your turn — buzz if you have 3 matching cards!';
+    return '⏳ Wait for your turn to buzz';
   };
 
   // Layout: top row = opponents, bottom = my area
