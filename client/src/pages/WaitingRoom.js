@@ -43,9 +43,7 @@ export default function WaitingRoom({ session, playerId, isHost }) {
         <div className="flex gap-12 justify-center" style={{ marginBottom: 28 }}>
           <span className="badge badge-teal">{session.rounds} Rounds</span>
           <span className="badge badge-gold">{session.players.length} / 8 Players</span>
-          {realPlayers < 3 && (
-            <span className="badge badge-muted">🤖 {3 - realPlayers} bot{3 - realPlayers !== 1 ? 's' : ''} will fill in</span>
-          )}
+
         </div>
 
         <div className="panel" style={{ marginBottom: 24 }}>
@@ -81,7 +79,7 @@ export default function WaitingRoom({ session, playerId, isHost }) {
             onClick={startGame}
             disabled={!canStart}
           >
-            {canStart ? (realPlayers < 3 ? `Start with ${3 - realPlayers} Bot${3 - realPlayers !== 1 ? 's' : ''} →` : 'Start Game →') : 'Need at least 1 player'}
+            {canStart ? 'Start Game →' : 'Need at least 1 player'}
           </button>
         ) : (
           <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 14, padding: '16px 0' }}>
