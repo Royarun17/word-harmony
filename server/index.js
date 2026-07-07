@@ -27,7 +27,48 @@ function startTurnTimer(sessionId) {
   clearTurnTimer(sessionId);
   const s = getSession(sessionId);
   if (!s || s.phase !== 'playing') return;
-  io.to(sessionId).emit('turn_timer', { playerId: currentTurnPlayerId(s), seconds: TURN_TIME_LIMIT });
+
+  const currentPlayerId = currentTurnPlayerId(s);
+  const currentPlayer = s.players.find(p => p.id === currentPlayerId);
+
+  // If current player is disconnected, treat them like a bot
+  // Use bot delay so it feels natural, not instant
+  if (currentPlayer && !currentPlayer.connected && !currentPlayer.isBot) {
+    console.log(`Player ${currentPlayer.name} is disconnected — bot taking over their turn`);
+    io.to(sessionId).emit('turn_timer', { playerId: currentPlayerId, seconds: TURN_TIME_LIMIT });
+    io.to(sessionId).emit('player_turn_skipped', {
+      playerName: currentPlayer.name,
+      message: `${currentPlayer.name} is away — auto-passing their card`
+    });
+
+    // Use bot delay (15-20s range) so it doesn't feel instant
+    const delay = botDelay(s.difficulty);
+    turnTimers[sessionId] = setTimeout(() => {
+      const s = getSession(sessionId);
+      if (!s || s.phase !== 'playing') return;
+      if (currentTurnPlayerId(s) !== currentPlayerId) return; // turn already changed
+
+      // If player reconnected in time, let them play normally
+      const player = s.players.find(p => p.id === currentPlayerId);
+      if (player && player.connected) {
+        console.log(`Player ${player.name} reconnected — letting them play`);
+        return;
+      }
+
+      const hand = s.cards[currentPlayerId];
+      if (!hand || hand.length === 0) return;
+
+      // Use bot strategy to pick which card to pass
+      const cardToPass = botChooseCard(hand, s.synonymClusters, s.difficulty);
+      if (!cardToPass) return;
+      doPassCard(s, currentPlayerId, cardToPass, sessionId, true);
+      scheduleBotTurn(sessionId);
+    }, delay);
+    return;
+  }
+
+  // Normal turn — start 30 second timer
+  io.to(sessionId).emit('turn_timer', { playerId: currentPlayerId, seconds: TURN_TIME_LIMIT });
   turnTimers[sessionId] = setTimeout(() => {
     const s = getSession(sessionId);
     if (!s || s.phase !== 'playing') return;
@@ -36,8 +77,6 @@ function startTurnTimer(sessionId) {
     if (!hand || hand.length === 0) return;
     const randomCard = hand[Math.floor(Math.random() * hand.length)];
     doPassCard(s, playerId, randomCard, sessionId, true);
-    // scheduleBotTurn is called inside doPassCard's !isAutoPass path,
-    // but auto-pass skips that — so schedule bot turn here specifically
     scheduleBotTurn(sessionId);
   }, TURN_TIME_LIMIT * 1000);
 }
@@ -188,14 +227,46 @@ io.on('connection', (socket) => {
   socket.on('join_session', ({ sessionId, playerId, playerName }) => {
     const s = getSession(sessionId);
     if (!s) { socket.emit('error', { message: 'Session not found' }); return; }
-    addPlayer(s, playerId, playerName); socket.join(sessionId); socket.data = { sessionId, playerId };
+
+    // Check if a player with this exact name already exists in the session
+    // If yes → this is a RECONNECTION, restore their original player ID and hand
+    const existingPlayer = s.players.find(
+      p => p.name.toLowerCase().trim() === playerName.toLowerCase().trim() && !p.isBot
+    );
+
+    let activePlayerId = playerId;
+
+    if (existingPlayer) {
+      // RECONNECT: restore their original player ID
+      activePlayerId = existingPlayer.id;
+      existingPlayer.connected = true;
+      console.log(`Player "${playerName}" reconnected to session ${sessionId} with ID ${activePlayerId}`);
+      // Tell the client their real player ID (may differ from what they sent)
+      socket.emit('reconnected', {
+        playerId: activePlayerId,
+        playerName: existingPlayer.name,
+        message: `Welcome back, ${existingPlayer.name}!`
+      });
+    } else {
+      // NEW player joining
+      if (s.phase !== 'lobby' && s.phase !== 'submit') {
+        // Game already started — only allow reconnections, not new players mid-game
+        socket.emit('error', { message: 'Game already in progress. You can only rejoin if you were already in this game.' });
+        return;
+      }
+      addPlayer(s, activePlayerId, playerName);
+    }
+
+    socket.join(sessionId);
+    socket.data = { sessionId, playerId: activePlayerId };
     io.to(sessionId).emit('session_update', sanitize(s));
-    // Re-send this player's hand in case they missed it (reconnect or late mount)
+
+    // Re-send this player's hand if game is in progress
     if (s.phase === 'playing' || s.phase === 'buzzing') {
-      if (s.cards[playerId]) {
-        socket.emit(`hand_update_${playerId}`, {
-          hand: s.cards[playerId] || [],
-          isStarter: playerId === s.starterPlayerId,
+      if (s.cards[activePlayerId]) {
+        socket.emit(`hand_update_${activePlayerId}`, {
+          hand: s.cards[activePlayerId] || [],
+          isStarter: activePlayerId === s.starterPlayerId,
         });
       }
     }
@@ -425,7 +496,66 @@ io.on('connection', (socket) => {
     const { sessionId, playerId } = socket.data || {};
     if (sessionId && playerId) {
       const s = getSession(sessionId);
-      if (s) { const p = s.players.find(x => x.id === playerId); if (p) p.connected = false; io.to(sessionId).emit('session_update', sanitize(s)); }
+      if (!s) return;
+      const p = s.players.find(x => x.id === playerId);
+      if (p) {
+        p.connected = false;
+        p.disconnectedAt = Date.now();
+        io.to(sessionId).emit('session_update', sanitize(s));
+        io.to(sessionId).emit('player_disconnected', {
+          playerName: p.name,
+          message: `${p.name} disconnected — spot held for 2.5 minutes`
+        });
+        console.log(`Player ${p.name} disconnected from session ${sessionId}`);
+      }
+    }
+  });
+
+  // Rejoin existing session (player refreshed or came back)
+  socket.on('rejoin_session', ({ sessionId, playerId, playerName }) => {
+    const s = getSession(sessionId);
+    if (!s) { socket.emit('rejoin_failed', { message: 'Session not found or already ended.' }); return; }
+
+    const existingPlayer = s.players.find(p => p.id === playerId);
+    if (existingPlayer) {
+      // Player is rejoining — restore their connection
+      existingPlayer.connected = true;
+      existingPlayer.disconnectedAt = null;
+      socket.join(sessionId);
+      socket.data = { sessionId, playerId };
+
+      // Re-send their current hand immediately
+      if (s.cards[playerId]) {
+        socket.emit(`hand_update_${playerId}`, {
+          hand: s.cards[playerId] || [],
+          isStarter: playerId === s.starterPlayerId,
+        });
+      }
+
+      socket.emit('rejoin_success', {
+        sessionId, playerId,
+        phase: s.phase,
+        message: `Welcome back ${existingPlayer.name}!`
+      });
+
+      io.to(sessionId).emit('session_update', sanitize(s));
+      io.to(sessionId).emit('player_reconnected', {
+        playerName: existingPlayer.name,
+        message: `${existingPlayer.name} rejoined the game!`
+      });
+      console.log(`Player ${existingPlayer.name} rejoined session ${sessionId}`);
+    } else {
+      // Player not found in session — check if session is still joinable
+      if (s.phase === 'lobby' || s.phase === 'submit') {
+        // Allow joining as new player
+        addPlayer(s, playerId, playerName);
+        socket.join(sessionId);
+        socket.data = { sessionId, playerId };
+        socket.emit('rejoin_success', { sessionId, playerId, phase: s.phase });
+        io.to(sessionId).emit('session_update', sanitize(s));
+      } else {
+        socket.emit('rejoin_failed', { message: 'Game already in progress — could not find your player slot.' });
+      }
     }
   });
 });
