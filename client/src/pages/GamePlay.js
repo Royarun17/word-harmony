@@ -67,7 +67,7 @@ function OpponentPanel({ player, isTurn, totalScores, buzzed, hasCompleteSet }) 
   );
 }
 
-export default function GamePlay({ session, playerId }) {
+export default function GamePlay({ session, playerId, onExit }) {
   const [hand, setHand] = useState([]);
   const [isStarter, setIsStarter] = useState(false);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -82,6 +82,7 @@ export default function GamePlay({ session, playerId }) {
   const timerRef = useRef(null);
   const buzzerTimerRef = useRef(null);
 
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const players = session.players || [];
   const myIndex = players.findIndex(p => p.id === playerId);
   const myPlayer = players[myIndex];
@@ -187,6 +188,18 @@ export default function GamePlay({ session, playerId }) {
     if (buzzerTimerRef.current) clearInterval(buzzerTimerRef.current);
   }, [session.currentRound]);
 
+  // Back button → show exit confirm instead of leaving
+  useEffect(() => {
+    window.history.pushState({ gameState: 'playing' }, '');
+    function handlePopState() {
+      setShowExitConfirm(true);
+      // Push state again so back button works next time too
+      window.history.pushState({ gameState: 'playing' }, '');
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   function handleSelectCard(w) { if (!isMyTurn || isBuzzingPhase) return; setSelectedCard(p => p===w?null:w); }
   function handlePassCard() { if (!selectedCard||!isMyTurn) return; socket.emit('pass_card',{sessionId:session.id,playerId,cardToPass:selectedCard}); setSelectedCard(null); }
   function handleBuzzer() { if (!canBuzz) return; socket.emit('press_buzzer',{sessionId:session.id,playerId}); }
@@ -219,6 +232,38 @@ export default function GamePlay({ session, playerId }) {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--parchment)', padding: '16px' }}>
+
+      {/* Exit confirm dialog */}
+      {showExitConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div className="panel" style={{ maxWidth: 340, width: '90%', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 22, marginBottom: 12 }}>Exit Game?</h2>
+            <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
+              Are you sure you want to leave? Your spot will be held for 1.5 minutes — you can rejoin with the session code.
+            </p>
+            <div className="flex gap-12">
+              <button
+                className="btn btn-outline"
+                style={{ flex: 1 }}
+                onClick={() => setShowExitConfirm(false)}
+              >
+                No, Stay
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, background: 'var(--danger)', borderColor: 'var(--danger)' }}
+                onClick={() => { setShowExitConfirm(false); onExit?.(); }}
+              >
+                Yes, Exit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
