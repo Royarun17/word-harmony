@@ -601,7 +601,24 @@ server.listen(PORT, () => console.log(`Word Harmony running on port ${PORT}`));
 
 // ─── BOT SYSTEM ───────────────────────────────────────────────────────────────
 
-const BOT_NAMES = ['WordBot', 'LexiBot', 'SynBot', 'QuizBot', 'BuzzBot'];
+const BOT_NAMES = [
+  'Arun',    // Indian
+  'Priya',   // Indian
+  'Wei',     // Chinese
+  'Mei',     // Chinese
+  'Jisoo',   // Korean
+  'Minho',   // Korean
+  'Fatima',  // Arabic
+  'Omar',    // Arabic
+  'Yuki',    // Japanese
+  'Hana',    // Japanese
+  'Amara',   // African
+  'Kofi',    // African (Ghanaian)
+  'Sofia',   // Spanish/European
+  'Mateus',  // Brazilian
+  'Aisha',   // Swahili/Arabic
+  'Ravi',    // Indian
+];
 const BOT_AVATARS = [
   { type: 'preset', value: 'robot' },  // fallback to initial letter 'W','L' etc
 ];
