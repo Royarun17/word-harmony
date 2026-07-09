@@ -16,20 +16,76 @@ const SYN_FALLBACKS = {
   cold:['frigid','icy','frosty'], hot:['scorching','blazing','sweltering'],
 };
 
-const ASSOC_FALLBACKS = {
-  doctor:['nurse','hospital','medicine'], school:['teacher','student','classroom'],
-  football:['goal','stadium','referee'], pizza:['cheese','oven','italy'],
-  ocean:['waves','fish','ship'], music:['guitar','singer','concert'],
-  computer:['keyboard','screen','mouse'], kitchen:['stove','chef','recipe'],
-  garden:['flowers','soil','sunlight'], wedding:['bride','cake','ring'],
-  space:['rocket','astronaut','planet'], library:['books','shelf','reading'],
-  hospital:['doctor','nurse','medicine'], restaurant:['menu','waiter','food'],
-  birthday:['cake','candles','party'], police:['officer','badge','patrol'],
-  fire:['flame','smoke','heat'], water:['river','ocean','rain'],
-  food:['hunger','taste','meal'], animal:['wild','fur','habitat'],
-  sport:['team','coach','victory'], movie:['actor','screen','popcorn'],
-  money:['bank','wallet','coins'], travel:['flight','hotel','passport'],
+// Easy: everyday, obvious associations
+const ASSOC_EASY = {
+  doctor:['nurse','hospital','medicine'],
+  school:['teacher','student','homework'],
+  football:['goal','player','stadium'],
+  pizza:['cheese','dough','sauce'],
+  ocean:['waves','fish','beach'],
+  music:['guitar','singer','song'],
+  computer:['keyboard','screen','mouse'],
+  kitchen:['stove','chef','recipe'],
+  garden:['flowers','soil','water'],
+  wedding:['bride','cake','ring'],
+  space:['rocket','planet','star'],
+  library:['books','shelf','reading'],
+  restaurant:['menu','waiter','food'],
+  birthday:['cake','candles','party'],
+  police:['officer','badge','patrol'],
+  fire:['flame','smoke','heat'],
+  money:['bank','wallet','coins'],
+  travel:['flight','hotel','ticket'],
+  boss:['employee','salary','office'],
+  work:['desk','meeting','deadline'],
+  sport:['team','coach','winner'],
+  movie:['actor','screen','popcorn'],
+  animal:['fur','wild','forest'],
+  food:['taste','hunger','plate'],
 };
+
+// Medium: less obvious, requires some knowledge
+const ASSOC_MEDIUM = {
+  doctor:['physician','diagnosis','clinic'],
+  school:['principal','curriculum','semester'],
+  football:['referee','penalty','formation'],
+  pizza:['mozzarella','topping','neapolitan'],
+  ocean:['current','tidal','maritime'],
+  music:['rhythm','melody','harmony'],
+  computer:['processor','software','network'],
+  kitchen:['cuisine','utensil','ingredient'],
+  boss:['authority','manager','deadline'],
+  space:['orbit','gravity','telescope'],
+  money:['investment','currency','budget'],
+  travel:['passport','itinerary','customs'],
+  sport:['strategy','tournament','stamina'],
+  movie:['director','screenplay','premiere'],
+};
+
+// Hard: cultural, historical, metaphorical
+const ASSOC_HARD = {
+  boss:['gotti','genovese','gambino'],
+  music:['beethoven','symphony','concerto'],
+  doctor:['hippocratic','prognosis','pathology'],
+  space:['cosmology','relativity','nebula'],
+  money:['cryptocurrency','arbitrage','portfolio'],
+  sport:['olympiad','decathlon','podium'],
+  movie:['cinematography','auteur','mise'],
+  school:['pedagogy','academia','dissertation'],
+};
+
+// Pick the right fallback based on difficulty
+function getAssocFallback(word, difficulty) {
+  if (difficulty === 'hard' && ASSOC_HARD[word]) return ASSOC_HARD[word];
+  if (difficulty === 'medium' && ASSOC_MEDIUM[word]) return ASSOC_MEDIUM[word];
+  if (ASSOC_EASY[word]) return ASSOC_EASY[word];
+  // Try medium as fallback for hard if no hard entry
+  if (difficulty === 'hard' && ASSOC_MEDIUM[word]) return ASSOC_MEDIUM[word];
+  return null;
+}
+
+// Keep for backwards compatibility
+const ASSOC_FALLBACKS = ASSOC_EASY;
 
 // Always blocked words
 const ALWAYS_BLOCKED = new Set([
@@ -126,7 +182,8 @@ async function getSynonyms(word, difficulty='medium') {
 // ─── Fun Mode ─────────────────────────────────────────────────────────────────
 async function getAssociations(word, difficulty='medium') {
   const lower = word.toLowerCase().trim();
-  if (difficulty==='easy' && ASSOC_FALLBACKS[lower]) return ASSOC_FALLBACKS[lower];
+  const fallback = getAssocFallback(lower, difficulty);
+  if (difficulty==='easy' && fallback) return fallback;
   try {
     const r1 = await axios.get(DATAMUSE, { params:{ rel_trg:lower, max:50 }, timeout:5000 });
     const trigger = (r1.data||[])
@@ -146,10 +203,11 @@ async function getAssociations(word, difficulty='medium') {
 
     const combined = [...new Set([...trigger,...concept])].slice(0,3);
     if (combined.length >= 3) return combined;
-    if (ASSOC_FALLBACKS[lower]) return ASSOC_FALLBACKS[lower];
+    const fb = getAssocFallback(lower, difficulty);
+    if (fb) return fb;
     return ['linked','nearby','grouped'];
   } catch(e) {
-    return ASSOC_FALLBACKS[lower] || ['linked','nearby','grouped'];
+    return getAssocFallback(lower, difficulty) || ['linked','nearby','grouped'];
   }
 }
 
@@ -249,19 +307,66 @@ async function getContextDefinition(word, topicWord) {
     }
     throw new Error('No definition');
   } catch (err) {
-    return `"${word}" relates to "${topicWord}" — ${getContextReason(lower, topic)}.`;
+    // Dictionary API failed or word not found (e.g. proper nouns like "Gotti")
+    // Show a clean context-based explanation instead of a generic message
+    const reason = getContextReason(lower, topic);
+    const capitalised = word.charAt(0).toUpperCase() + word.slice(1);
+    return `${capitalised} — ${reason}. This word appears in the context of "${topicWord}" because of this connection.`;
   }
 }
 
 // Generate a short reason why the word relates to the topic
 function getContextReason(word, topic) {
   const reasons = {
-    // Sports
-    football: { lineman: 'linemen are the players who block on the line of scrimmage', linebacker: 'linebackers defend against runs and passes behind the defensive line', league: 'football is organised into leagues and divisions', referee: 'referees officiate football matches', stadium: 'football matches are played in stadiums', goal: 'scoring goals is the objective of the game' },
-    doctor: { nurse: 'nurses work alongside doctors in healthcare', hospital: 'doctors work in hospitals', medicine: 'doctors prescribe medicine to treat patients', surgery: 'surgeons perform operations', stethoscope: 'doctors use stethoscopes to examine patients' },
-    school: { teacher: 'teachers instruct students at school', student: 'students attend school to learn', classroom: 'learning happens in classrooms at school', homework: 'teachers assign homework for students to complete' },
+    football: {
+      lineman: 'linemen play on the offensive or defensive line in football',
+      linebacker: 'linebackers defend against runs and passes in football',
+      league: 'football is organised into professional leagues',
+      referee: 'referees officiate and enforce the rules of football',
+      stadium: 'football matches are played in large stadiums',
+      goal: 'scoring goals or touchdowns is the aim of football',
+    },
+    doctor: {
+      nurse: 'nurses work alongside doctors in hospitals and clinics',
+      hospital: 'doctors work and treat patients in hospitals',
+      medicine: 'doctors prescribe medicine to treat illness',
+      surgery: 'doctors perform surgical operations on patients',
+      stethoscope: 'doctors use stethoscopes to listen to heartbeats',
+    },
+    school: {
+      teacher: 'teachers instruct and guide students at school',
+      student: 'students attend school to learn and study',
+      classroom: 'lessons take place in classrooms at school',
+      homework: 'teachers assign homework for students to complete at home',
+    },
+    boss: {
+      gotti: 'John Gotti was a famous mob boss of the Gambino crime family',
+      genovese: 'the Genovese family is one of the most powerful organised crime families, led by a boss',
+      gambino: 'the Gambino family is a major crime organisation headed by a powerful boss',
+      employee: 'a boss is the person in charge of employees in a workplace',
+      office: 'a boss typically has their own office and oversees the team',
+      salary: 'a boss is responsible for approving and setting employee salaries',
+      manager: 'a boss manages and directs the work of their team',
+    },
+    music: {
+      guitar: 'the guitar is one of the most widely played musical instruments',
+      singer: 'singers perform vocals as the central part of most music',
+      concert: 'musicians perform live music at concerts for audiences',
+      piano: 'the piano is a foundational instrument in many styles of music',
+      rhythm: 'rhythm is the timing and beat that drives all music',
+    },
+    computer: {
+      keyboard: 'keyboards are the primary input device used with computers',
+      screen: 'screens display the visual output of a computer',
+      mouse: 'a mouse is used to navigate and interact with a computer',
+      software: 'software are the programs that run on a computer',
+      internet: 'computers connect to the internet to access information',
+    },
   };
-  return reasons[topic]?.[word] || `it is commonly associated with the topic of ${topic}`;
+  // Check if we have a specific reason
+  if (reasons[topic]?.[word]) return reasons[topic][word];
+  // Generic but slightly more specific fallback
+  return `it is closely linked to the concept of "${topic}" and commonly appears in that context`;
 }
 
 // ─── Batch fetch definitions ──────────────────────────────────────────────────
