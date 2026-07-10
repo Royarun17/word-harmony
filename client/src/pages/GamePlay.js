@@ -186,29 +186,29 @@ export default function GamePlay({ session, playerId, onExit }) {
           </div>
         )}
 
-        {/* Face-down cards */}
-        <div style={{ display: 'flex', gap: isVertical ? 4 : 3, flexDirection: isVertical ? 'row' : 'column' }}>
+        {/* Face-down cards — bigger size, more gap */}
+        <div style={{ display: 'flex', gap: 12, flexDirection: isVertical ? 'row' : 'column' }}>
           {Array.from({ length: cardCount }).map((_, i) => (
             <div key={i} style={{
-              width: isVertical ? 36 : 48,
-              height: isVertical ? 52 : 36,
-              borderRadius: 6,
+              width: isVertical ? 56 : 72,
+              height: isVertical ? 80 : 56,
+              borderRadius: 10,
               background: '#1A1A2E',
-              border: `2px solid ${isTurn && i === cardCount-1 ? '#F5A623' : '#1D9E75'}`,
+              border: `2.5px solid ${isTurn && i === cardCount-1 ? '#F5A623' : '#1D9E75'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: isTurn && i === cardCount-1 ? '0 0 8px rgba(245,166,35,0.4)' : 'none',
+              boxShadow: isTurn && i === cardCount-1 ? '0 0 12px rgba(245,166,35,0.5)' : 'none',
               position: 'relative', overflow: 'hidden',
+              transition: 'transform 0.2s ease',
+              transform: isTurn && i === cardCount-1 ? 'scale(1.08)' : 'scale(1)',
             }}>
               {/* Card back logo */}
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
-                <div style={{ width: isVertical ? 14 : 18, height: isVertical ? 20 : 14, borderRadius: 3, border: '1px solid rgba(29,158,117,0.5)' }}>
-                  <div style={{ width: '100%', height: '100%', borderRadius: 2, background: 'rgba(29,158,117,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: '60%', height: '60%', borderRadius: 1, border: '1px solid rgba(29,158,117,0.4)' }} />
-                  </div>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: isVertical ? 28 : 36, height: isVertical ? 38 : 28, borderRadius: 5, border: '1.5px solid rgba(29,158,117,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(29,158,117,0.1)' }}>
+                  <div style={{ width: '55%', height: '55%', borderRadius: 3, border: '1px solid rgba(29,158,117,0.5)' }} />
                 </div>
               </div>
               {isTurn && i === cardCount-1 && (
-                <div style={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', background: '#F5A623' }} />
+                <div style={{ position: 'absolute', top: 4, right: 4, width: 8, height: 8, borderRadius: '50%', background: '#F5A623' }} />
               )}
             </div>
           ))}
