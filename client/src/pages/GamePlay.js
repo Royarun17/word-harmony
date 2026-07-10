@@ -3,70 +3,6 @@ import socket from '../utils/socket';
 import GameCard from '../components/GameCard';
 import { AvatarDisplay } from '../components/AvatarPicker';
 
-// Position other players around the table based on count and my index
-function getTablePositions(myIndex, totalPlayers) {
-  const others = [];
-  for (let i = 1; i < totalPlayers; i++) {
-    const idx = (myIndex + i) % totalPlayers;
-    others.push(idx);
-  }
-  return others;
-}
-
-// Render a single opponent's panel positioned around the table
-function OpponentPanel({ player, isTurn, totalScores, buzzed, hasCompleteSet }) {
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-      padding: '12px 16px', borderRadius: 'var(--radius-lg)',
-      background: isTurn ? 'var(--teal-light)' : 'var(--white)',
-      border: `2px solid ${isTurn ? 'var(--teal)' : 'var(--border)'}`,
-      minWidth: 100, maxWidth: 140,
-      boxShadow: isTurn ? '0 4px 16px rgba(26,140,140,0.2)' : 'var(--shadow-card)',
-      transition: 'all 0.3s ease',
-      position: 'relative',
-    }}>
-      {isTurn && (
-        <div style={{
-          position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--teal)', color: 'white', fontSize: 10, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap'
-        }}>THEIR TURN</div>
-      )}
-      {buzzed && (
-        <div style={{
-          position: 'absolute', top: -10, right: 8,
-          background: hasCompleteSet ? 'var(--success)' : 'var(--danger)',
-          color: 'white', fontSize: 10, fontWeight: 700,
-          padding: '2px 6px', borderRadius: 99
-        }}>
-          {hasCompleteSet ? '✓ BUZZED' : '✗ BUZZED'}
-        </div>
-      )}
-      <AvatarDisplay avatar={player.avatar} size={48} fallbackLetter={player.name.charAt(0).toUpperCase()} />
-      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', textAlign: 'center', lineHeight: 1.2 }}>
-        {player.name}
-      </span>
-      <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)' }}>
-        {totalScores?.[player.id] || 0}
-      </span>
-      {/* Face-down cards to show how many cards they hold */}
-      <div className="flex gap-4" style={{ marginTop: 2 }}>
-        {[0,1,2].map(i => (
-          <div key={i} style={{
-            width: 18, height: 26, borderRadius: 3,
-            background: 'var(--ink)', border: '1px solid var(--muted)',
-            opacity: 0.7
-          }} />
-        ))}
-      </div>
-      {!player.connected && (
-        <span style={{ fontSize: 10, color: 'var(--muted)' }}>Away</span>
-      )}
-    </div>
-  );
-}
-
 export default function GamePlay({ session, playerId, onExit }) {
   const [hand, setHand] = useState([]);
   const [isStarter, setIsStarter] = useState(false);
@@ -79,10 +15,11 @@ export default function GamePlay({ session, playerId, onExit }) {
   const [buzzerWindowTime, setBuzzerWindowTime] = useState(null);
   const [buzzerRaceActive, setBuzzerRaceActive] = useState(false);
   const [buzzerUnlockedMsg, setBuzzerUnlockedMsg] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [opponentCards, setOpponentCards] = useState({});
   const timerRef = useRef(null);
   const buzzerTimerRef = useRef(null);
 
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const players = session.players || [];
   const myIndex = players.findIndex(p => p.id === playerId);
   const myPlayer = players[myIndex];
@@ -90,24 +27,21 @@ export default function GamePlay({ session, playerId, onExit }) {
   const isBuzzingPhase = session.phase === 'buzzing';
   const buzzerEnabled = session.firstRoundOver;
   const isFunMode = session?.gameMode === 'fun';
-  const difficulty = session?.difficulty || 'medium';
-  const starterPlayer = players.find(p => p.id === session.starterPlayerId);
-  const currentTurnPlayer = players.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
   const isStarterLocked = isStarter && !session.firstRoundOver;
   const hasFourCards = hand.length >= 4;
-  // 4 cards → must pass first, then buzz in window
-  // 3 cards → can buzz directly on your turn
   const canBuzz = !hasBuzzed && !isStarterLocked && (
-    buzzerRaceActive ||
-    buzzerWindowOpen ||
-    (buzzerEnabled && isMyTurn && !hasFourCards)
+    buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn && !hasFourCards)
   );
-  const diffLabel = difficulty==='easy'?'😊 Easy':difficulty==='hard'?'🔥 Hard':'🧠 Medium';
-  const medals = ['🥇','🥈','🥉'];
 
-  // Other players arranged around the table (everyone except me)
-  const otherPlayerIds = getTablePositions(myIndex, players.length);
-  const otherPlayers = otherPlayerIds.map(i => players[i]).filter(Boolean);
+  // Get other players positioned around the table
+  const others = players.filter(p => p.id !== playerId);
+  const getPosition = (count, index) => {
+    if (count === 1) return ['top'];
+    if (count === 2) return ['top-left', 'top-right'][index] || 'top';
+    if (count === 3) return ['top', 'left', 'right'][index] || 'top';
+    if (count === 4) return ['top', 'left', 'right', 'top-right'][index] || 'top';
+    return ['top', 'left', 'right', 'top-left', 'top-right'][index] || 'top';
+  };
 
   useEffect(() => {
     const fn = ({ hand: h, isStarter: s }) => { setHand(h||[]); setIsStarter(!!s); };
@@ -115,37 +49,34 @@ export default function GamePlay({ session, playerId, onExit }) {
     return () => socket.off(`hand_update_${playerId}`, fn);
   }, [playerId]);
 
-  // If hand is still empty 2.5 seconds after mounting in playing phase,
-  // re-join the session room to trigger a hand re-send from the server
   useEffect(() => {
-    if (session.phase !== 'playing' && session.phase !== 'buzzing') return;
-    const retryTimer = setTimeout(() => {
-      if (hand.length === 0) {
-        console.log('Hand still empty after 2.5s — re-requesting from server');
-        socket.emit('request_hand', { sessionId: session.id, playerId });
-      }
-    }, 2500);
-    return () => clearTimeout(retryTimer);
-  }, [session.phase]); // eslint-disable-line
-
-  useEffect(() => {
-    const fn = ({ toPlayerId }) => { if (toPlayerId===playerId) { setJustReceived(true); setTimeout(()=>setJustReceived(false),2000); } };
+    const fn = ({ toPlayerId }) => {
+      if (toPlayerId === playerId) { setJustReceived(true); setTimeout(()=>setJustReceived(false), 2000); }
+      // Track opponent card counts
+      setOpponentCards(prev => ({
+        ...prev,
+        [toPlayerId]: (prev[toPlayerId] || 3) + 1
+      }));
+    };
     socket.on('card_incoming', fn); return () => socket.off('card_incoming', fn);
   }, [playerId]);
+
+  useEffect(() => {
+    // Reset opponent card count when someone passes
+    const fn = ({ playerId: pid }) => {
+      setOpponentCards(prev => ({ ...prev, [pid]: Math.max(3, (prev[pid] || 3) - 1) }));
+    };
+    socket.on('auto_passed', fn); return () => socket.off('auto_passed', fn);
+  }, []);
 
   useEffect(() => {
     const fn = ({ seconds }) => {
       if (timerRef.current) clearInterval(timerRef.current);
       setTimeLeft(seconds);
-      timerRef.current = setInterval(() => setTimeLeft(p => { if (p<=1){clearInterval(timerRef.current);return 0;} return p-1; }), 1000);
+      timerRef.current = setInterval(() => setTimeLeft(p => { if(p<=1){clearInterval(timerRef.current);return 0;} return p-1; }), 1000);
     };
     socket.on('turn_timer', fn);
     return () => { socket.off('turn_timer', fn); if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
-  useEffect(() => {
-    const fn = () => { setTimeLeft(null); if (timerRef.current) clearInterval(timerRef.current); };
-    socket.on('auto_passed', fn); return () => socket.off('auto_passed', fn);
   }, []);
 
   useEffect(() => {
@@ -182,305 +113,314 @@ export default function GamePlay({ session, playerId, onExit }) {
   }, [playerId]);
 
   useEffect(() => {
-    setHasBuzzed(false); setBuzzerLog([]); setSelectedCard(null); setJustReceived(false);
+    setHasBuzzed(false); setBuzzerLog([]); setSelectedCard(null);
     setTimeLeft(null); setBuzzerWindowOpen(false); setBuzzerWindowTime(null); setBuzzerRaceActive(false);
     if (timerRef.current) clearInterval(timerRef.current);
     if (buzzerTimerRef.current) clearInterval(buzzerTimerRef.current);
   }, [session.currentRound]);
 
-  // Back button → show exit confirm instead of leaving
   useEffect(() => {
     window.history.pushState({ gameState: 'playing' }, '');
-    function handlePopState() {
-      setShowExitConfirm(true);
-      // Push state again so back button works next time too
-      window.history.pushState({ gameState: 'playing' }, '');
-    }
+    function handlePopState() { setShowExitConfirm(true); window.history.pushState({ gameState: 'playing' }, ''); }
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   function handleSelectCard(w) { if (!isMyTurn || isBuzzingPhase) return; setSelectedCard(p => p===w?null:w); }
-  function handlePassCard() { if (!selectedCard||!isMyTurn) return; socket.emit('pass_card',{sessionId:session.id,playerId,cardToPass:selectedCard}); setSelectedCard(null); }
+  function handlePassCard() {
+    if (!selectedCard||!isMyTurn) return;
+    socket.emit('pass_card',{sessionId:session.id,playerId,cardToPass:selectedCard});
+    setSelectedCard(null);
+  }
   function handleBuzzer() { if (!canBuzz) return; socket.emit('press_buzzer',{sessionId:session.id,playerId}); }
 
   const buzzerStatus = () => {
-    if (hasBuzzed) return '✅ You buzzed!';
-    if (isStarterLocked) return '🔒 Buzzer activates once cards travel all the way back to you!';
-    if (buzzerRaceActive) return '🚨 Race! Buzz now!';
+    if (hasBuzzed) return '✅ Buzzed!';
+    if (isStarterLocked) return '🔒 Wait for cards to travel back to you';
+    if (buzzerRaceActive) return '🚨 RACE! Buzz now!';
     if (buzzerWindowOpen) return `⚡ ${buzzerWindowTime}s — BUZZ NOW!`;
-    if (!buzzerEnabled && isMyTurn) return '⚠️ Round 1 — buzzing scores 0 pts!';
-    if (buzzerEnabled && isMyTurn && hasFourCards) return '⚠️ Pass one of your 4 cards first — then buzz in the 3s window!';
-    if (buzzerEnabled && isMyTurn && !hasFourCards) return '🟢 Your turn — buzz if you have 3 matching cards!';
-    return '⏳ Wait for your turn to buzz';
+    if (hasFourCards && isMyTurn) return '⚠️ Pass a card first — then buzz!';
+    if (!buzzerEnabled) return '⚠️ Round 1 — buzzing scores 0';
+    if (buzzerEnabled && isMyTurn) return '🟢 Buzz if you have 3 matching cards!';
+    return '⏳ Wait for your turn';
   };
 
-  // Layout: top row = opponents, bottom = my area
-  // For 2 opponents: side by side at top
-  // For 3+ opponents: spread across top and sides
-  const getOpponentLayout = () => {
-    const count = otherPlayers.length;
-    if (count === 0) return { top: [], left: [], right: [] };
-    if (count === 1) return { top: [otherPlayers[0]], left: [], right: [] };
-    if (count === 2) return { top: otherPlayers, left: [], right: [] };
-    if (count === 3) return { top: [otherPlayers[1]], left: [otherPlayers[0]], right: [otherPlayers[2]] };
-    if (count === 4) return { top: [otherPlayers[1], otherPlayers[2]], left: [otherPlayers[0]], right: [otherPlayers[3]] };
-    return { top: otherPlayers.slice(1, count-1), left: [otherPlayers[0]], right: [otherPlayers[count-1]] };
-  };
+  // Opponent card component — face down with logo
+  const OpponentPanel = ({ player, position }) => {
+    const isTurn = session.turnOrder?.[session.currentTurnIndex] === player.id;
+    const cardCount = isTurn ? 4 : 3;
+    const buzzEntry = buzzerLog.find(b => b.playerId === player.id);
+    const isVertical = position === 'top' || position === 'top-left' || position === 'top-right';
 
-  const layout = getOpponentLayout();
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+        opacity: player.connected === false ? 0.5 : 1,
+      }}>
+        {/* Avatar + name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ position: 'relative' }}>
+            <AvatarDisplay avatar={player.avatar} size={36} fallbackLetter={player.name.charAt(0).toUpperCase()} />
+            {isTurn && (
+              <div style={{
+                position: 'absolute', bottom: -2, right: -2,
+                width: 12, height: 12, borderRadius: '50%',
+                background: '#00D4AA', border: '2px solid white'
+              }} />
+            )}
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 }}>{player.name}</p>
+            <p style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700 }}>{session.totalScores?.[player.id] || 0} pts</p>
+          </div>
+        </div>
+
+        {/* Buzz indicator */}
+        {buzzEntry && (
+          <div style={{
+            fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+            background: buzzEntry.hasCompleteSet ? '#D1FAE5' : '#FEE2E2',
+            color: buzzEntry.hasCompleteSet ? '#065F46' : '#991B1B'
+          }}>
+            {buzzEntry.hasCompleteSet ? '✓ BUZZED' : '✗ BUZZED'}
+          </div>
+        )}
+
+        {/* Face-down cards */}
+        <div style={{ display: 'flex', gap: isVertical ? 4 : 3, flexDirection: isVertical ? 'row' : 'column' }}>
+          {Array.from({ length: cardCount }).map((_, i) => (
+            <div key={i} style={{
+              width: isVertical ? 36 : 48,
+              height: isVertical ? 52 : 36,
+              borderRadius: 6,
+              background: '#1A1A2E',
+              border: `2px solid ${isTurn && i === cardCount-1 ? '#F5A623' : '#1D9E75'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: isTurn && i === cardCount-1 ? '0 0 8px rgba(245,166,35,0.4)' : 'none',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              {/* Card back logo */}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
+                <div style={{ width: isVertical ? 14 : 18, height: isVertical ? 20 : 14, borderRadius: 3, border: '1px solid rgba(29,158,117,0.5)' }}>
+                  <div style={{ width: '100%', height: '100%', borderRadius: 2, background: 'rgba(29,158,117,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: '60%', height: '60%', borderRadius: 1, border: '1px solid rgba(29,158,117,0.4)' }} />
+                  </div>
+                </div>
+              </div>
+              {isTurn && i === cardCount-1 && (
+                <div style={{ position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: '50%', background: '#F5A623' }} />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {isTurn && (
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#00D4AA', letterSpacing: 1 }}>THEIR TURN</div>
+        )}
+        {!player.connected && (
+          <div style={{ fontSize: 9, color: 'var(--muted)' }}>Away</div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--parchment)', padding: '16px' }}>
+    <div style={{ minHeight: '100vh', background: '#F0EDE8', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Exit confirm dialog */}
+      {/* Exit confirm */}
       {showExitConfirm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div className="panel" style={{ maxWidth: 340, width: '90%', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 22, marginBottom: 12 }}>Exit Game?</h2>
-            <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
-              Are you sure you want to leave? Your spot will be held for 1.5 minutes — you can rejoin with the session code.
-            </p>
-            <div className="flex gap-12">
-              <button
-                className="btn btn-outline"
-                style={{ flex: 1 }}
-                onClick={() => setShowExitConfirm(false)}
-              >
-                No, Stay
-              </button>
-              <button
-                className="btn btn-primary"
-                style={{ flex: 1, background: 'var(--danger)', borderColor: 'var(--danger)' }}
-                onClick={() => { setShowExitConfirm(false); onExit?.(); }}
-              >
-                Yes, Exit
-              </button>
+        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000 }}>
+          <div style={{ background:'white',borderRadius:16,padding:28,maxWidth:320,width:'90%',textAlign:'center' }}>
+            <h2 style={{ fontSize:20,marginBottom:10 }}>Exit Game?</h2>
+            <p style={{ color:'var(--muted)',fontSize:13,marginBottom:24,lineHeight:1.6 }}>Your spot is held for 1.5 minutes — you can rejoin with the session code.</p>
+            <div style={{ display:'flex',gap:10 }}>
+              <button onClick={() => setShowExitConfirm(false)} style={{ flex:1,padding:'10px',borderRadius:10,border:'1.5px solid var(--border)',background:'white',fontWeight:600,cursor:'pointer' }}>No, Stay</button>
+              <button onClick={() => { setShowExitConfirm(false); onExit?.(); }} style={{ flex:1,padding:'10px',borderRadius:10,border:'none',background:'#E94560',color:'white',fontWeight:700,cursor:'pointer' }}>Yes, Exit</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
-        <div>
-          <h2 style={{ fontSize: 22, lineHeight: 1 }}>Word Harmony</h2>
-          <p style={{ color: 'var(--muted)', fontSize: 12 }}>Round {session.currentRound}/{session.rounds}</p>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 16px',background:'white',borderBottom:'1px solid var(--border)' }}>
+        <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+          <span style={{ fontSize:14,fontWeight:800,color:'var(--ink)' }}>Word Harmony</span>
+          <span style={{ fontSize:11,background:'#1A1A2E',color:'white',borderRadius:99,padding:'2px 10px',fontWeight:700 }}>Round {session.currentRound}/{session.rounds}</span>
         </div>
-        <div className="flex gap-6 items-center" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {buzzerRaceActive ? <span className="badge" style={{ background:'var(--danger)',color:'white' }}>🚨 Race!</span>
-            : !buzzerEnabled ? <span className="badge badge-gold">⚠️ Round 1</span>
-            : <span className="badge badge-teal">🔓 Buzzer open</span>}
-          <span className="badge badge-muted">{isFunMode?'🎉 Fun':'📚 Edu'} · {diffLabel}</span>
+        <div style={{ display:'flex',gap:6,alignItems:'center' }}>
+          {buzzerRaceActive ? <span style={{ fontSize:10,background:'#E94560',color:'white',borderRadius:99,padding:'2px 8px',fontWeight:700 }}>🚨 RACE!</span>
+            : !buzzerEnabled ? <span style={{ fontSize:10,background:'#FEF3C7',color:'#92400E',borderRadius:99,padding:'2px 8px',fontWeight:700 }}>⚠️ Round 1</span>
+            : <span style={{ fontSize:10,background:'#D1FAE5',color:'#065F46',borderRadius:99,padding:'2px 8px',fontWeight:700 }}>🔓 Buzzer open</span>}
+          <span style={{ fontSize:10,background:isFunMode?'#FEF3C7':'#EFF6FF',color:isFunMode?'#92400E':'#1E40AF',borderRadius:99,padding:'2px 8px',fontWeight:700 }}>
+            {isFunMode?'🎉 Fun':'📚 Edu'}
+          </span>
         </div>
       </div>
 
       {/* Notifications */}
       {buzzerUnlockedMsg && (
-        <div style={{ background:'var(--teal)',color:'white',borderRadius:'var(--radius-md)',padding:'10px 16px',marginBottom:10,textAlign:'center',fontWeight:700,fontSize:14 }}>
-          🔓 Round 1 complete! Buzzer is now open!
+        <div style={{ background:'#1D9E75',color:'white',padding:'8px 16px',textAlign:'center',fontWeight:700,fontSize:13 }}>
+          🔓 Buzzer unlocked! Pass a card to open your 3s buzz window
         </div>
       )}
       {buzzerRaceActive && !hasBuzzed && (
-        <div style={{ background:'var(--danger)',color:'white',borderRadius:'var(--radius-md)',padding:'10px 16px',marginBottom:10,textAlign:'center',fontWeight:700,fontSize:15 }}>
-          🚨 BUZZER RACE — Everyone buzz now!
-        </div>
-      )}
-      {isStarter && !session.firstRoundOver && (
-        <div style={{ background:'var(--gold-light)',border:'2px solid var(--gold)',borderRadius:'var(--radius-md)',padding:'10px 16px',marginBottom:10,display:'flex',alignItems:'center',gap:10 }}>
-          <span style={{ fontSize:20 }}>⭐</span>
-          <p style={{ fontSize:13,color:'#7A5200',fontWeight:600 }}>You start! Pass one of your 4 cards — buzzer unlocks after cards travel all the way around.</p>
+        <div style={{ background:'#E94560',color:'white',padding:'8px 16px',textAlign:'center',fontWeight:700,fontSize:14 }}>
+          🚨 BUZZER RACE — Buzz now!
         </div>
       )}
 
-      {/* ── TABLE LAYOUT ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+      {/* TABLE */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'16px', gap:8, maxWidth:600, margin:'0 auto', width:'100%' }}>
 
-        {/* TOP ROW — opponents at the top */}
-        {layout.top.length > 0 && (
-          <div className="flex gap-12 justify-center" style={{ flexWrap: 'wrap' }}>
-            {layout.top.map(p => {
-              const buzzEntry = buzzerLog.find(b => b.playerId === p.id);
-              return (
-                <OpponentPanel
-                  key={p.id} player={p}
-                  isTurn={session.turnOrder?.[session.currentTurnIndex] === p.id}
-                  totalScores={session.totalScores}
-                  buzzed={!!buzzEntry}
-                  hasCompleteSet={buzzEntry?.hasCompleteSet}
-                />
-              );
-            })}
-          </div>
-        )}
+        {/* TOP opponents */}
+        <div style={{ display:'flex', gap:24, justifyContent:'center', flexWrap:'wrap' }}>
+          {others.slice(0, Math.ceil(others.length/2)).map((p, i) => (
+            <OpponentPanel key={p.id} player={p} position="top" />
+          ))}
+        </div>
 
-        {/* MIDDLE ROW — left opponent, table center, right opponent */}
-        <div className="flex gap-12 items-center" style={{ width: '100%', maxWidth: 800 }}>
+        {/* MIDDLE row — left, buzzer, right */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', gap:8 }}>
 
           {/* Left opponent */}
-          <div style={{ flexShrink: 0 }}>
-            {layout.left.map(p => {
-              const buzzEntry = buzzerLog.find(b => b.playerId === p.id);
-              return (
-                <OpponentPanel
-                  key={p.id} player={p}
-                  isTurn={session.turnOrder?.[session.currentTurnIndex] === p.id}
-                  totalScores={session.totalScores}
-                  buzzed={!!buzzEntry}
-                  hasCompleteSet={buzzEntry?.hasCompleteSet}
-                />
-              );
-            })}
+          <div style={{ minWidth:80 }}>
+            {others.length >= 3 && <OpponentPanel player={others[Math.floor(others.length/2)]} position="left" />}
           </div>
 
-          {/* CENTER TABLE — turn indicator + timer */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className={`turn-banner ${isMyTurn?'':'waiting'}`} style={{ textAlign: 'center', fontSize: 14 }}>
-              {isBuzzingPhase ? '🚨 Buzzer race!'
-                : isMyTurn ? `🎯 Your turn — ${hand.length} cards`
-                : `${currentTurnPlayer?.name || '…'}'s turn`}
+          {/* CENTRE — buzzer */}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+
+            {/* Timer */}
+            {timeLeft !== null && !isBuzzingPhase && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:11, color:timeLeft<=5?'#E94560':'var(--muted)', fontWeight:600, marginBottom:4 }}>
+                  {isMyTurn ? `⏱ ${timeLeft}s to pass` : `⏱ ${timeLeft}s`}
+                </div>
+                <div style={{ width:80, height:6, background:'#E5E7EB', borderRadius:3, overflow:'hidden' }}>
+                  <div style={{ height:'100%', borderRadius:3, background:timeLeft<=5?'#E94560':timeLeft<=10?'#F5A623':'#1D9E75', width:`${(timeLeft/30)*100}%`, transition:'width 1s linear' }} />
+                </div>
+              </div>
+            )}
+
+            {/* Buzzer window countdown */}
+            {buzzerWindowOpen && (
+              <div style={{ background:'#E94560', borderRadius:8, padding:'4px 12px', color:'white', fontWeight:800, fontSize:18 }}>
+                ⚡ {buzzerWindowTime}s
+              </div>
+            )}
+
+            {/* BUZZ button */}
+            <div style={{ position:'relative' }}>
+              <button
+                onClick={handleBuzzer}
+                disabled={!canBuzz}
+                style={{
+                  width: buzzerRaceActive || buzzerWindowOpen ? 100 : 88,
+                  height: buzzerRaceActive || buzzerWindowOpen ? 100 : 88,
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: hasBuzzed ? '#9CA3AF'
+                    : !buzzerEnabled ? '#E8C4B0'
+                    : canBuzz ? '#E94560'
+                    : '#F4A4A4',
+                  color: hasBuzzed ? 'white' : !buzzerEnabled ? '#8B3A1A' : 'white',
+                  fontSize: 14, fontWeight: 900, cursor: canBuzz ? 'pointer' : 'not-allowed',
+                  boxShadow: canBuzz ? '0 6px 20px rgba(233,69,96,0.5)' : 'none',
+                  transition: 'all 0.2s ease',
+                  transform: canBuzz ? 'scale(1.05)' : 'scale(1)',
+                  letterSpacing: 1,
+                }}
+              >
+                BUZZ!
+              </button>
             </div>
 
-            {timeLeft !== null && !isBuzzingPhase && (
-              <div>
-                <div className="flex justify-between" style={{ marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, color: timeLeft<=5?'var(--danger)':'var(--muted)', fontWeight: 600 }}>
-                    ⏱ {timeLeft}s
-                  </span>
-                  <span style={{ fontSize: 16, fontWeight: 900, color: timeLeft<=5?'var(--danger)':timeLeft<=10?'var(--gold)':'var(--teal)' }}>{timeLeft}</span>
-                </div>
-                <div style={{ height: 8, background: 'var(--blush)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 4, background: timeLeft<=5?'var(--danger)':timeLeft<=10?'var(--gold)':'var(--teal)', width:`${(timeLeft/30)*100}%`, transition: 'width 1s linear' }} />
-                </div>
-              </div>
-            )}
+            <p style={{ fontSize:10, color:'var(--muted)', textAlign:'center', maxWidth:120, lineHeight:1.4, fontWeight:500 }}>
+              {buzzerStatus()}
+            </p>
 
-            {buzzerWindowOpen && (
-              <div style={{ background:'var(--danger)',borderRadius:'var(--radius-md)',padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-                <span style={{ color:'white',fontWeight:700,fontSize:13 }}>⚡ Buzz window!</span>
-                <span style={{ color:'white',fontWeight:900,fontSize:22 }}>{buzzerWindowTime}s</span>
-              </div>
-            )}
-
-            {justReceived && (
-              <div style={{ background:'var(--teal-light)',border:'1px solid var(--teal)',borderRadius:'var(--radius-md)',padding:'8px 12px',fontSize:13,color:'var(--teal)',fontWeight:600,textAlign:'center' }}>
-                📨 Card received! {hand.length} cards in hand.
-              </div>
-            )}
-
-            {/* Round info */}
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 14px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.8 }}>
-              <p><strong>Starter:</strong> {starterPlayer?.name||'—'}</p>
-              <p><strong>Buzzer:</strong> {buzzerEnabled?'🔓 Open':'⚠️ Invalid'}</p>
-              <p><strong>Phase:</strong> {isBuzzingPhase?'🚨 Race!':'🃏 Trading'}</p>
+            {/* Turn indicator */}
+            <div style={{
+              background: isMyTurn ? '#1A1A2E' : '#F3F4F6',
+              color: isMyTurn ? 'white' : 'var(--muted)',
+              borderRadius: 8, padding: '6px 14px', fontSize: 11, fontWeight: 700, textAlign: 'center'
+            }}>
+              {isBuzzingPhase ? '🚨 Race mode!'
+                : isMyTurn ? `🎯 Your turn`
+                : `${session.players?.find(p=>p.id===session.turnOrder?.[session.currentTurnIndex])?.name || '…'}'s turn`}
             </div>
           </div>
 
           {/* Right opponent */}
-          <div style={{ flexShrink: 0 }}>
-            {layout.right.map(p => {
-              const buzzEntry = buzzerLog.find(b => b.playerId === p.id);
-              return (
-                <OpponentPanel
-                  key={p.id} player={p}
-                  isTurn={session.turnOrder?.[session.currentTurnIndex] === p.id}
-                  totalScores={session.totalScores}
-                  buzzed={!!buzzEntry}
-                  hasCompleteSet={buzzEntry?.hasCompleteSet}
-                />
-              );
-            })}
+          <div style={{ minWidth:80 }}>
+            {others.length >= 4 && <OpponentPanel player={others[others.length-1]} position="right" />}
           </div>
         </div>
 
-        {/* MY AREA — hand + buzzer at the bottom */}
-        <div style={{ width: '100%', maxWidth: 800 }}>
-          {/* My player info strip */}
-          <div className="flex items-center gap-10" style={{ marginBottom: 10, padding: '8px 12px', background: 'var(--white)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-            <AvatarDisplay avatar={myPlayer?.avatar} size={36} fallbackLetter={myPlayer?.name?.charAt(0)?.toUpperCase() || '?'} />
-            <span style={{ fontWeight: 700, fontSize: 15 }}>{myPlayer?.name || 'You'}</span>
-            <span className="badge badge-gold" style={{ marginLeft: 4 }}>{session.totalScores?.[playerId] || 0} pts</span>
-            {isMyTurn && <span className="badge badge-teal" style={{ marginLeft: 4 }}>Your turn</span>}
-            {hasBuzzed && <span className="badge badge-muted" style={{ marginLeft: 4 }}>Buzzed</span>}
+        {/* MY AREA — bottom */}
+        <div style={{ width:'100%' }}>
+
+          {/* My player strip */}
+          <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:8,padding:'6px 10px',background:'white',borderRadius:10,border:'1px solid var(--border)' }}>
+            <AvatarDisplay avatar={myPlayer?.avatar} size={32} fallbackLetter={myPlayer?.name?.charAt(0)?.toUpperCase()||'?'} />
+            <span style={{ fontWeight:700,fontSize:13 }}>{myPlayer?.name||'You'}</span>
+            <span style={{ fontSize:11,background:'#FEF3C7',color:'#92400E',borderRadius:99,padding:'1px 8px',fontWeight:700 }}>{session.totalScores?.[playerId]||0} pts</span>
+            {isMyTurn && <span style={{ fontSize:10,background:'#D1FAE5',color:'#065F46',borderRadius:99,padding:'1px 8px',fontWeight:700,marginLeft:'auto' }}>Your turn</span>}
+            {hasBuzzed && <span style={{ fontSize:10,background:'#F3F4F6',color:'var(--muted)',borderRadius:99,padding:'1px 8px',fontWeight:600,marginLeft:'auto' }}>Buzzed ✓</span>}
+          </div>
+
+          {/* My hand label */}
+          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8 }}>
+            <div>
+              <span style={{ fontSize:12,fontWeight:700,color:'var(--ink)' }}>Your Hand</span>
+              <span style={{ fontSize:10,background:'#F3F4F6',color:'var(--muted)',borderRadius:99,padding:'1px 8px',fontWeight:600,marginLeft:6 }}>{hand.length} cards</span>
+              {hand.length===4 && <span style={{ fontSize:10,background:'#FEF3C7',color:'#92400E',borderRadius:99,padding:'1px 8px',fontWeight:700,marginLeft:4 }}>Pass one!</span>}
+            </div>
+            {isMyTurn && selectedCard && !isBuzzingPhase && (
+              <button onClick={handlePassCard} style={{ background:'#1A1A2E',color:'white',border:'none',borderRadius:8,padding:'6px 14px',fontSize:11,fontWeight:700,cursor:'pointer' }}>
+                Pass "{selectedCard}" →
+              </button>
+            )}
           </div>
 
           {/* Cards */}
-          <div className="panel" style={{ marginBottom: 10 }}>
-            <div className="flex justify-between items-center" style={{ marginBottom: 12 }}>
-              <div>
-                <h3 style={{ fontSize: 15, fontFamily: 'var(--font-body)', fontWeight: 600 }}>
-                  Your Hand
-                  <span className="badge badge-muted" style={{ marginLeft: 8, fontSize: 11 }}>{hand.length} cards</span>
-                  {hand.length===4 && <span className="badge badge-gold" style={{ marginLeft: 6, fontSize: 11 }}>{isMyTurn?'Pick one!':'Received!'}</span>}
-                </h3>
-                <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                  {isMyTurn ? 'Select a card to pass clockwise' : isFunMode ? 'Collect 3 from same topic' : 'Collect 3 synonyms'}
-                </p>
-              </div>
-              {isMyTurn && selectedCard && !isBuzzingPhase && (
-                <button className="btn btn-primary btn-sm" onClick={handlePassCard}>Pass "{selectedCard}" →</button>
-              )}
+          {hand.length === 0 ? (
+            <div style={{ textAlign:'center',padding:'20px',color:'var(--muted)',fontSize:12 }}>Dealing cards…</div>
+          ) : (
+            <div style={{ display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center' }}>
+              {hand.map((w,i) => (
+                <GameCard key={`${w}-${i}`} word={w} selected={selectedCard===w}
+                  onClick={()=>handleSelectCard(w)} disabled={!isMyTurn||isBuzzingPhase}
+                  label={isMyTurn&&!isBuzzingPhase?'tap to select':''} />
+              ))}
             </div>
+          )}
+          {isMyTurn && !selectedCard && !isBuzzingPhase && hand.length>0 && (
+            <p style={{ fontSize:11,color:'var(--muted)',marginTop:8,textAlign:'center' }}>↑ Tap a card to select it, then click Pass</p>
+          )}
 
-            {hand.length === 0 ? (
-              <div style={{ textAlign:'center',padding:'24px 0',color:'var(--muted)' }}>
-                <div className="spinner" style={{ margin:'0 auto 10px' }} /><p>Dealing cards…</p>
-              </div>
-            ) : (
-              <div className="flex gap-12" style={{ flexWrap:'wrap' }}>
-                {hand.map((w,i) => (
-                  <GameCard key={`${w}-${i}`} word={w} selected={selectedCard===w}
-                    onClick={()=>handleSelectCard(w)} disabled={!isMyTurn||isBuzzingPhase}
-                    label={isMyTurn&&!isBuzzingPhase?'tap to select':''} />
-                ))}
-              </div>
-            )}
-            {isMyTurn && !selectedCard && !isBuzzingPhase && hand.length>0 && (
-              <p style={{ fontSize:12,color:'var(--muted)',marginTop:10,textAlign:'center' }}>↑ Tap a card, then click Pass</p>
-            )}
-          </div>
-
-          {/* Buzzer */}
-          <div className="panel text-center">
-            <p style={{ fontSize:12,fontWeight:600,color:'var(--muted)',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em' }}>Buzzer</p>
-            <p style={{ fontSize:13,color:hasBuzzed?'var(--success)':buzzerRaceActive||buzzerWindowOpen?'var(--danger)':'var(--muted)',marginBottom:14,fontWeight:600 }}>
-              {buzzerStatus()}
-            </p>
-            <div className="flex justify-center" style={{ marginBottom:12 }}>
-              <button className={`buzzer-btn ${canBuzz?'ready':''} ${buzzerEnabled&&!hasBuzzed?'unlocked':''}`} onClick={handleBuzzer} disabled={!canBuzz}>BUZZ!</button>
-            </div>
-            <p style={{ fontSize:11,color:'var(--muted)' }}>
-              {buzzerRaceActive?'Race mode — buzz anytime!':buzzerEnabled?'Pass a card → 3s window → BUZZ!':'Buzzing before Round 1 = 0 pts'}
-            </p>
-
-            {buzzerLog.length > 0 && (
-              <div style={{ marginTop:14,textAlign:'left' }}>
-                <p style={{ fontSize:12,fontWeight:600,color:'var(--muted)',marginBottom:6 }}>Buzzer order:</p>
+          {/* Buzzer log */}
+          {buzzerLog.length > 0 && (
+            <div style={{ marginTop:10,padding:'8px 12px',background:'white',borderRadius:8,border:'1px solid var(--border)' }}>
+              <p style={{ fontSize:11,fontWeight:700,color:'var(--muted)',marginBottom:6 }}>Buzzer order:</p>
+              <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
                 {buzzerLog.map((b,i) => {
                   const p = players.find(pl=>pl.id===b.playerId);
+                  const medals = ['🥇','🥈','🥉'];
                   return (
-                    <div key={b.playerId} className="flex items-center gap-8" style={{ marginBottom:5 }}>
-                      <span style={{ fontSize:16 }}>{medals[i]||`#${i+1}`}</span>
-                      <AvatarDisplay avatar={p?.avatar} size={22} fallbackLetter={p?.name?.charAt(0)?.toUpperCase()||'?'} />
-                      <span style={{ fontSize:13,fontWeight:b.playerId===playerId?700:400 }}>{p?.name} {b.playerId===playerId?'(you)':''}</span>
-                      <span className={`badge ${b.hasCompleteSet?'badge-teal':'badge-muted'}`} style={{ marginLeft:'auto',fontSize:10 }}>
+                    <div key={b.playerId} style={{ display:'flex',alignItems:'center',gap:4 }}>
+                      <span style={{ fontSize:14 }}>{medals[i]||`#${i+1}`}</span>
+                      <AvatarDisplay avatar={p?.avatar} size={20} fallbackLetter={p?.name?.charAt(0)?.toUpperCase()||'?'} />
+                      <span style={{ fontSize:11,fontWeight:b.playerId===playerId?700:400 }}>{p?.name}</span>
+                      <span style={{ fontSize:10,padding:'1px 6px',borderRadius:99,background:b.hasCompleteSet?'#D1FAE5':'#FEE2E2',color:b.hasCompleteSet?'#065F46':'#991B1B',fontWeight:600 }}>
                         {b.invalid?'⚠️':b.hasCompleteSet?'✓':'✗'}
                       </span>
                     </div>
                   );
                 })}
-                {isBuzzingPhase && buzzerLog.length < players.length && (
-                  <p style={{ fontSize:12,color:'var(--danger)',marginTop:6,fontWeight:600 }}>
-                    🚨 {players.length - buzzerLog.length} player{players.length - buzzerLog.length!==1?'s':''} haven't buzzed!
-                  </p>
-                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
