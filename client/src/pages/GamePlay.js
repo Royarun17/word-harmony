@@ -272,19 +272,29 @@ export default function GamePlay({ session, playerId, onExit }) {
       {/* TABLE */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'16px', gap:8, maxWidth:600, margin:'0 auto', width:'100%' }}>
 
-        {/* TOP opponents */}
+        {/* TOP opponents — minimum 3 players means always 2+ others */}
+        {/* Layout:
+            3 players → top: [0], right: [1], left: empty
+            4 players → top: [0], left: [1], right: [2]
+            5 players → top: [0,1], left: [2], right: [3]
+            6 players → top: [0,1,2], left: [3], right: [4]
+        */}
         <div style={{ display:'flex', gap:24, justifyContent:'center', flexWrap:'wrap' }}>
-          {others.slice(0, Math.ceil(others.length/2)).map((p, i) => (
-            <OpponentPanel key={p.id} player={p} position="top" />
-          ))}
+          {others.length === 2
+            ? [others[0]].map(p => <OpponentPanel key={p.id} player={p} position="top" />)
+            : others.slice(0, others.length - 2).map(p => <OpponentPanel key={p.id} player={p} position="top" />)
+          }
         </div>
 
         {/* MIDDLE row — left, buzzer, right */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', gap:8 }}>
 
-          {/* Left opponent */}
+          {/* Left opponent — empty for 3 players, filled for 4+ */}
           <div style={{ minWidth:80 }}>
-            {others.length >= 3 && <OpponentPanel player={others[Math.floor(others.length/2)]} position="left" />}
+            {others.length >= 4
+              ? <OpponentPanel player={others[others.length - 2]} position="left" />
+              : <div style={{ minWidth:80 }} />
+            }
           </div>
 
           {/* CENTRE — buzzer */}
@@ -351,9 +361,9 @@ export default function GamePlay({ session, playerId, onExit }) {
             </div>
           </div>
 
-          {/* Right opponent */}
+          {/* Right opponent — always shown (min 3 players = min 2 others) */}
           <div style={{ minWidth:80 }}>
-            {others.length >= 4 && <OpponentPanel player={others[others.length-1]} position="right" />}
+            {others.length >= 2 && <OpponentPanel player={others[others.length - 1]} position="right" />}
           </div>
         </div>
 
