@@ -160,7 +160,7 @@ export default function GamePlay({ session, playerId, onExit }) {
         {/* Avatar + name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ position: 'relative' }}>
-            <AvatarDisplay avatar={player.avatar} size={36} fallbackLetter={player.name.charAt(0).toUpperCase()} />
+            <AvatarDisplay avatar={player.avatar} size={Math.max(32, Math.min(48, window.innerWidth * 0.05))} fallbackLetter={player.name.charAt(0).toUpperCase()} />
             {isTurn && (
               <div style={{
                 position: 'absolute', bottom: -2, right: -2,
@@ -186,13 +186,13 @@ export default function GamePlay({ session, playerId, onExit }) {
           </div>
         )}
 
-        {/* Face-down cards — bigger size, more gap */}
-        <div style={{ display: 'flex', gap: 12, flexDirection: isVertical ? 'row' : 'column' }}>
+        {/* Face-down cards — responsive sizing using clamp() */}
+        <div style={{ display: 'flex', gap: 'clamp(8px, 2vw, 16px)', flexDirection: isVertical ? 'row' : 'column' }}>
           {Array.from({ length: cardCount }).map((_, i) => (
             <div key={i} style={{
-              width: isVertical ? 56 : 72,
-              height: isVertical ? 80 : 56,
-              borderRadius: 10,
+              width:   isVertical ? 'clamp(44px, 7vw, 80px)' : 'clamp(60px, 9vw, 100px)',
+              height:  isVertical ? 'clamp(62px, 10vw, 114px)' : 'clamp(44px, 7vw, 80px)',
+              borderRadius: 'clamp(6px, 1vw, 12px)',
               background: '#1A1A2E',
               border: `2.5px solid ${isTurn && i === cardCount-1 ? '#F5A623' : '#1D9E75'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -200,11 +200,17 @@ export default function GamePlay({ session, playerId, onExit }) {
               position: 'relative', overflow: 'hidden',
               transition: 'transform 0.2s ease',
               transform: isTurn && i === cardCount-1 ? 'scale(1.08)' : 'scale(1)',
+              flexShrink: 0,
             }}>
-              {/* Card back logo */}
+              {/* Card back logo — scales with card */}
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: isVertical ? 28 : 36, height: isVertical ? 38 : 28, borderRadius: 5, border: '1.5px solid rgba(29,158,117,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(29,158,117,0.1)' }}>
-                  <div style={{ width: '55%', height: '55%', borderRadius: 3, border: '1px solid rgba(29,158,117,0.5)' }} />
+                <div style={{
+                  width: '50%', height: '50%',
+                  borderRadius: 4, border: '1.5px solid rgba(29,158,117,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(29,158,117,0.1)'
+                }}>
+                  <div style={{ width: '55%', height: '55%', borderRadius: 2, border: '1px solid rgba(29,158,117,0.5)' }} />
                 </div>
               </div>
               {isTurn && i === cardCount-1 && (
@@ -325,8 +331,8 @@ export default function GamePlay({ session, playerId, onExit }) {
                 onClick={handleBuzzer}
                 disabled={!canBuzz}
                 style={{
-                  width: buzzerRaceActive || buzzerWindowOpen ? 100 : 88,
-                  height: buzzerRaceActive || buzzerWindowOpen ? 100 : 88,
+                  width: buzzerRaceActive || buzzerWindowOpen ? 'clamp(90px, 12vw, 120px)' : 'clamp(80px, 10vw, 108px)',
+                  height: buzzerRaceActive || buzzerWindowOpen ? 'clamp(90px, 12vw, 120px)' : 'clamp(80px, 10vw, 108px)',
                   borderRadius: '50%',
                   border: 'none',
                   background: hasBuzzed ? '#9CA3AF'
