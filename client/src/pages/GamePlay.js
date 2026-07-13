@@ -2,118 +2,93 @@ import React, { useState, useEffect, useRef } from 'react';
 import socket from '../utils/socket';
 import { AvatarDisplay } from '../components/AvatarPicker';
 
-// Face-down card back SVG
-function CardBack({ width = 52, height = 74, isExtra = false }) {
+// ── Card Back SVG (face-down) ──────────────────────────────────────────────
+function CardBack({ width = 22, height = 30, rotate = 0, isExtra = false, style = {} }) {
   return (
-    <svg width={width} height={height} viewBox="0 0 52 74" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      <rect x="1" y="1" width="50" height="72" rx="8"
-        fill={isExtra ? '#FFF8E8' : '#EDE8DF'}
+    <svg width={width} height={height} viewBox="0 0 22 30" fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ transform: `rotate(${rotate}deg)`, flexShrink: 0, ...style }}>
+      <rect x="0.7" y="0.7" width="20.6" height="28.6" rx="4"
+        fill={isExtra ? '#FFF8E8' : '#F7F2EA'}
         stroke={isExtra ? '#C8930C' : '#1A1A2E'}
-        strokeWidth={isExtra ? 2 : 1.2}
-      />
-      <rect x="4" y="4" width="44" height="66" rx="6" fill="none" stroke={isExtra ? '#C8930C' : '#1A1A2E'} strokeWidth="0.5" opacity="0.25"/>
-      {isExtra && <circle cx="44" cy="7" r="4" fill="#C8930C"/>}
+        strokeWidth={isExtra ? 1.8 : 1.3}/>
+      <rect x="2.5" y="2.5" width="17" height="25" rx="3"
+        fill="none" stroke={isExtra ? '#C8930C' : '#1A1A2E'}
+        strokeWidth="0.4" opacity="0.25"/>
+      {isExtra && <circle cx="19" cy="3" r="2.5" fill="#C8930C"/>}
     </svg>
   );
 }
 
-// Face-up card with word
+// ── Landscape Card Back (wider than tall) ──────────────────────────────────
+function CardBackLandscape({ width = 32, height = 22, rotate = 0, isExtra = false }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 32 22" fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ transform: `rotate(${rotate}deg)`, flexShrink: 0 }}>
+      <rect x="0.7" y="0.7" width="30.6" height="20.6" rx="4"
+        fill={isExtra ? '#FFF8E8' : '#F7F2EA'}
+        stroke={isExtra ? '#C8930C' : '#1A1A2E'}
+        strokeWidth={isExtra ? 1.8 : 1.3}/>
+      <rect x="2.5" y="2.5" width="27" height="17" rx="3"
+        fill="none" stroke={isExtra ? '#C8930C' : '#1A1A2E'}
+        strokeWidth="0.4" opacity="0.25"/>
+      {isExtra && <circle cx="29" cy="3" r="2.5" fill="#C8930C"/>}
+    </svg>
+  );
+}
+
+// ── Face-up Word Card ──────────────────────────────────────────────────────
 function WordCard({ word, selected, disabled, onClick }) {
   return (
-    <svg
-      width="88" height="124" viewBox="0 0 88 124" fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      onClick={!disabled ? onClick : undefined}
-      style={{ cursor: disabled ? 'default' : 'pointer', flexShrink: 0, transition: 'transform 0.15s ease', transform: selected ? 'translateY(-6px)' : 'translateY(0)' }}
-    >
-      <rect x="1.5" y="1.5" width="85" height="121" rx="11"
-        fill={selected ? '#FFF8E8' : '#FFFFFF'}
-        stroke={selected ? '#C8930C' : disabled ? '#D6CDB8' : '#1A1A2E'}
-        strokeWidth={selected ? 2.5 : 1.5}
-      />
-      <rect x="5" y="5" width="78" height="114" rx="8" fill="none"
-        stroke={selected ? '#C8930C' : '#1A1A2E'}
-        strokeWidth="0.5" opacity={disabled ? 0.1 : 0.2}
-      />
-      <text x="44" y="58" textAnchor="middle" fontFamily="Georgia,serif" fontSize="13" fontWeight="700"
-        fill={selected ? '#C8930C' : disabled ? '#9B8E7A' : '#1A1A2E'}
-      >{word}</text>
-      <text x="44" y="76" textAnchor="middle" fontFamily="Georgia,serif" fontSize="9"
-        fill={selected ? '#C8930C' : '#9B8E7A'} opacity={disabled ? 0.5 : 0.8}
-      >{selected ? 'selected' : disabled ? '' : 'tap to select'}</text>
-    </svg>
-  );
-}
-
-// Opponent panel — transparent bg, just border
-function OpponentPanel({ player, isTurn, totalScores, buzzed, hasCompleteSet, cardOrientation = 'top' }) {
-  const cardCount = isTurn ? 4 : 3;
-  const buzzEntry = buzzed;
-
-  return (
-    <div style={{
-      background: 'transparent',
-      borderRadius: 10,
-      padding: '10px 12px',
-      border: isTurn ? '1.5px solid #1A8C8C' : '0.5px solid #D6CDB8',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-      transition: 'border-color 0.2s ease',
-      position: 'relative',
+    <div onClick={!disabled ? onClick : undefined} style={{
+      cursor: disabled ? 'default' : 'pointer',
+      transform: selected ? 'translateY(-8px)' : 'translateY(0)',
+      transition: 'transform 0.15s ease',
+      flexShrink: 0,
     }}>
-      {isTurn && (
-        <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: '#1A8C8C', color: '#fff', fontSize: 9, fontWeight: 500, padding: '1px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-          their turn
-        </div>
-      )}
-      {buzzEntry && (
-        <div style={{ position: 'absolute', top: -10, right: 8, background: hasCompleteSet ? '#1A8C5A' : '#C0392B', color: '#fff', fontSize: 9, fontWeight: 500, padding: '1px 6px', borderRadius: 99 }}>
-          {hasCompleteSet ? 'buzzed ✓' : 'buzzed ✗'}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <AvatarDisplay avatar={player.avatar} size={28} fallbackLetter={player.name.charAt(0).toUpperCase()} />
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 500, color: '#1A1A2E', fontFamily: 'Georgia,serif' }}>{player.name}</div>
-          <div style={{ fontSize: 10, color: '#C8930C' }}>{totalScores?.[player.id] || 0} pts</div>
-        </div>
-      </div>
-
-      {/* Face-down cards */}
-      {cardOrientation === 'top' ? (
-        <div style={{ position: 'relative', width: 108, height: 82 }}>
-          <svg width="108" height="82" viewBox="0 0 108 82" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <g transform="translate(0,6) rotate(-12, 27, 38)">
-              <rect x="1" y="1" width="52" height="74" rx="8" fill="#EDE8DF" stroke="#1A1A2E" strokeWidth="1.2"/>
-            </g>
-            {cardCount >= 3 && (
-              <g transform="translate(56,6) rotate(12, 27, 38)">
-                <rect x="1" y="1" width="52" height="74" rx="8" fill="#EDE8DF" stroke="#1A1A2E" strokeWidth="1.2"/>
-              </g>
-            )}
-            <g transform="translate(28,0)">
-              <rect x="1" y="1" width="52" height="74" rx="8" fill={isTurn ? '#FFF8E8' : '#F7F2EA'} stroke={isTurn ? '#C8930C' : '#1A1A2E'} strokeWidth={isTurn ? 2 : 1.5}/>
-              <rect x="4" y="4" width="46" height="68" rx="6" fill="none" stroke={isTurn ? '#C8930C' : '#1A1A2E'} strokeWidth="0.5" opacity="0.25"/>
-              {isTurn && <circle cx="48" cy="7" r="4" fill="#C8930C"/>}
-            </g>
-          </svg>
-        </div>
-      ) : (
-        /* Side orientation — stacked vertically */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', width: 58, height: cardCount === 4 ? 94 : 78 }}>
-          {Array.from({ length: cardCount }).map((_, i) => (
-            <div key={i} style={{ position: 'absolute', top: i * 18, left: 0 }}>
-              <CardBack width={52} height={60} isExtra={isTurn && i === cardCount - 1} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!player.connected && <span style={{ fontSize: 9, color: '#9B8E7A' }}>away</span>}
+      <svg width="80" height="112" viewBox="0 0 80 112" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1.5" y="1.5" width="77" height="109" rx="10"
+          fill={selected ? '#FFF8E8' : '#FFFFFF'}
+          stroke={selected ? '#C8930C' : disabled ? '#D6CDB8' : '#1A1A2E'}
+          strokeWidth={selected ? 2.5 : 1.5}/>
+        <rect x="5" y="5" width="70" height="102" rx="7"
+          fill="none"
+          stroke={selected ? '#C8930C' : '#1A1A2E'}
+          strokeWidth="0.5" opacity={disabled ? 0.1 : 0.2}/>
+        <text x="40" y="54" textAnchor="middle" fontFamily="Georgia,serif"
+          fontSize={word.length > 8 ? '10' : '12'} fontWeight="700"
+          fill={selected ? '#C8930C' : disabled ? '#9B8E7A' : '#1A1A2E'}>{word}</text>
+        <text x="40" y="70" textAnchor="middle" fontFamily="sans-serif" fontSize="8"
+          fill={selected ? '#C8930C' : '#9B8E7A'}
+          opacity={disabled ? 0.4 : 0.8}>
+          {selected ? 'selected' : disabled ? '' : 'tap to select'}
+        </text>
+      </svg>
     </div>
   );
 }
 
+// ── Player Label (name + pts) ──────────────────────────────────────────────
+function PlayerLabel({ player, isTurn, totalScores, small = false }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+      <AvatarDisplay avatar={player.avatar} size={small ? 26 : 30}
+        fallbackLetter={player.name.charAt(0).toUpperCase()} />
+      <span style={{ fontSize: small ? 8 : 9, fontWeight: 500, color: '#1A1A2E',
+        fontFamily: 'Georgia,serif', lineHeight: 1.2 }}>{player.name}</span>
+      <span style={{ fontSize: 7, color: '#C8930C' }}>
+        {totalScores?.[player.id] || 0} pts
+      </span>
+      {isTurn && (
+        <span style={{ fontSize: 6.5, background: '#1A8C8C', color: '#fff',
+          borderRadius: 99, padding: '1px 5px', fontWeight: 600 }}>their turn</span>
+      )}
+    </div>
+  );
+}
+
+// ── Main GamePlay Component ────────────────────────────────────────────────
 export default function GamePlay({ session, playerId, onExit }) {
   const [hand, setHand] = useState([]);
   const [isStarter, setIsStarter] = useState(false);
@@ -126,29 +101,37 @@ export default function GamePlay({ session, playerId, onExit }) {
   const [buzzerRaceActive, setBuzzerRaceActive] = useState(false);
   const [buzzerUnlockedMsg, setBuzzerUnlockedMsg] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const timerRef = useRef(null);
   const buzzerTimerRef = useRef(null);
 
   const players = session.players || [];
   const myIndex = players.findIndex(p => p.id === playerId);
   const myPlayer = players[myIndex];
+  const others = players.filter(p => p.id !== playerId);
+  const topPlayer = others[0] || null;
+  const leftPlayer = others.length >= 2 ? others[1] : null;
+  const rightPlayer = others.length >= 3 ? others[2] : null;
+
   const isMyTurn = session.turnOrder?.[session.currentTurnIndex] === playerId;
   const isBuzzingPhase = session.phase === 'buzzing';
   const buzzerEnabled = session.firstRoundOver;
   const isFunMode = session?.gameMode === 'fun';
   const isStarterLocked = isStarter && !session.firstRoundOver;
   const hasFourCards = hand.length >= 4;
-  const canBuzz = !hasBuzzed && !isStarterLocked && (buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn && !hasFourCards));
-
-  // Layout: others around the table
-  const others = players.filter(p => p.id !== playerId);
-  const topPlayers = others.length <= 2 ? others.slice(0, 1) : others.slice(0, others.length - 2);
-  const leftPlayer = others.length >= 3 ? others[others.length - 2] : null;
-  const rightPlayer = others.length >= 2 ? others[others.length - 1] : null;
-
+  const canBuzz = !hasBuzzed && !isStarterLocked && (
+    buzzerRaceActive || buzzerWindowOpen || (buzzerEnabled && isMyTurn && !hasFourCards)
+  );
   const currentTurnPlayer = players.find(p => p.id === session.turnOrder?.[session.currentTurnIndex]);
-  const starterPlayer = players.find(p => p.id === session.starterPlayerId);
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['🥇','🥈','🥉'];
+
+  function isPlayerTurn(p) {
+    return session.turnOrder?.[session.currentTurnIndex] === p?.id;
+  }
+  function cardCount(p) {
+    return isPlayerTurn(p) ? 4 : 3;
+  }
 
   useEffect(() => {
     const fn = ({ hand: h, isStarter: s }) => { setHand(h || []); setIsStarter(!!s); };
@@ -160,7 +143,9 @@ export default function GamePlay({ session, playerId, onExit }) {
     const fn = ({ seconds }) => {
       if (timerRef.current) clearInterval(timerRef.current);
       setTimeLeft(seconds);
-      timerRef.current = setInterval(() => setTimeLeft(p => { if (p <= 1) { clearInterval(timerRef.current); return 0; } return p - 1; }), 1000);
+      timerRef.current = setInterval(() => setTimeLeft(p => {
+        if (p <= 1) { clearInterval(timerRef.current); return 0; } return p - 1;
+      }), 1000);
     };
     socket.on('turn_timer', fn);
     return () => { socket.off('turn_timer', fn); if (timerRef.current) clearInterval(timerRef.current); };
@@ -200,7 +185,9 @@ export default function GamePlay({ session, playerId, onExit }) {
   }, []);
 
   useEffect(() => {
-    const fn = ({ playerId: bid, buzzerLog: log }) => { setBuzzerLog(log); if (bid === playerId) setHasBuzzed(true); };
+    const fn = ({ playerId: bid, buzzerLog: log }) => {
+      setBuzzerLog(log); if (bid === playerId) setHasBuzzed(true);
+    };
     socket.on('buzzer_pressed', fn); return () => socket.off('buzzer_pressed', fn);
   }, [playerId]);
 
@@ -212,207 +199,338 @@ export default function GamePlay({ session, playerId, onExit }) {
   }, [session.currentRound]);
 
   useEffect(() => {
-    const fn = ({ toPlayerId }) => {
-      if (toPlayerId === playerId && hand.length === 0) {
-        socket.emit('request_hand', { sessionId: session.id, playerId });
-      }
-    };
-    socket.on('card_incoming', fn); return () => socket.off('card_incoming', fn);
-  }, [playerId, hand.length, session.id]);
-
-  useEffect(() => {
     window.history.pushState({ gameState: 'playing' }, '');
-    function handlePopState() { setShowExitConfirm(true); window.history.pushState({ gameState: 'playing' }, ''); }
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    function handlePop() { setShowExitConfirm(true); window.history.pushState({ gameState: 'playing' }, ''); }
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
   }, []);
 
   function handleSelectCard(w) { if (!isMyTurn || isBuzzingPhase) return; setSelectedCard(p => p === w ? null : w); }
-  function handlePassCard() {
-    if (!selectedCard || !isMyTurn) return;
-    socket.emit('pass_card', { sessionId: session.id, playerId, cardToPass: selectedCard });
+
+  function handlePassCard(card) {
+    const c = card || selectedCard;
+    if (!c || !isMyTurn) return;
+    socket.emit('pass_card', { sessionId: session.id, playerId, cardToPass: c });
     setSelectedCard(null);
   }
+
   function handleBuzzer() { if (!canBuzz) return; socket.emit('press_buzzer', { sessionId: session.id, playerId }); }
 
-  const buzzerHint = () => {
+  // Drag handlers
+  function handleDragStart(e, word) { setIsDragging(true); e.dataTransfer.setData('card', word); }
+  function handleDragEnd() { setIsDragging(false); setDragOver(false); }
+  function handleDropZoneDragOver(e) { e.preventDefault(); setDragOver(true); }
+  function handleDropZoneDragLeave() { setDragOver(false); }
+  function handleDrop(e) {
+    e.preventDefault(); setDragOver(false); setIsDragging(false);
+    const card = e.dataTransfer.getData('card');
+    if (card && isMyTurn) handlePassCard(card);
+  }
+
+  const buzzHint = () => {
     if (hasBuzzed) return 'Buzzed!';
-    if (isStarterLocked) return 'Buzzer unlocks when cards return to you';
+    if (isStarterLocked) return 'Wait for cards to return';
     if (buzzerRaceActive) return 'Race — buzz now!';
-    if (buzzerWindowOpen) return `${buzzerWindowTime}s — buzz now!`;
-    if (hasFourCards && isMyTurn) return 'Pass a card first, then buzz';
-    if (!buzzerEnabled) return 'Round 1 — buzzing scores 0';
-    if (buzzerEnabled && isMyTurn) return 'Buzz if you have 3 matching cards';
-    return 'Pass a card to open your 3s window';
+    if (buzzerWindowOpen) return `${buzzerWindowTime}s — buzz!`;
+    if (hasFourCards && isMyTurn) return 'Pass first, then buzz';
+    if (!buzzerEnabled) return 'Round 1 — 0 pts';
+    if (isMyTurn) return 'Buzz if 3 match!';
+    return 'Pass to open window';
   };
 
-  const buzzBg = hasBuzzed ? '#D6CDB8' : buzzerRaceActive || buzzerWindowOpen ? '#C8930C' : canBuzz ? '#C8930C' : '#E8C4B0';
-  const buzzColor = hasBuzzed ? '#9B8E7A' : buzzerRaceActive || buzzerWindowOpen || canBuzz ? '#fff' : '#8B3A1A';
+  const buzzColor = hasBuzzed ? '#D6CDB8'
+    : buzzerRaceActive || buzzerWindowOpen ? '#C8930C'
+    : canBuzz ? '#E94560' : '#E8C4B0';
+  const buzzTextColor = hasBuzzed ? '#9B8E7A'
+    : buzzerRaceActive || buzzerWindowOpen || canBuzz ? '#fff' : '#8B3A1A';
+
+  // SVG viewBox constants — landscape oval table
+  const VW = 560; const VH = 310;
+  const CX = 280; const CY = 155;
+  const RX = 196; const RY = 118;
+  const AVATAR_OFFSET = 14;
+  const TOP_AV_Y    = CY - RY - AVATAR_OFFSET;
+  const BOTTOM_AV_Y = CY + RY + AVATAR_OFFSET;
+  const LEFT_AV_X   = CX - RX - AVATAR_OFFSET;
+  const RIGHT_AV_X  = CX + RX + AVATAR_OFFSET;
 
   return (
     <div style={{ minHeight: '100vh', background: '#F7F2EA', display: 'flex', flexDirection: 'column' }}>
 
       {/* Exit confirm */}
       {showExitConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(27,42,59,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#F7F2EA', borderRadius: 14, padding: 28, maxWidth: 320, width: '90%', textAlign: 'center', border: '0.5px solid #D6CDB8' }}>
-            <h2 style={{ fontSize: 20, fontFamily: 'Georgia,serif', color: '#1A1A2E', marginBottom: 10 }}>Exit game?</h2>
-            <p style={{ color: '#9B8E7A', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>Your spot is held for 1.5 minutes — rejoin with the session code.</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowExitConfirm(false)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '0.5px solid #D6CDB8', background: 'transparent', fontWeight: 500, cursor: 'pointer', fontSize: 13, color: '#1A1A2E', fontFamily: 'Georgia,serif' }}>No, stay</button>
-              <button onClick={() => { setShowExitConfirm(false); onExit?.(); }} style={{ flex: 1, padding: 10, borderRadius: 8, border: 'none', background: '#1A1A2E', color: '#F7F2EA', fontWeight: 500, cursor: 'pointer', fontSize: 13, fontFamily: 'Georgia,serif' }}>Yes, exit</button>
+        <div style={{ position:'fixed',inset:0,background:'rgba(27,42,59,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000 }}>
+          <div style={{ background:'#F7F2EA',borderRadius:14,padding:28,maxWidth:320,width:'90%',textAlign:'center',border:'0.5px solid #D6CDB8' }}>
+            <h2 style={{ fontSize:20,fontFamily:'Georgia,serif',color:'#1A1A2E',marginBottom:10 }}>Exit game?</h2>
+            <p style={{ color:'#9B8E7A',fontSize:13,marginBottom:24,lineHeight:1.6 }}>Your spot is held for 1.5 minutes.</p>
+            <div style={{ display:'flex',gap:10 }}>
+              <button onClick={() => setShowExitConfirm(false)} style={{ flex:1,padding:10,borderRadius:8,border:'0.5px solid #D6CDB8',background:'transparent',fontWeight:500,cursor:'pointer',fontSize:13,color:'#1A1A2E',fontFamily:'Georgia,serif' }}>No, stay</button>
+              <button onClick={() => { setShowExitConfirm(false); onExit?.(); }} style={{ flex:1,padding:10,borderRadius:8,border:'none',background:'#1A1A2E',color:'#F7F2EA',fontWeight:500,cursor:'pointer',fontSize:13,fontFamily:'Georgia,serif' }}>Yes, exit</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '0.5px solid #E8E0D0' }}>
-        <span style={{ fontSize: 16, fontWeight: 500, color: '#1A1A2E', fontFamily: 'Georgia,serif' }}>Word Harmony</span>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <span style={{ fontSize: 10, padding: '2px 9px', borderRadius: 99, background: '#1A1A2E', color: '#F7F2EA', fontWeight: 500 }}>Round {session.currentRound}/{session.rounds}</span>
-          <span style={{ fontSize: 10, padding: '2px 9px', borderRadius: 99, background: '#E8F4F4', color: '#1A8C8C', fontWeight: 500 }}>{isFunMode ? 'Fun' : 'Education'}</span>
-          {buzzerEnabled && <span style={{ fontSize: 10, padding: '2px 9px', borderRadius: 99, background: '#FEF3E2', color: '#854F0B', fontWeight: 500 }}>Buzzer open</span>}
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 16px',borderBottom:'0.5px solid #E8E0D0' }}>
+        <span style={{ fontSize:15,fontWeight:500,color:'#1A1A2E',fontFamily:'Georgia,serif' }}>Word Harmony</span>
+        <div style={{ display:'flex',gap:5 }}>
+          <span style={{ fontSize:10,padding:'2px 8px',borderRadius:99,background:'#1A1A2E',color:'#F7F2EA',fontWeight:500 }}>Round {session.currentRound}/{session.rounds}</span>
+          <span style={{ fontSize:10,padding:'2px 8px',borderRadius:99,background:'#E8F4F4',color:'#1A8C8C',fontWeight:500 }}>{isFunMode ? 'Fun' : 'Education'}</span>
+          {buzzerEnabled && <span style={{ fontSize:10,padding:'2px 8px',borderRadius:99,background:'#FEF3E2',color:'#854F0B',fontWeight:500 }}>Buzzer open</span>}
+          {buzzerRaceActive && <span style={{ fontSize:10,padding:'2px 8px',borderRadius:99,background:'#E94560',color:'#fff',fontWeight:700 }}>Race!</span>}
         </div>
       </div>
 
       {/* Notifications */}
       {buzzerUnlockedMsg && (
-        <div style={{ background: '#1A8C8C', color: '#fff', padding: '8px 16px', textAlign: 'center', fontWeight: 500, fontSize: 13 }}>
-          Buzzer unlocked — pass a card, then buzz in the 3s window
-        </div>
-      )}
-      {buzzerRaceActive && !hasBuzzed && (
-        <div style={{ background: '#C8930C', color: '#fff', padding: '8px 16px', textAlign: 'center', fontWeight: 500, fontSize: 13 }}>
-          Buzzer race — buzz now!
+        <div style={{ background:'#1A8C8C',color:'#fff',padding:'6px 16px',textAlign:'center',fontSize:12,fontWeight:500 }}>
+          Buzzer unlocked — pass a card then buzz in the 3s window
         </div>
       )}
 
-      {/* Table */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', padding: '16px', gap: 10, maxWidth: 640, margin: '0 auto', width: '100%' }}>
+      {/* TABLE — landscape SVG */}
+      <div style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'8px 12px' }}>
+        <svg width="100%" viewBox={`0 0 ${VW} ${VH}`} fill="none" xmlns="http://www.w3.org/2000/svg"
+          style={{ maxWidth: 680, display: 'block' }}>
 
-        {/* TOP opponents */}
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {topPlayers.map(p => {
-            const buzzEntry = buzzerLog.find(b => b.playerId === p.id);
-            return <OpponentPanel key={p.id} player={p} isTurn={session.turnOrder?.[session.currentTurnIndex] === p.id} totalScores={session.totalScores} buzzed={!!buzzEntry} hasCompleteSet={buzzEntry?.hasCompleteSet} cardOrientation="top" />;
-          })}
-        </div>
+          {/* Table shadow + surface */}
+          <ellipse cx={CX+2} cy={CY+3} rx={RX} ry={RY} fill="#C4A070" opacity="0.18"/>
+          <ellipse cx={CX} cy={CY} rx={RX} ry={RY} fill="#D4B896" stroke="#B8956A" strokeWidth="2.5"/>
+          <ellipse cx={CX} cy={CY} rx={RX-8} ry={RY-8} fill="#DEC4A0" stroke="#C4A070" strokeWidth="1"/>
 
-        {/* MIDDLE */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}>
+          {/* Drop zone */}
+          <circle cx={CX} cy={CY} r="50"
+            fill={dragOver ? 'rgba(200,147,12,0.15)' : 'rgba(184,149,106,0.08)'}
+            stroke={dragOver ? '#C8930C' : '#B8956A'}
+            strokeWidth={dragOver ? 2 : 1} strokeDasharray={dragOver ? 'none' : '5,4'}
+            opacity="0.8"
+            onDragOver={handleDropZoneDragOver}
+            onDragLeave={handleDropZoneDragLeave}
+            onDrop={handleDrop}
+            style={{ cursor: isDragging && isMyTurn ? 'copy' : 'default' }}
+          />
+          {!dragOver && <text x={CX} y={CY+62} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="#9B8E7A" opacity="0.8">drag to pass</text>}
+          {dragOver && <text x={CX} y={CY+12} textAnchor="middle" fontFamily="Georgia,serif" fontSize="9" fontWeight="700" fill="#C8930C">Drop to pass!</text>}
 
-          {/* Left */}
-          <div style={{ minWidth: 90 }}>
-            {leftPlayer && (() => {
-              const buzzEntry = buzzerLog.find(b => b.playerId === leftPlayer.id);
-              return <OpponentPanel player={leftPlayer} isTurn={session.turnOrder?.[session.currentTurnIndex] === leftPlayer.id} totalScores={session.totalScores} buzzed={!!buzzEntry} hasCompleteSet={buzzEntry?.hasCompleteSet} cardOrientation="side" />;
-            })()}
-          </div>
+          {/* BUZZ button */}
+          <circle cx={CX} cy={CY} r="32" fill={buzzColor} stroke={canBuzz ? '#A67412' : '#C23152'} strokeWidth="2.5"
+            onClick={handleBuzzer} style={{ cursor: canBuzz ? 'pointer' : 'default' }}/>
+          <text x={CX} y={CY-4} textAnchor="middle" fontFamily="Georgia,serif" fontSize="12" fontWeight="700"
+            fill={buzzTextColor} style={{ pointerEvents:'none' }}>BUZZ!</text>
+          <text x={CX} y={CY+9} textAnchor="middle" fontFamily="sans-serif" fontSize="7"
+            fill={buzzTextColor} opacity="0.85" style={{ pointerEvents:'none' }}>{buzzHint()}</text>
 
-          {/* Centre — timer + buzzer */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{ background: '#1A8C8C', borderRadius: 8, padding: '7px 14px', fontSize: 11, fontWeight: 500, color: '#fff', textAlign: 'center', width: '100%' }}>
-              {isBuzzingPhase ? 'Buzzer race!' : isMyTurn ? `Your turn — ${hand.length} cards` : `${currentTurnPlayer?.name || '…'}'s turn`}
-            </div>
+          {/* Timer bar inside table */}
+          {timeLeft !== null && !isBuzzingPhase && (
+            <g>
+              <rect x={CX-40} y={CY+38} width="80" height="4" rx="2" fill="rgba(184,149,106,0.4)"/>
+              <rect x={CX-40} y={CY+38} width={80*(timeLeft/30)} height="4" rx="2"
+                fill={timeLeft <= 5 ? '#E94560' : timeLeft <= 10 ? '#C8930C' : '#1A8C8C'}/>
+              <text x={CX} y={CY+52} textAnchor="middle" fontFamily="sans-serif" fontSize="7"
+                fill={timeLeft <= 5 ? '#E94560' : '#9B8E7A'}>{timeLeft}s</text>
+            </g>
+          )}
 
-            {timeLeft !== null && !isBuzzingPhase && (
-              <div style={{ width: '100%', maxWidth: 160 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, color: timeLeft <= 5 ? '#C0392B' : '#9B8E7A' }}>{timeLeft}s</span>
-                  <span style={{ fontSize: 10, fontWeight: 500, color: timeLeft <= 5 ? '#C0392B' : '#1A8C8C' }}>{timeLeft}</span>
-                </div>
-                <div style={{ height: 4, background: '#E8E0D0', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: timeLeft <= 5 ? '#C0392B' : timeLeft <= 10 ? '#C8930C' : '#1A8C8C', width: `${(timeLeft / 30) * 100}%`, transition: 'width 1s linear' }} />
-                </div>
-              </div>
-            )}
+          {/* Turn indicator */}
+          <text x={CX} y={VH-8} textAnchor="middle" fontFamily="Georgia,serif" fontSize="9"
+            fill={isMyTurn ? '#1A8C8C' : '#9B8E7A'} fontWeight={isMyTurn ? '700' : '400'}>
+            {isBuzzingPhase ? 'Buzzer race!'
+              : isMyTurn ? 'Your turn'
+              : `${currentTurnPlayer?.name || '…'}'s turn`}
+          </text>
 
-            {buzzerWindowOpen && (
-              <div style={{ background: '#C8930C', borderRadius: 8, padding: '4px 14px', color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: 'Georgia,serif' }}>
-                {buzzerWindowTime}s
-              </div>
-            )}
-
-            <button
-              onClick={handleBuzzer}
-              disabled={!canBuzz}
-              style={{ width: 76, height: 76, borderRadius: '50%', background: buzzBg, border: `1.5px solid ${canBuzz ? '#A67412' : '#D6CDB8'}`, color: buzzColor, fontSize: 13, fontWeight: 500, cursor: canBuzz ? 'pointer' : 'not-allowed', fontFamily: 'Georgia,serif', transition: 'all 0.2s ease', transform: canBuzz ? 'scale(1.05)' : 'scale(1)' }}
-            >
-              BUZZ!
-            </button>
-            <span style={{ fontSize: 10, color: '#9B8E7A', textAlign: 'center', maxWidth: 120, lineHeight: 1.5 }}>{buzzerHint()}</span>
-
-            {/* Buzzer log */}
-            {buzzerLog.length > 0 && (
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {buzzerLog.map((b, i) => {
-                  const p = players.find(pl => pl.id === b.playerId);
+          {/* ══ PRIYA — top ══ */}
+          {topPlayer && (() => {
+            const isTurn = isPlayerTurn(topPlayer);
+            const cnt = cardCount(topPlayer);
+            return (
+              <g>
+                {/* Avatar */}
+                <circle cx={CX} cy={TOP_AV_Y} r="13"
+                  fill={topPlayer.avatar ? 'none' : '#8B5CF6'}/>
+                <text x={CX} y={TOP_AV_Y+4} textAnchor="middle" fontFamily="sans-serif"
+                  fontSize="9" fontWeight="700" fill="white">
+                  {topPlayer.name.charAt(0).toUpperCase()}
+                </text>
+                <text x={CX} y={TOP_AV_Y+20} textAnchor="middle" fontFamily="Georgia,serif" fontSize="8" fill="#1A1A2E">{topPlayer.name}</text>
+                <text x={CX} y={TOP_AV_Y+30} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="#C8930C">{session.totalScores?.[topPlayer.id]||0} pts</text>
+                {isTurn && <text x={CX} y={TOP_AV_Y+40} textAnchor="middle" fontFamily="sans-serif" fontSize="6.5" fill="#1A8C8C" fontWeight="700">their turn</text>}
+                {/* Cards on table pointing down toward buzz — rotated 180° */}
+                {[...Array(cnt)].map((_, i) => {
+                  const totalW = cnt * 22 + (cnt-1) * 4;
+                  const startX = CX - totalW/2;
+                  const x = startX + i*(22+4);
+                  const angle = (i-(cnt-1)/2)*15 + 180;
                   return (
-                    <div key={b.playerId} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 14 }}>{medals[i] || `#${i + 1}`}</span>
-                      <AvatarDisplay avatar={p?.avatar} size={18} fallbackLetter={p?.name?.charAt(0)?.toUpperCase() || '?'} />
-                      <span style={{ fontSize: 11, fontWeight: b.playerId === playerId ? 500 : 400, color: '#1A1A2E', fontFamily: 'Georgia,serif' }}>{p?.name}</span>
-                      <span style={{ marginLeft: 'auto', fontSize: 10, padding: '1px 6px', borderRadius: 99, background: b.hasCompleteSet ? '#E8F4F4' : '#FBE8E8', color: b.hasCompleteSet ? '#1A8C8C' : '#C0392B' }}>
-                        {b.invalid ? 'invalid' : b.hasCompleteSet ? 'match' : 'no match'}
-                      </span>
-                    </div>
+                    <g key={i} transform={`translate(${x+11},${CY-RY+18}) rotate(${angle},0,0)`}>
+                      <rect x="-11" y="-15" width="22" height="30" rx="4"
+                        fill={isTurn && i===cnt-1 ? '#FFF8E8' : '#F7F2EA'}
+                        stroke={isTurn && i===cnt-1 ? '#C8930C' : '#1A1A2E'}
+                        strokeWidth={isTurn && i===cnt-1 ? 1.8 : 1.3}/>
+                      <rect x="-8.5" y="-12.5" width="17" height="25" rx="3"
+                        fill="none" stroke={isTurn && i===cnt-1 ? '#C8930C' : '#1A1A2E'}
+                        strokeWidth="0.4" opacity="0.25"/>
+                      {isTurn && i===cnt-1 && <circle cx="8" cy="-11" r="2.5" fill="#C8930C"/>}
+                    </g>
                   );
                 })}
-              </div>
-            )}
-          </div>
+              </g>
+            );
+          })()}
 
-          {/* Right */}
-          <div style={{ minWidth: 90 }}>
-            {rightPlayer && (() => {
-              const buzzEntry = buzzerLog.find(b => b.playerId === rightPlayer.id);
-              return <OpponentPanel player={rightPlayer} isTurn={session.turnOrder?.[session.currentTurnIndex] === rightPlayer.id} totalScores={session.totalScores} buzzed={!!buzzEntry} hasCompleteSet={buzzEntry?.hasCompleteSet} cardOrientation="side" />;
-            })()}
-          </div>
-        </div>
+          {/* ══ WEI — left ══ */}
+          {leftPlayer && (() => {
+            const isTurn = isPlayerTurn(leftPlayer);
+            const cnt = cardCount(leftPlayer);
+            return (
+              <g>
+                {isTurn && <rect x={LEFT_AV_X-18} y={CY-30} width="36" height="60" rx="8" fill="#E8F4F4" stroke="#1A8C8C" strokeWidth="1.5"/>}
+                <circle cx={LEFT_AV_X} cy={CY-14} r="13"
+                  fill={leftPlayer.avatar ? 'none' : '#059669'}/>
+                <text x={LEFT_AV_X} y={CY-10} textAnchor="middle" fontFamily="sans-serif"
+                  fontSize="9" fontWeight="700" fill="white">
+                  {leftPlayer.name.charAt(0).toUpperCase()}
+                </text>
+                <text x={LEFT_AV_X} y={CY+5} textAnchor="middle" fontFamily="Georgia,serif" fontSize="8" fill="#1A1A2E">{leftPlayer.name}</text>
+                <text x={LEFT_AV_X} y={CY+15} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill={isTurn?'#1A8C8C':'#C8930C'}>{isTurn?'their turn':`${session.totalScores?.[leftPlayer.id]||0} pts`}</text>
+                {isTurn && <text x={LEFT_AV_X} y={CY+24} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="#C8930C">{session.totalScores?.[leftPlayer.id]||0} pts</text>}
+                {/* Cards on table fanning rightward → */}
+                {[...Array(cnt)].map((_, i) => {
+                  const totalH = cnt * 22 + (cnt-1) * 4;
+                  const startY = CY - totalH/2;
+                  const y = startY + i*(22+4);
+                  const angle = (i-(cnt-1)/2)*15;
+                  const isEx = isTurn && i===cnt-1;
+                  return (
+                    <g key={i} transform={`translate(${CX-RX+14},${y+11}) rotate(${angle},0,0)`}>
+                      <rect x="-16" y="-11" width="32" height="22" rx="4"
+                        fill={isEx ? '#FFF8E8' : '#F7F2EA'}
+                        stroke={isEx ? '#C8930C' : '#1A1A2E'}
+                        strokeWidth={isEx ? 1.8 : 1.3}/>
+                      <rect x="-13.5" y="-8.5" width="27" height="17" rx="3"
+                        fill="none" stroke={isEx ? '#C8930C' : '#1A1A2E'}
+                        strokeWidth="0.4" opacity="0.25"/>
+                      {isEx && <circle cx="14" cy="-8" r="2.5" fill="#C8930C"/>}
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })()}
 
-        {/* MY AREA */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+          {/* ══ KOFI — right ══ */}
+          {rightPlayer && (() => {
+            const isTurn = isPlayerTurn(rightPlayer);
+            const cnt = cardCount(rightPlayer);
+            return (
+              <g>
+                {isTurn && <rect x={RIGHT_AV_X-18} y={CY-30} width="36" height="60" rx="8" fill="#E8F4F4" stroke="#1A8C8C" strokeWidth="1.5"/>}
+                <circle cx={RIGHT_AV_X} cy={CY-14} r="13"
+                  fill={rightPlayer.avatar ? 'none' : '#DC2626'}/>
+                <text x={RIGHT_AV_X} y={CY-10} textAnchor="middle" fontFamily="sans-serif"
+                  fontSize="9" fontWeight="700" fill="white">
+                  {rightPlayer.name.charAt(0).toUpperCase()}
+                </text>
+                <text x={RIGHT_AV_X} y={CY+5} textAnchor="middle" fontFamily="Georgia,serif" fontSize="8" fill="#1A1A2E">{rightPlayer.name}</text>
+                <text x={RIGHT_AV_X} y={CY+15} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill={isTurn?'#1A8C8C':'#C8930C'}>{isTurn?'their turn':`${session.totalScores?.[rightPlayer.id]||0} pts`}</text>
+                {isTurn && <text x={RIGHT_AV_X} y={CY+24} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="#C8930C">{session.totalScores?.[rightPlayer.id]||0} pts</text>}
+                {/* Cards on table fanning leftward ← */}
+                {[...Array(cnt)].map((_, i) => {
+                  const totalH = cnt * 22 + (cnt-1) * 4;
+                  const startY = CY - totalH/2;
+                  const y = startY + i*(22+4);
+                  const angle = -(i-(cnt-1)/2)*15;
+                  const isEx = isTurn && i===cnt-1;
+                  return (
+                    <g key={i} transform={`translate(${CX+RX-46},${y+11}) rotate(${angle},0,0)`}>
+                      <rect x="-16" y="-11" width="32" height="22" rx="4"
+                        fill={isEx ? '#FFF8E8' : '#F7F2EA'}
+                        stroke={isEx ? '#C8930C' : '#1A1A2E'}
+                        strokeWidth={isEx ? 1.8 : 1.3}/>
+                      <rect x="-13.5" y="-8.5" width="27" height="17" rx="3"
+                        fill="none" stroke={isEx ? '#C8930C' : '#1A1A2E'}
+                        strokeWidth="0.4" opacity="0.25"/>
+                      {isEx && <circle cx="14" cy="-8" r="2.5" fill="#C8930C"/>}
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })()}
 
-          {/* Avatar + name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AvatarDisplay avatar={myPlayer?.avatar} size={36} fallbackLetter={myPlayer?.name?.charAt(0)?.toUpperCase() || '?'} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A2E', fontFamily: 'Georgia,serif' }}>{myPlayer?.name || 'You'}</div>
-              <div style={{ fontSize: 10, color: '#C8930C' }}>{session.totalScores?.[playerId] || 0} pts</div>
-            </div>
-            {isMyTurn && !isBuzzingPhase && (
-              <span style={{ fontSize: 9, background: '#E8F4F4', color: '#1A8C8C', borderRadius: 99, padding: '1px 8px', fontWeight: 500, marginLeft: 4 }}>your turn</span>
-            )}
-            {hasBuzzed && (
-              <span style={{ fontSize: 9, background: '#F0E6D3', color: '#9B8E7A', borderRadius: 99, padding: '1px 8px', fontWeight: 500, marginLeft: 4 }}>buzzed</span>
-            )}
-          </div>
+          {/* ══ YOU — bottom ══ */}
+          {/* Face-down cards on table fanning upward ↑ */}
+          {[...Array(hand.length)].map((_, i) => {
+            const cnt = hand.length;
+            const totalW = cnt * 22 + (cnt-1) * 4;
+            const startX = CX - totalW/2;
+            const x = startX + i*(22+4);
+            const angle = -(i-(cnt-1)/2)*15;
+            return (
+              <g key={i} transform={`translate(${x+11},${CY+RY-20}) rotate(${angle},0,0)`}>
+                <rect x="-11" y="-15" width="22" height="30" rx="4"
+                  fill="#F7F2EA" stroke="#1A1A2E" strokeWidth="1.3"/>
+                <rect x="-8.5" y="-12.5" width="17" height="25" rx="3"
+                  fill="none" stroke="#1A1A2E" strokeWidth="0.4" opacity="0.25"/>
+              </g>
+            );
+          })}
+          {/* Your avatar on bottom table edge */}
+          <circle cx={CX} cy={BOTTOM_AV_Y} r="13"
+            fill={myPlayer?.avatar ? 'none' : '#0EA5E9'}/>
+          <text x={CX} y={BOTTOM_AV_Y+4} textAnchor="middle" fontFamily="sans-serif"
+            fontSize="9" fontWeight="700" fill="white">
+            {myPlayer?.name?.charAt(0)?.toUpperCase() || 'Y'}
+          </text>
+          <text x={CX} y={BOTTOM_AV_Y+20} textAnchor="middle" fontFamily="Georgia,serif" fontSize="8" fill="#1A1A2E">{myPlayer?.name || 'You'}</text>
+          <text x={CX} y={BOTTOM_AV_Y+30} textAnchor="middle" fontFamily="sans-serif" fontSize="7" fill="#C8930C">{session.totalScores?.[playerId]||0} pts</text>
 
-          <span style={{ fontSize: 10, fontWeight: 500, color: '#9B8E7A', letterSpacing: '.06em' }}>your hand</span>
+          {/* Buzzer log */}
+          {buzzerLog.length > 0 && buzzerLog.map((b, i) => {
+            const p = players.find(pl => pl.id === b.playerId);
+            return (
+              <text key={b.playerId} x={VW-8} y={20+i*14} textAnchor="end"
+                fontFamily="sans-serif" fontSize="8" fill={b.hasCompleteSet?'#1A8C8C':'#9B8E7A'}>
+                {medals[i]||`#${i+1}`} {p?.name} {b.invalid?'(invalid)':b.hasCompleteSet?'✓':'✗'}
+              </text>
+            );
+          })}
 
-          {/* Face-up cards */}
+        </svg>
+
+        {/* YOUR FACE-UP WORD CARDS — outside table, draggable */}
+        <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap', marginTop:4 }}>
           {hand.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: '#9B8E7A', fontSize: 13, fontFamily: 'Georgia,serif' }}>Dealing cards…</div>
-          ) : (
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {hand.map((w, i) => (
-                <WordCard key={`${w}-${i}`} word={w} selected={selectedCard === w} disabled={!isMyTurn || isBuzzingPhase} onClick={() => handleSelectCard(w)} />
-              ))}
+            <p style={{ fontSize:13,color:'#9B8E7A',fontFamily:'Georgia,serif',padding:'12px 0' }}>Dealing cards…</p>
+          ) : hand.map((w, i) => (
+            <div key={`${w}-${i}`}
+              draggable={isMyTurn && !isBuzzingPhase}
+              onDragStart={e => handleDragStart(e, w)}
+              onDragEnd={handleDragEnd}
+              style={{ cursor: isMyTurn && !isBuzzingPhase ? 'grab' : 'default' }}
+            >
+              <WordCard word={w} selected={selectedCard===w}
+                disabled={!isMyTurn || isBuzzingPhase}
+                onClick={() => handleSelectCard(w)} />
             </div>
-          )}
-
-          {isMyTurn && selectedCard && !isBuzzingPhase && (
-            <button onClick={handlePassCard} style={{ background: '#1A1A2E', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#F7F2EA', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'Georgia,serif' }}>
-              Pass "{selectedCard}" →
-            </button>
-          )}
-          {isMyTurn && !selectedCard && !isBuzzingPhase && hand.length > 0 && (
-            <span style={{ fontSize: 10, color: '#9B8E7A' }}>Tap a card to select it</span>
-          )}
+          ))}
         </div>
 
+        {isMyTurn && selectedCard && !isBuzzingPhase && (
+          <button onClick={() => handlePassCard()} style={{
+            marginTop:8, background:'#1A1A2E', border:'none', borderRadius:8,
+            padding:'8px 20px', color:'#F7F2EA', fontSize:12, fontWeight:500,
+            cursor:'pointer', fontFamily:'Georgia,serif'
+          }}>
+            Pass "{selectedCard}" →
+          </button>
+        )}
+        {isMyTurn && !selectedCard && !isBuzzingPhase && hand.length > 0 && (
+          <p style={{ fontSize:10,color:'#9B8E7A',marginTop:6,textAlign:'center' }}>
+            Tap a card to select, or drag it to the centre to pass
+          </p>
+        )}
       </div>
     </div>
   );
