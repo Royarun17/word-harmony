@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import GameCard from '../components/GameCard';
 
 const STEPS = [
   {
@@ -131,14 +130,27 @@ export default function TutorialPage({ onDone }) {
             <div style={{ marginBottom: 8 }}>
               <div className="flex justify-center gap-12" style={{ flexWrap: 'wrap', marginBottom: 16 }}>
                 {demoHand.map(word => (
-                  <GameCard
-                    key={word}
-                    word={word}
-                    selected={demoSelected === word}
-                    onClick={() => handleDemoCardClick(word)}
-                    disabled={demoPassed}
-                    label={!demoPassed ? 'tap to select' : ''}
-                  />
+                  <div key={word}
+                    onClick={() => !demoPassed && handleDemoCardClick(word)}
+                    style={{
+                      cursor: demoPassed ? 'default' : 'pointer',
+                      transform: demoSelected===word ? 'translateY(-8px)' : 'none',
+                      transition: 'transform 0.15s ease',
+                    }}>
+                    <svg width="76" height="108" viewBox="0 0 76 108" fill="none">
+                      <rect x="1" y="1" width="74" height="104" rx="12"
+                        fill={demoSelected===word ? '#FFF8E8' : '#fff'}
+                        stroke={demoSelected===word ? '#C8930C' : demoPassed ? '#D6CDB8' : '#1A1A2E'}
+                        strokeWidth={demoSelected===word ? 2.5 : 1.5}/>
+                      <rect x="5" y="5" width="66" height="96" rx="9" fill="none" stroke="#1A1A2E" strokeWidth="0.5" opacity="0.15"/>
+                      <text x="38" y="54" textAnchor="middle" fontFamily="Georgia,serif" fontSize="12" fontWeight="700"
+                        fill={demoSelected===word ? '#C8930C' : demoPassed ? '#9B8E7A' : '#1A1A2E'}>{word}</text>
+                      <text x="38" y="68" textAnchor="middle" fontFamily="sans-serif" fontSize="8"
+                        fill={demoSelected===word ? '#C8930C' : '#9B8E7A'}>
+                        {demoSelected===word ? 'selected' : !demoPassed ? 'tap to select' : ''}
+                      </text>
+                    </svg>
+                  </div>
                 ))}
               </div>
               {!demoPassed ? (
