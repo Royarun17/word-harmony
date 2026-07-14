@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import socket from '../utils/socket';
-import { AvatarPicker, AvatarDisplay } from '../components/AvatarPicker';
+import AvatarPicker, { AvatarDisplay } from '../components/AvatarPicker';
 
 const T = {
   navy:'#1A1A2E', dark:'#0D1B2A', gold:'#C8930C', goldL:'#FFD166',
