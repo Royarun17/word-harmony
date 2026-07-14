@@ -94,11 +94,12 @@ function checkFirstRoundComplete(s, passingPlayerId) {
   }
 }
 
-function createSession(hostId, hostName, rounds, gameMode, difficulty) {
+function createSession(hostId, hostName, rounds, gameMode, difficulty, maxPlayers) {
   const id = Math.random().toString(36).substring(2, 7).toUpperCase();
   sessions[id] = {
     id, hostId, rounds: rounds || 5, currentRound: 0, phase: 'lobby',
     gameMode: gameMode || 'education', difficulty: difficulty || 'medium',
+    maxPlayers: maxPlayers || 4,
     players: [], wordSubmissions: {}, synonymClusters: {}, cards: {},
     turnOrder: [], currentTurnIndex: 0,
     starterPlayerId: null, starterHasPassed: false, firstRoundOver: false,
@@ -209,9 +210,9 @@ async function finishRound(sessionId) {
 
 // REST
 app.post('/session/create', (req, res) => {
-  const { playerName, rounds, gameMode, difficulty } = req.body;
+  const { playerName, rounds, gameMode, difficulty, maxPlayers } = req.body;
   const playerId = uuidv4();
-  const s = createSession(playerId, playerName, rounds, gameMode, difficulty);
+  const s = createSession(playerId, playerName, rounds, gameMode, difficulty, maxPlayers);
   addPlayer(s, playerId, playerName);
   res.json({ sessionId: s.id, playerId, gameMode: s.gameMode, difficulty: s.difficulty });
 });
@@ -739,7 +740,7 @@ function broadcastHands(s) {
 function sanitize(s) {
   return {
     id: s.id, hostId: s.hostId, phase: s.phase, currentRound: s.currentRound,
-    rounds: s.rounds, gameMode: s.gameMode, difficulty: s.difficulty,
+    rounds: s.rounds, gameMode: s.gameMode, difficulty: s.difficulty, maxPlayers: s.maxPlayers,
     players: s.players, wordSubmissions: s.wordSubmissions,
     turnOrder: s.turnOrder, currentTurnIndex: s.currentTurnIndex,
     starterPlayerId: s.starterPlayerId, starterHasPassed: s.starterHasPassed,
@@ -780,10 +781,8 @@ function isBotPlayer(playerId) { return playerId.startsWith('bot_'); }
 
 // Add bots to fill up to minPlayers (3) when game starts
 function fillWithBots(session) {
-  const minPlayers = 3;
-  const realPlayers = session.players.filter(p => !isBotPlayer(p.id));
-  const existingBots = session.players.filter(p => isBotPlayer(p.id));
-  const needed = minPlayers - session.players.length;
+  const targetPlayers = session.maxPlayers || 4;
+  const needed = targetPlayers - session.players.length;
   if (needed <= 0) return;
 
   const usedNames = session.players.map(p => p.name);
