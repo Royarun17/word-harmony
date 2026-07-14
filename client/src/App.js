@@ -4,6 +4,7 @@ import { useSocketEvent } from './hooks/useSocketEvent';
 import { useToast, ToastContainer } from './components/Toast';
 
 import TutorialPage from './pages/TutorialPage';
+import CardLoader from './components/CardLoader';
 import LobbyPage   from './pages/LobbyPage';
 import WaitingRoom from './pages/WaitingRoom';
 import SubmitWord  from './pages/SubmitWord';
@@ -161,15 +162,16 @@ export default function App() {
   // ── Rejoining spinner ────────────────────────────────────────────────────────
   if (rejoining) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--parchment)' }}>
-        <div className="spinner" style={{ marginBottom:16 }} />
-        <p style={{ color:'var(--muted)', fontSize:15 }}>Rejoining your game…</p>
-        <button
-          onClick={() => { setRejoining(false); clearSession(); setGameState('lobby'); }}
-          style={{ marginTop:20, background:'none', border:'none', color:'var(--muted)', fontSize:13, cursor:'pointer', textDecoration:'underline' }}
-        >
-          Go to Lobby instead
-        </button>
+      <div style={{ position:'relative' }}>
+        <CardLoader message="Rejoining your game…" />
+        <div style={{ position:'absolute', bottom:40, left:0, right:0, textAlign:'center' }}>
+          <button
+            onClick={() => { setRejoining(false); clearSession(); setGameState('lobby'); }}
+            style={{ background:'none', border:'none', color:'var(--muted)', fontSize:13, cursor:'pointer', textDecoration:'underline' }}
+          >
+            Go to Lobby instead
+          </button>
+        </div>
       </div>
     );
   }
