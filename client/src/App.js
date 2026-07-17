@@ -12,8 +12,8 @@ import GamePlay    from './pages/GamePlay';
 import ScoringPage from './pages/ScoringPage';
 import GameEnded   from './pages/GameEnded';
 
-const TUTORIAL_KEY = 'wordHarmonyTutorialSeen';
-const SESSION_KEY  = 'wordHarmonySession';
+const TUTORIAL_KEY = 'synapseTutorialSeen';
+const SESSION_KEY  = 'synapseSession';
 const REJOIN_GRACE = 90000; // 1.5 minutes in ms
 
 export default function App() {
