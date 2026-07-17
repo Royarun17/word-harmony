@@ -325,7 +325,7 @@ export default function GamePlay({ session, playerId, onExit }) {
       {/* ── HEADER HUD ── */}
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'rgba(0,0,0,0.3)',backdropFilter:'blur(8px)',borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
         <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-          <span style={{ fontSize:14,fontWeight:700,color:T.white,fontFamily:'Georgia,serif',letterSpacing:0.5 }}>Word Harmony</span>
+          <span style={{ fontSize:14,fontWeight:700,color:T.white,fontFamily:'Georgia,serif',letterSpacing:0.5 }}>Synapse</span>
         </div>
         <div style={{ display:'flex',gap:6,alignItems:'center' }}>
           {/* Round pill */}
