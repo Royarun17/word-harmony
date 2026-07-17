@@ -30,9 +30,9 @@ function Pill({ label, active, onClick, color='teal' }) {
   );
 }
 
-export default function LobbyPage({ onJoined, onShowTutorial }) {
+export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', onShowProfile }) {
   const [tab, setTab]         = useState('create');
-  const [name, setName]       = useState('');
+  const [name, setName]       = useState(prefillName);
   const [code, setCode]       = useState('');
   const [mode, setMode]       = useState('education');
   const [difficulty, setDiff] = useState('medium');
