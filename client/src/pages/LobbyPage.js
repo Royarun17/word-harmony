@@ -95,10 +95,20 @@ export default function LobbyPage({ onJoined, onShowTutorial }) {
       `}</style>
 
       {/* Logo */}
-      <div style={{ textAlign:'center', marginBottom:24 }}>
-        <h1 style={{ fontSize:38, fontWeight:700, color:T.navy, fontFamily:'Georgia,serif', letterSpacing:-0.5, margin:0 }}>
-          Syn<span style={{ color:T.gold }}>apse</span>
-        </h1>
+      <div style={{ textAlign:'center', marginBottom:24, display:'flex', justifyContent:'center' }}>
+        <svg width="240" height="52" viewBox="0 0 400 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="30" cy="48" r="22" fill="#1A1A2E"/>
+          <circle cx="90" cy="48" r="22" fill="#1A1A2E"/>
+          <circle cx="60" cy="18" r="22" fill="#C8930C"/>
+          <line x1="52" y1="48" x2="68" y2="48" stroke="#1A1A2E" strokeWidth="3" opacity="0.12" strokeLinecap="round"/>
+          <line x1="45" y1="36" x2="53" y2="26" stroke="#1A1A2E" strokeWidth="3" opacity="0.12" strokeLinecap="round"/>
+          <line x1="75" y1="36" x2="67" y2="26" stroke="#1A1A2E" strokeWidth="3" opacity="0.12" strokeLinecap="round"/>
+          <text x="30" y="55" textAnchor="middle" fontFamily="Georgia,serif" fontSize="20" fontWeight="700" fill="#FFFFFF">S</text>
+          <text x="90" y="55" textAnchor="middle" fontFamily="Georgia,serif" fontSize="20" fontWeight="700" fill="#FFFFFF">E</text>
+          <path d="M57 8 L51 20 L60 20 L57 30" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          <text x="128" y="54" fontFamily="Georgia,serif" fontSize="42" fontWeight="800" fill="#1A1A2E" letterSpacing="-1">Syn</text>
+          <text x="232" y="54" fontFamily="Georgia,serif" fontSize="42" fontWeight="800" fill="#C8930C" letterSpacing="-1">apse</text>
+        </svg>
       </div>
 
       {/* Card */}
