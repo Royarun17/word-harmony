@@ -59,7 +59,7 @@ function WordCard({ word, selected, disabled, onClick, onDragStart, onDragEnd, d
         {/* Word */}
         <text x="38" y="52" textAnchor="middle" fontFamily="Georgia,serif"
           fontSize={fs} fontWeight="700" letterSpacing="0.3"
-          fill={selected ? T.gold : disabled ? T.muted : T.navy}>{word}</text>
+          fill={selected ? T.gold : disabled ? T.muted : T.navy}>{word.charAt(0).toUpperCase() + word.slice(1)}</text>
         {/* Hint */}
         {!disabled && (
           <text x="38" y="68" textAnchor="middle" fontFamily="sans-serif"
@@ -572,7 +572,7 @@ export default function GamePlay({ session, playerId, onExit }) {
               boxShadow:`0 4px 16px rgba(200,147,12,0.3)`,
               filter: DROP,
             }}>
-              Pass "{selectedCard}" →
+              Pass "{selectedCard ? selectedCard.charAt(0).toUpperCase() + selectedCard.slice(1) : ''}" →
             </button>
           )}
           {isMyTurn && !selectedCard && !isBuzzingPhase && hand.length>0 && (
