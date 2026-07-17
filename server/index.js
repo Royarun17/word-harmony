@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -9,6 +10,31 @@ const { getSynonyms, getAssociations, getDefinitions, getContextDefinition } = r
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ── MongoDB connection ─────────────────────────────────────────────────────
+if (process.env.MONGODB_URI) {
+  mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.log('MongoDB error:', err));
+}
+
+// ── User Profile Schema ────────────────────────────────────────────────────
+const profileSchema = new mongoose.Schema({
+  firebaseUid:  { type: String, required: true, unique: true },
+  email:        { type: String, default: '' },
+  phone:        { type: String, default: '' },
+  username:     { type: String, required: true, unique: true },
+  avatar:       { type: String, default: '😎' },
+  country:      { type: String, default: '' },
+  displayName:  { type: String, default: '' },
+  gamesPlayed:  { type: Number, default: 0 },
+  wins:         { type: Number, default: 0 },
+  totalPoints:  { type: Number, default: 0 },
+  level:        { type: Number, default: 1 },
+  joinedDate:   { type: String, default: () => new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) },
+}, { timestamps: true });
+
+const Profile = mongoose.model('Profile', profileSchema);
 app.use(express.static(path.join(__dirname, '../client/build')));
 
 const server = http.createServer(app);
@@ -221,6 +247,69 @@ app.get('/session/:id', (req, res) => {
   if (!s) return res.status(404).json({ error: 'Not found' });
   res.json({ id: s.id, phase: s.phase, playerCount: s.players.length, rounds: s.rounds });
 });
+// ── Auth / Profile Routes ─────────────────────────────────────────────────
+
+// GET profile by Firebase UID
+app.get('/auth/profile/:uid', async (req, res) => {
+  try {
+    const profile = await Profile.findOne({ firebaseUid: req.params.uid });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    res.json(profile);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST create new profile
+app.post('/auth/profile', async (req, res) => {
+  try {
+    const { firebaseUid, email, phone, username, avatar, country, displayName } = req.body;
+    // Check username taken
+    const existing = await Profile.findOne({ username });
+    if (existing && existing.firebaseUid !== firebaseUid) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+    const profile = await Profile.findOneAndUpdate(
+      { firebaseUid },
+      { firebaseUid, email, phone, username, avatar, country, displayName },
+      { upsert: true, new: true }
+    );
+    res.json(profile);
+  } catch (err) {
+    if (err.code === 11000) return res.status(400).json({ error: 'Username already taken' });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH update profile
+app.patch('/auth/profile', async (req, res) => {
+  try {
+    const { firebaseUid, username, avatar } = req.body;
+    if (!firebaseUid) return res.status(400).json({ error: 'Missing firebaseUid' });
+    const profile = await Profile.findOneAndUpdate(
+      { firebaseUid },
+      { username, avatar },
+      { new: true }
+    );
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    res.json(profile);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET check username availability
+app.get('/auth/check-username', async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username || username.length < 3) return res.json({ available: false });
+    const existing = await Profile.findOne({ username });
+    res.json({ available: !existing });
+  } catch {
+    res.json({ available: false });
+  }
+});
+
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../client/build', 'index.html')));
 
 // Socket
