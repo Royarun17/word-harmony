@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#F7F2EA"/>
+  
+  <!-- Node connections -->
+  <line x1="178" y1="272" x2="334" y2="272" stroke="#1A1A2E" stroke-width="12" opacity="0.12" stroke-linecap="round"/>
+  <line x1="165" y1="230" x2="220" y2="155" stroke="#1A1A2E" stroke-width="12" opacity="0.12" stroke-linecap="round"/>
+  <line x1="347" y1="230" x2="292" y2="155" stroke="#1A1A2E" stroke-width="12" opacity="0.12" stroke-linecap="round"/>
+
+  <!-- Left node S -->
+  <circle cx="140" cy="272" r="76" fill="#1A1A2E"/>
+  <text x="140" y="300" text-anchor="middle" font-family="Georgia,serif" font-size="72" font-weight="700" fill="#FFFFFF">S</text>
+
+  <!-- Right node E -->
+  <circle cx="372" cy="272" r="76" fill="#1A1A2E"/>
+  <text x="372" y="300" text-anchor="middle" font-family="Georgia,serif" font-size="72" font-weight="700" fill="#FFFFFF">E</text>
+
+  <!-- Top node lightning gold -->
+  <circle cx="256" cy="140" r="76" fill="#C8930C"/>
+  <path d="M244 108 L224 152 L252 152 L240 188" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
