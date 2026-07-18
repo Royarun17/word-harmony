@@ -115,9 +115,7 @@ function ModeSelectStep({ profile, onModeSelect, onShowProfile, onSignOut }) {
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
                 <span style={{ fontSize:16, fontWeight:800, color:T.navy, fontFamily:'Georgia,serif' }}>Syntax</span>
-                <span style={{ fontSize:10, padding:'2px 8px', borderRadius:99, background:T.tealBg, color:T.teal, fontWeight:600 }}>Education</span>
               </div>
-              <p style={{ fontSize:12, color:T.textSecondary, margin:0 }}>Match synonyms — words that mean the same thing</p>
             </div>
             <span style={{ fontSize:18, color:T.textMuted }}>›</span>
           </button>
@@ -135,9 +133,7 @@ function ModeSelectStep({ profile, onModeSelect, onShowProfile, onSignOut }) {
             <div style={{ flex:1 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
                 <span style={{ fontSize:16, fontWeight:800, color:T.navy, fontFamily:'Georgia,serif' }}>Spark</span>
-                <span style={{ fontSize:10, padding:'2px 8px', borderRadius:99, background:T.goldBg, color:T.gold, fontWeight:600 }}>Fun</span>
               </div>
-              <p style={{ fontSize:12, color:T.textSecondary, margin:0 }}>Match topic associations — words connected by theme</p>
             </div>
             <span style={{ fontSize:18, color:T.textMuted }}>›</span>
           </button>
@@ -168,9 +164,8 @@ function ModeInfoPopup({ mode, onContinue, onBack }) {
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <h2 style={{ fontSize:20, fontWeight:800, color:T.navy, fontFamily:'Georgia,serif', margin:0 }}>{info.name}</h2>
-              <span style={{ fontSize:10, padding:'2px 8px', borderRadius:99, background:info.colorBg, color:info.color, fontWeight:600, border:`1px solid ${info.colorBorder}` }}>{info.subtitle}</span>
             </div>
-            <p style={{ fontSize:12, color:T.textSecondary, margin:'3px 0 0' }}>{info.tagline}</p>
+
           </div>
         </div>
 
