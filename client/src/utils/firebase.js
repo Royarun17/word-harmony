@@ -1,10 +1,9 @@
 import { initializeApp } from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider,
-  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signInWithPopup, signInWithCredential,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged,
-  RecaptchaVerifier, signInWithPhoneNumber
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,19 +15,25 @@ const firebaseConfig = {
   appId:             process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-const app  = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Detect mobile/Capacitor environment
-export const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-  || window.Capacitor !== undefined;
+// Detect if running inside Capacitor (native app)
+export const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
 
-// Use redirect on mobile (avoids sessionStorage issues), popup on desktop
+// Smart Google sign-in — native plugin on mobile, popup on web
 export async function signInWithGoogle() {
-  if (isMobile) {
-    await signInWithRedirect(auth, googleProvider);
-    return null; // result comes via getRedirectResult
+  if (isNative) {
+    try {
+      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+      const googleUser = await GoogleAuth.signIn();
+      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+      const result = await signInWithCredential(auth, credential);
+      return result;
+    } catch (e) {
+      throw e;
+    }
   } else {
     const result = await signInWithPopup(auth, googleProvider);
     return result;
@@ -37,14 +42,11 @@ export async function signInWithGoogle() {
 
 export {
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithCredential,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
 };
 
 export default app;
