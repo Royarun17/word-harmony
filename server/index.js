@@ -11,11 +11,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ── MongoDB connection ─────────────────────────────────────────────────────
+// ── MongoDB connection (non-blocking) ─────────────────────────────────────
 if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI)
+  mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  })
     .then(() => console.log('MongoDB connected'))
-    .catch(err => console.log('MongoDB error:', err));
+    .catch(err => console.log('MongoDB connection error:', err.message));
 }
 
 // ── User Profile Schema ────────────────────────────────────────────────────
@@ -839,7 +842,7 @@ function sanitize(s) {
 }
 
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`Word Harmony running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Synapse running on port ${PORT}`));
 
 // ─── BOT SYSTEM ───────────────────────────────────────────────────────────────
 
