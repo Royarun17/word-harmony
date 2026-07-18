@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { auth, googleProvider, signInWithPopup, signInWithEmailAndPassword } from '../utils/firebase';
+import { auth, signInWithGoogle, getRedirectResult, signInWithEmailAndPassword } from '../utils/firebase';
 
 const T = {
   pageBg:'#F7F2EA', cardBg:'#FFFFFF', border:'#E8E0D0',
@@ -32,9 +32,22 @@ export default function SignInPage({ onNavigate }) {
   async function handleGoogle() {
     setLoading('google'); setError('');
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      onNavigate('checkProfile', { user: result.user });
-    } catch { setError('Google sign-in failed.'); }
+      const result = await signInWithGoogle();
+      if (result) {
+        onNavigate('checkProfile', { user: result.user });
+      }
+      // if null — mobile redirect in progress, will return via onAuthStateChanged
+    } catch (e) {
+      if (e.code === 'auth/popup-blocked' || e.message?.includes('sessionStorage') || e.message?.includes('initial state')) {
+        setError('Popup was blocked. Please allow popups for this site and try again.');
+      } else if (e.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in window was closed. Please try again.');
+      } else if (e.code === 'auth/cancelled-popup-request') {
+        setError('');
+      } else {
+        setError('Google sign-in failed. Please try Email instead.');
+      }
+    }
     setLoading('');
   }
 
