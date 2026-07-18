@@ -81,15 +81,6 @@ export default function WelcomePage({ onNavigate }) {
           📧 Continue with Email
         </button>
 
-        {/* Phone */}
-        <button onClick={()=>onNavigate('phone')} style={{
-          width:'100%', padding:'13px', borderRadius:12, border:`1.5px solid ${T.border}`,
-          background:T.white, color:T.textPrimary, fontSize:13, fontWeight:600,
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-          marginBottom:16, boxShadow:'0 1px 4px rgba(26,26,46,0.06)',
-        }}>
-          📱 Continue with Phone
-        </button>
 
         <div style={{ textAlign:'center' }}>
           <span style={{ fontSize:12, color:T.textSecondary }}>Already have an account? </span>
