@@ -267,6 +267,7 @@ export default function App() {
           prefillName={profile?.username || ''}
           onShowProfile={() => setShowProfile(true)}
           onSignOut={handleSignOut}
+          profile={profile}
         />
       )}
       {gameState === 'waiting' && session && myInfo && <WaitingRoom session={session} playerId={myInfo.playerId} isHost={myInfo.isHost}/>}
