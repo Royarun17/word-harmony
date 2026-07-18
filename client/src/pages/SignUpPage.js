@@ -51,7 +51,7 @@ export default function SignUpPage({ onNavigate }) {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       onNavigate('profileSetup', { user: result.user, displayName: name });
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') setErrors({ email: 'Email already in use' });
+      if (err.code === 'auth/email-already-in-use') setErrors({ email: 'This email is already registered. Try signing in with Google instead.' });
       else setErrors({ general: 'Sign up failed. Try again.' });
     }
     setLoading(false);
