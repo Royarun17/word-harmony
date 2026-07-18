@@ -97,13 +97,6 @@ export default function SignInPage({ onNavigate }) {
           {loading==='google' ? 'Signing in…' : 'Continue with Google'}
         </button>
 
-        <button onClick={()=>onNavigate('phone')} style={{
-          width:'100%', padding:'13px', borderRadius:12, border:`1.5px solid ${T.border}`,
-          background:T.white, color:T.textPrimary, fontSize:13, fontWeight:600,
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-        }}>
-          📱 Continue with Phone
-        </button>
 
         <div style={{ textAlign:'center', marginTop:16 }}>
           <span style={{ fontSize:12, color:T.textSecondary }}>No account yet? </span>
