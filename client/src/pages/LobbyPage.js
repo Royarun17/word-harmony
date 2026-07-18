@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import socket from '../utils/socket';
+import { auth, signOut } from '../utils/firebase';
 
 const T = {
   pageBg:'#F7F2EA', cardBg:'#FFFFFF', inputBg:'#FFFFFF',
@@ -30,7 +31,7 @@ function Pill({ label, active, onClick, color='teal' }) {
   );
 }
 
-export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', onShowProfile }) {
+export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', onShowProfile, onSignOut }) {
   const [tab, setTab]         = useState('create');
   const [name, setName]       = useState(prefillName);
   const [code, setCode]       = useState('');
@@ -78,6 +79,13 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
     setLoading(false);
   }
 
+  async function handleSignOut() {
+    try {
+      await signOut(auth);
+      if (onSignOut) onSignOut();
+    } catch (e) { console.error('Sign out error', e); }
+  }
+
   const Section = ({ label, children }) => (
     <div style={{ marginBottom:14 }}>
       <p style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:'0.1em', marginBottom:8, textTransform:'uppercase' }}>{label}</p>
@@ -109,6 +117,16 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
           <text x="128" y="54" fontFamily="Georgia,serif" fontSize="42" fontWeight="800" fill="#1A1A2E" letterSpacing="-1">Syn</text>
           <text x="232" y="54" fontFamily="Georgia,serif" fontSize="42" fontWeight="800" fill="#C8930C" letterSpacing="-1">apse</text>
         </svg>
+      </div>
+
+      {/* Profile + Logout row */}
+      <div style={{ display:'flex', gap:8, marginBottom:16, width:'100%', maxWidth:420 }}>
+        <button onClick={onShowProfile} style={{ flex:1, padding:'9px', borderRadius:10, border:`1px solid ${T.border}`, background:T.cardBg, color:T.textPrimary, fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          👤 My Profile
+        </button>
+        <button onClick={handleSignOut} style={{ padding:'9px 14px', borderRadius:10, border:`1px solid rgba(233,69,96,0.3)`, background:T.white, color:T.red, fontSize:12, fontWeight:600, cursor:'pointer' }}>
+          Sign out
+        </button>
       </div>
 
       {/* Card */}
