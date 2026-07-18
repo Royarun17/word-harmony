@@ -143,13 +143,10 @@ function ModeSelectStep({ profile, onModeSelect, onShowProfile, onSignOut }) {
           </button>
         </div>
 
-        {/* Profile + Sign out */}
-        <div style={{ display:'flex', gap:8 }}>
+        {/* Profile button only */}
+        <div style={{ display:'flex' }}>
           <button onClick={onShowProfile} style={{ flex:1, padding:'10px', borderRadius:10, border:`1px solid ${T.border}`, background:T.white, color:T.textPrimary, fontSize:12, fontWeight:600, cursor:'pointer' }}>
             👤 My Profile
-          </button>
-          <button onClick={onSignOut} style={{ padding:'10px 16px', borderRadius:10, border:`1px solid rgba(233,69,96,0.3)`, background:T.white, color:T.red, fontSize:12, fontWeight:600, cursor:'pointer' }}>
-            Sign out
           </button>
         </div>
       </div>
