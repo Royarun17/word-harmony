@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import socket from '../utils/socket';
-import { WordCard, BuzzButton, PlayerAvatar, TimerRing, Confetti, BackCard, ThemeSwitcher } from './SynapseComponents';
+import { WordCard, BuzzButton, PlayerAvatar, TimerRing, Confetti, BackCard, ThemeSwitcher } from '../SynapseComponents';
 
 export default function GamePlay({ session, playerId, onExit }) {
   const [selected, setSelected] = useState(null);
