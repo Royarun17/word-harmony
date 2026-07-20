@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import socket from '../utils/socket';
 import { auth, signOut } from '../utils/firebase';
-import { ThemeSwitcher, SectionHeader, PlayerAvatar } from './SynapseComponents';
+import { ThemeSwitcher, SectionHeader, PlayerAvatar } from '../SynapseComponents';
 
 const MODES = {
   syntax: {
