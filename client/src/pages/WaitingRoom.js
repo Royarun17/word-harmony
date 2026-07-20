@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import socket from '../utils/socket';
-import { PlayerAvatar, ThemeSwitcher } from './SynapseComponents';
+import { PlayerAvatar, ThemeSwitcher } from '../SynapseComponents';
 
 const AVATARS = ['😎','🧠','🦊','🐯','🐸','🦁','🐧','🐉','🦋','🐺','🦅','🐬','🎭','🧩','⚡','🔥'];
 
