@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import socket from '../utils/socket';
-import { ThemeSwitcher } from './SynapseComponents';
+import { ThemeSwitcher } from '../SynapseComponents';
 
 export default function SubmitWord({ session, playerId }) {
   const [word, setWord] = useState('');
