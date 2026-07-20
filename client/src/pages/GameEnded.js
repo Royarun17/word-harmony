@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayerAvatar, Confetti, ThemeSwitcher } from './SynapseComponents';
+import { PlayerAvatar, Confetti, ThemeSwitcher } from '../SynapseComponents';
 
 export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
   const sorted = [...(finalScores || [])].sort((a, b) => b.totalScore - a.totalScore);
