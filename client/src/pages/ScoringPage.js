@@ -1,6 +1,6 @@
 import React from 'react';
 import socket from '../utils/socket';
-import { PlayerAvatar, SectionHeader, Confetti, ThemeSwitcher } from './SynapseComponents';
+import { PlayerAvatar, SectionHeader, Confetti, ThemeSwitcher } from '../SynapseComponents';
 
 const MEDALS = ['🥇','🥈','🥉'];
 
