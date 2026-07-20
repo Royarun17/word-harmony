@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { ThemeSwitcher, useTheme } from '../SynapseComponents';
-import { signInWithGoogle } from '../utils/firebase';
-import { auth, signInWithEmailAndPassword } from '../utils/firebase';
+import { ThemeSwitcher } from '../SynapseComponents';
 
 export default function WelcomePage({ onNavigate }) {
   const [loading, setLoading] = useState('');
