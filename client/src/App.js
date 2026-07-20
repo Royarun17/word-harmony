@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from './SynapseComponents';
 import socket from './utils/socket';
 import { useSocketEvent } from './hooks/useSocketEvent';
 import { useToast, ToastContainer } from './components/Toast';
@@ -259,6 +260,7 @@ export default function App() {
 
   // Main game — lobby prefills name from profile
   return (
+    <ThemeProvider>
     <>
       {gameState === 'lobby'   && (
         <LobbyPage
@@ -277,5 +279,6 @@ export default function App() {
       {gameState === 'ended'   && finalScores && myInfo && <GameEnded finalScores={finalScores} playerId={myInfo.playerId} onPlayAgain={handlePlayAgain}/>}
       <ToastContainer toasts={toasts}/>
     </>
+    </ThemeProvider>
   );
 }
