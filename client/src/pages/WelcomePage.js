@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ThemeSwitcher, useTheme } from './SynapseComponents';
+import { ThemeSwitcher, useTheme } from '../SynapseComponents';
 import { signInWithGoogle } from '../utils/firebase';
 import { auth, signInWithEmailAndPassword } from '../utils/firebase';
 
