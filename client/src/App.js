@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import socket from './utils/socket';
 import { useSocketEvent } from './hooks/useSocketEvent';
 import { useToast, ToastContainer } from './components/Toast';
-import { auth, onAuthStateChanged, getRedirectResult } from './utils/firebase';
+import { auth, onAuthStateChanged } from './utils/firebase';
 import axios from 'axios';
 
 import TutorialPage      from './pages/TutorialPage';
@@ -46,16 +46,6 @@ export default function App() {
   const { toasts, show: showToast } = useToast();
 
   // ── Firebase auth listener ─────────────────────────────────────────────────
-  // Handle Google redirect result on mobile
-  useEffect(() => {
-    getRedirectResult(auth).then(result => {
-      if (result?.user) {
-        setPendingUser(result.user);
-        setAuthScreen('checkProfile');
-      }
-    }).catch(() => {});
-  }, []);
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
