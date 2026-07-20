@@ -4,6 +4,8 @@ import {
   signInWithPopup, signInWithCredential,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -42,6 +44,8 @@ export async function signInWithGoogle() {
 
 export {
   signInWithPopup,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
   signInWithCredential,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
