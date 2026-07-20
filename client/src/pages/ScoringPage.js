@@ -1,117 +1,131 @@
 import React from 'react';
 import socket from '../utils/socket';
+import { PlayerAvatar, SectionHeader, Confetti, ThemeSwitcher } from './SynapseComponents';
 
-const T = {
-  pageBg:'#F7F2EA', cardBg:'#FFFFFF', border:'#E8E0D0',
-  textPrimary:'#1A1A2E', textSecondary:'#9B8E7A', textMuted:'#C4B9A8',
-  gold:'#C8930C', goldBg:'#FEF3E2', teal:'#1A8C8C', tealBg:'#E8F4F4',
-  red:'#E94560', navy:'#1A1A2E', white:'#FFFFFF', tabBg:'#F0EDE8',
-};
 const MEDALS = ['🥇','🥈','🥉'];
 
-export default function ScoringPage({ session, playerId, isHost, scoringData }) {
-  const isFun   = session.gameMode === 'fun';
-  const players = session.players || [];
-
-  if (!scoringData) return (
-    <div style={{ minHeight:'100vh', background:T.pageBg, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <style>{`@keyframes wh-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}.wh-spin{animation:wh-spin 1s linear infinite;}`}</style>
-      <div style={{ textAlign:'center' }}>
-        <div style={{ width:48, height:48, borderRadius:'50%', border:`4px solid ${T.border}`, borderTopColor:T.gold, margin:'0 auto 16px' }} className="wh-spin"/>
-        <p style={{ color:T.textSecondary, fontSize:14, fontFamily:'Georgia,serif' }}>Tallying scores…</p>
+function Podium({ place, h, player, session, you, big }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      {place === 1 && <span style={{ fontSize: 22, animation: 'syn-float 2.4s ease-in-out infinite', display: 'block' }}>🏆</span>}
+      <PlayerAvatar name={player?.name || '?'} seed={player?.name} compact size={big ? 'lg' : 'md'} active={place === 1} />
+      <div style={{ fontSize: 11, color: 'var(--ink-dim)' }}>{player?.name?.split(' ')[0] || '?'}</div>
+      <div style={{
+        width: 72, height: h, borderRadius: '10px 10px 0 0', position: 'relative', overflow: 'hidden',
+        background: place === 1 ? 'linear-gradient(180deg, var(--accent), var(--accent-2))' : 'linear-gradient(180deg, var(--surface-3), var(--surface))',
+        border: `1px solid ${place === 1 ? 'oklch(from var(--accent) l c h / 0.35)' : 'var(--border)'}`,
+        boxShadow: place === 1 ? 'var(--glow-accent)' : 'var(--shadow-lift)',
+        display: 'grid', placeItems: 'center',
+      }}>
+        <div style={{ fontSize: 36, fontWeight: 700, fontFamily: 'var(--font-display)', color: place === 1 ? 'var(--accent-ink)' : 'var(--ink)' }}>{place}</div>
       </div>
     </div>
   );
+}
 
-  const { buzzerLog=[], roundScores=[], definitions={}, synonymClusters={} } = scoringData;
+export default function ScoringPage({ session, playerId, isHost, scoringData }) {
+  const players = session.players || [];
   const isLastRound = session.currentRound >= session.rounds;
+
   function handleNext() { socket.emit('next_round', { sessionId: session.id }); }
 
+  if (!scoringData) return (
+    <div className="syn-scene" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 52, height: 52, borderRadius: 99, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }}/>
+        <p style={{ color: 'var(--ink-dim)', fontFamily: 'var(--font-display)', fontSize: 16 }}>Tallying scores…</p>
+      </div>
+      <style>{`@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}`}</style>
+    </div>
+  );
+
+  const { buzzerLog = [], roundScores = [], definitions = {}, synonymClusters = {} } = scoringData;
+
+  // Top 3 for podium
+  const sorted = [...players].sort((a, b) => (session.totalScores?.[b.id] || 0) - (session.totalScores?.[a.id] || 0));
+  const top3 = [sorted[1], sorted[0], sorted[2]]; // 2nd, 1st, 3rd for podium layout
+
   return (
-    <div style={{ minHeight:'100vh', background:T.pageBg, padding:'16px 16px 32px', display:'flex', flexDirection:'column', alignItems:'center' }}>
-      <style>{`@keyframes wh-pop{0%{transform:scale(0.96);opacity:0;}100%{transform:scale(1);opacity:1;}}.wh-pop{animation:wh-pop 0.3s cubic-bezier(.34,1.56,.64,1) forwards;}`}</style>
+    <div className="syn-scene" style={{ minHeight: '100vh', padding: '0 0 32px' }}>
+      <ThemeSwitcher />
+      {isLastRound && <Confetti count={60} />}
 
-      <div style={{ width:'100%', maxWidth:500 }}>
-        <div style={{ textAlign:'center', marginBottom:20 }}>
-          <p style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:'0.12em', textTransform:'uppercase', margin:0 }}>Round {session.currentRound} complete</p>
-          <h2 style={{ fontSize:26, fontWeight:700, color:T.navy, fontFamily:'Georgia,serif', margin:'6px 0' }}>Results</h2>
-          <p style={{ fontSize:12, color:T.textSecondary, margin:0 }}>{session.rounds-session.currentRound} round{session.rounds-session.currentRound!==1?'s':''} remaining</p>
+      <div className="syn-scene-content" style={{ padding: '52px 16px 0' }}>
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 20, animation: 'syn-pop 600ms cubic-bezier(.2,.8,.2,1) both' }}>
+          <div style={{ fontSize: 9, letterSpacing: '0.32em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 6 }}>
+            ROUND {session.currentRound} · RESULTS
+          </div>
+          <h1 style={{ fontSize: 32, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
+            {buzzerLog[0]?.playerId === playerId ? 'You buzzed first!' : `${players.find(p => p.id === buzzerLog[0]?.playerId)?.name?.split(' ')[0] || 'Nobody'} buzzed first!`}
+          </h1>
         </div>
 
-        {/* Buzzer order */}
-        <div style={{ marginBottom:14 }}>
-          {buzzerLog.length > 0 ? buzzerLog.map((b,i) => {
-            const p = players.find(pl=>pl.id===b.playerId);
-            const pts = roundScores.find(s=>s.playerId===b.playerId)?.points || 0;
-            const isMe = b.playerId===playerId;
-            return (
-              <div key={b.playerId} className="wh-pop" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', marginBottom:6, borderRadius:14, background: i===0 ? T.goldBg : isMe ? T.tealBg : T.cardBg, border:`1px solid ${i===0?'rgba(200,147,12,0.3)':isMe?'rgba(26,140,140,0.2)':T.border}`, boxShadow:'0 1px 4px rgba(26,26,46,0.06)' }}>
-                <span style={{ fontSize:24 }}>{MEDALS[i]||`#${i+1}`}</span>
-                <div style={{ flex:1 }}>
-                  <p style={{ fontSize:13, fontWeight:700, color:T.textPrimary, margin:0 }}>{p?.name}{isMe?' (you)':''}</p>
-                  <p style={{ fontSize:11, color: b.hasCompleteSet ? T.teal : T.red, margin:0 }}>
-                    {b.invalid?'⚠️ Invalid — Round 1':b.hasCompleteSet?'✓ Matching set':'✗ No match'}
-                  </p>
-                </div>
-                <div style={{ textAlign:'right' }}>
-                  <p style={{ fontSize:20, fontWeight:800, color: pts>0 ? T.gold : T.textMuted, margin:0 }}>+{pts}</p>
-                  <p style={{ fontSize:10, color:T.textMuted, margin:0 }}>pts</p>
-                </div>
-              </div>
-            );
-          }) : (
-            <div style={{ textAlign:'center', padding:'18px', background:T.cardBg, borderRadius:14, border:`1px solid ${T.border}` }}>
-              <p style={{ color:T.textSecondary, fontSize:13, margin:0 }}>Nobody buzzed this round.</p>
-            </div>
-          )}
-        </div>
+        {/* Podium */}
+        {players.length >= 3 && (
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: 200, marginBottom: 20 }}>
+            <Podium place={2} h={100} player={sorted[1]} session={session} you={sorted[1]?.id === playerId} />
+            <Podium place={1} h={140} player={sorted[0]} session={session} you={sorted[0]?.id === playerId} big />
+            <Podium place={3} h={70} player={sorted[2]} session={session} you={sorted[2]?.id === playerId} />
+          </div>
+        )}
 
-        {/* Word clusters */}
-        {Object.entries(synonymClusters).map(([topic, words]) => (
-          <div key={topic} style={{ background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:14, padding:'14px', marginBottom:12, boxShadow:'0 1px 4px rgba(26,26,46,0.06)' }}>
-            <p style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>
-              {isFun ? `Topic: ${topic}` : `Based on: ${topic}`}
-            </p>
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
-              {words.map(w => (
-                <span key={w} style={{ padding:'3px 10px', borderRadius:99, background:T.tealBg, border:'1px solid rgba(26,140,140,0.3)', color:T.teal, fontSize:11, fontWeight:600 }}>{w}</span>
-              ))}
-            </div>
-            {words.map(w => definitions[w] && (
-              <div key={w} style={{ marginBottom:6, padding:'8px 10px', background:T.tabBg, borderRadius:8, borderLeft:`2.5px solid ${T.teal}` }}>
-                <p style={{ fontSize:10, fontWeight:700, color:T.teal, marginBottom:3 }}>{w}</p>
-                <p style={{ fontSize:11, color:T.textSecondary, margin:0, lineHeight:1.5 }}>{definitions[w]}</p>
+        {/* Word of round */}
+        {Object.keys(synonymClusters).length > 0 && (
+          <div className="syn-panel" style={{ padding: 16, textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 6 }}>WORD OF THE ROUND</div>
+            <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 6 }}>{Object.keys(synonymClusters)[0]}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>{(synonymClusters[Object.keys(synonymClusters)[0]] || []).join(' · ')}</div>
+          </div>
+        )}
+
+        {/* Leaderboard */}
+        <div style={{ marginBottom: 20 }}>
+          <SectionHeader eyebrow="Leaderboard" title="Standings" />
+          <div className="syn-panel" style={{ overflow: 'hidden' }}>
+            {sorted.map((p, i) => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                borderBottom: i < sorted.length - 1 ? '1px solid var(--border)' : 'none',
+                background: p.id === playerId ? 'oklch(1 0 0 / 0.03)' : undefined,
+                animation: `syn-rise 400ms ${i * 80}ms both`,
+              }}>
+                <div className="num" style={{ width: 22, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink-dim)' }}>{i + 1}</div>
+                <PlayerAvatar name={p.name} seed={p.name} compact size="sm" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.name} {p.id === playerId && <span style={{ color: 'var(--accent)' }}>· YOU</span>}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="num" style={{ fontSize: 16, fontWeight: 700 }}>{(session.totalScores?.[p.id] || 0).toLocaleString()}</div>
+                  {(roundScores.find(s => s.playerId === p.id)?.points || 0) > 0 && (
+                    <div className="num" style={{ fontSize: 11, fontWeight: 600, color: 'var(--win)', animation: 'syn-count 500ms both' }}>
+                      +{roundScores.find(s => s.playerId === p.id)?.points}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-        ))}
-
-        {/* Running totals */}
-        <div style={{ background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:14, padding:'14px', marginBottom:20, boxShadow:'0 1px 4px rgba(26,26,46,0.06)' }}>
-          <p style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:10 }}>Total scores</p>
-          {[...players].sort((a,b)=>(session.totalScores?.[b.id]||0)-(session.totalScores?.[a.id]||0)).map((p,i) => (
-            <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
-              <span style={{ fontSize:14, width:22 }}>{MEDALS[i]||`${i+1}.`}</span>
-              <p style={{ flex:1, fontSize:13, color: p.id===playerId ? T.teal : T.textPrimary, fontWeight: p.id===playerId?700:400, margin:0, fontFamily:'Georgia,serif' }}>{p.name}</p>
-              <p style={{ fontSize:16, fontWeight:800, color:T.gold, margin:0 }}>{session.totalScores?.[p.id]||0}</p>
-            </div>
-          ))}
         </div>
 
-        {isHost ? (
-          <button onClick={handleNext} style={{
-            width:'100%', padding:'14px', borderRadius:14, border:'none', cursor:'pointer',
-            background: isLastRound ? `linear-gradient(135deg,${T.gold},#A07010)` : `linear-gradient(135deg,${T.teal},#115E59)`,
-            color: T.white, fontSize:15, fontWeight:800, fontFamily:'Georgia,serif',
-            boxShadow: `0 4px 16px ${isLastRound?'rgba(200,147,12,0.3)':'rgba(26,140,140,0.3)'}`,
-          }}>
-            {isLastRound ? 'See final results →' : 'Next round →'}
-          </button>
-        ) : (
-          <div style={{ textAlign:'center', padding:'14px', background:T.cardBg, borderRadius:12, border:`1px solid ${T.border}` }}>
-            <p style={{ fontSize:13, color:T.textSecondary, margin:0 }}>Waiting for host to continue…</p>
-          </div>
-        )}
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          {isHost ? (
+            <>
+              <button onClick={() => {}} className="syn-btn-ghost tap" style={{ flex: 1 }}>🏠 Lobby</button>
+              <button onClick={handleNext} className="syn-btn-primary tap" style={{ flex: 2 }}>
+                {isLastRound ? '🏆 Final Results' : '↺ Next Round'}
+              </button>
+            </>
+          ) : (
+            <div className="syn-panel" style={{ flex: 1, padding: 14, textAlign: 'center' }}>
+              <p style={{ color: 'var(--ink-dim)', fontSize: 14 }}>Waiting for host to continue…</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
