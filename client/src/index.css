@@ -328,3 +328,24 @@ input, select, textarea { font-size: 16px !important; }
 @media (min-width: 768px) {
   :root { --syn-frame-h: 860px; }
 }
+
+/* =========================================================
+ * CONTENT WIDTH — invisible guides, content constrained
+ * All content stays within max-width centered container
+ * ========================================================= */
+
+/* Root constrains all content — invisible on mobile */
+#root {
+  max-width: 420px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Wider on desktop */
+@media (min-width: 768px) {
+  #root {
+    max-width: 860px;
+    box-shadow: -1px 0 0 oklch(0.82 0.16 195 / 0.06),
+                 1px 0 0 oklch(0.82 0.16 195 / 0.06);
+  }
+}
