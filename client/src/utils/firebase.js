@@ -4,8 +4,7 @@ import {
   signInWithPopup, signInWithCredential,
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
+  RecaptchaVerifier, signInWithPhoneNumber,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -21,36 +20,37 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Detect if running inside Capacitor (native app)
-export const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
+// Detect if running inside Capacitor native app
+export const isNative = typeof window !== 'undefined' &&
+  typeof window.Capacitor !== 'undefined' &&
+  window.Capacitor?.isNativePlatform?.() === true;
 
-// Smart Google sign-in — native plugin on mobile, popup on web
+// Google sign-in — popup on web, native plugin on Android
+// Native plugin loaded dynamically to avoid build errors on web
 export async function signInWithGoogle() {
   if (isNative) {
     try {
-      const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+      // eslint-disable-next-line
+      const { GoogleAuth } = await import(/* webpackIgnore: true */ '@codetrix-studio/capacitor-google-auth');
       const googleUser = await GoogleAuth.signIn();
       const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-      const result = await signInWithCredential(auth, credential);
-      return result;
+      return await signInWithCredential(auth, credential);
     } catch (e) {
       throw e;
     }
-  } else {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result;
   }
+  return await signInWithPopup(auth, googleProvider);
 }
 
 export {
   signInWithPopup,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   signInWithCredential,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
 };
 
 export default app;
