@@ -160,15 +160,24 @@ export default function GamePlay({ session, playerId, onExit }) {
               <span className="syn-chip syn-chip-accent" style={{ fontSize: 11 }}>Your turn — select a card to pass</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: -20, paddingBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 4, position: 'relative', height: 160 }}>
             {myHand.map((word, i) => {
               const offset = i - (myHand.length - 1) / 2;
-              const rotate = offset * 5;
-              const y = Math.abs(offset) * 4;
+              const rotate = offset * 6;
+              const y = Math.abs(offset) * 5;
               const isSelected = selected === word;
               const isMatch = matchCount >= 3 && session.synonymClusters && Object.entries(session.synonymClusters).some(([, words]) => words.includes(word.toLowerCase()) && myHand.filter(w => words.includes(w.toLowerCase())).length >= 3);
               return (
-                <div key={word} style={{ transform: `translateY(${y}px) rotate(${rotate}deg)`, transformOrigin: '50% 100%', transition: 'transform 220ms cubic-bezier(.2,.8,.2,1)', zIndex: isSelected ? 10 : 1 + i, marginLeft: i > 0 ? -28 : 0, animation: `syn-deal 600ms ${i * 80}ms cubic-bezier(.2,.8,.2,1) both` }}>
+                <div key={word} style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: '50%',
+                  transform: `translateX(calc(-50% + ${offset * 52}px)) translateY(${isSelected ? -20 : y}px) rotate(${rotate}deg)`,
+                  transformOrigin: '50% 100%',
+                  transition: 'transform 220ms cubic-bezier(.2,.8,.2,1)',
+                  zIndex: isSelected ? 10 : 1 + i,
+                  animation: `syn-deal 600ms ${i * 80}ms cubic-bezier(.2,.8,.2,1) both`,
+                }}>
                   <WordCard word={word.charAt(0).toUpperCase() + word.slice(1)} kind={isMatch ? 'match' : 'normal'} selected={isSelected} onClick={() => setSelected(isSelected ? null : word)} small />
                 </div>
               );
