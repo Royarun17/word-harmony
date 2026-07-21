@@ -7,10 +7,22 @@ export default function GamePlay({ session, playerId, onExit }) {
   const [showExit, setShowExit] = useState(false);
   const [buzzed, setBuzzed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [myHand, setMyHand] = useState([]);
+  const [isStarter, setIsStarter] = useState(false);
+
+  // Listen for hand updates from server
+  useEffect(() => {
+    const handleHand = ({ hand, isStarter: starter }) => {
+      setMyHand(hand || []);
+      setIsStarter(!!starter);
+      setBuzzed(false);
+    };
+    socket.on(`hand_update_${playerId}`, handleHand);
+    return () => socket.off(`hand_update_${playerId}`, handleHand);
+  }, [playerId]);
 
   const players    = session.players || [];
   const myPlayer   = players.find(p => p.id === playerId);
-  const myHand     = session.hands?.[playerId] || [];
   const turnPlayer = players.find(p => p.id === session.currentTurn);
   const isMyTurn   = session.currentTurn === playerId;
   const timerPct   = ((session.timer || 30) / 30) * 100;
