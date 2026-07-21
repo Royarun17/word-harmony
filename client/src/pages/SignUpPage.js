@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
 import { auth, createUserWithEmailAndPassword } from '../utils/firebase';
+import { ThemeSwitcher } from '../SynapseComponents';
 
-const T = {
-  pageBg:'#F7F2EA', cardBg:'#FFFFFF', border:'#E8E0D0',
-  textPrimary:'#1A1A2E', textSecondary:'#9B8E7A', textMuted:'#C4B9A8',
-  gold:'#C8930C', goldBg:'#FEF3E2', teal:'#1A8C8C', tealBg:'#E8F4F4',
-  red:'#E94560', navy:'#1A1A2E', white:'#FFFFFF', tabBg:'#F0EDE8',
-};
-
-function Input({ label, type='text', value, onChange, placeholder, error }) {
+function Field({ label, type = 'text', value, onChange, placeholder, error, hint }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ marginBottom:12 }}>
-      <p style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6 }}>{label}</p>
-      <input type={type} value={value} onChange={onChange} placeholder={placeholder}
-        onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
-        style={{ width:'100%', padding:'12px 14px', borderRadius:10, border:`1.5px solid ${error?T.red:focused?T.gold:T.border}`, background:T.white, color:T.textPrimary, fontSize:14, boxSizing:'border-box', outline:'none', transition:'border 0.2s' }}/>
-      {error && <p style={{ fontSize:11, color:T.red, marginTop:4 }}>{error}</p>}
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--ink-mute)', textTransform: 'uppercase', marginBottom: 8 }}>{label}</div>
+      <input
+        type={type} value={value} onChange={onChange} placeholder={placeholder}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', padding: '14px 16px', borderRadius: 14,
+          border: `1.5px solid ${error ? 'var(--danger)' : focused ? 'var(--accent)' : 'var(--border)'}`,
+          background: 'var(--surface)', color: 'var(--ink)', fontSize: 16,
+          boxSizing: 'border-box', outline: 'none', fontFamily: 'var(--font-body)',
+          boxShadow: focused ? '0 0 0 3px oklch(0.82 0.16 195 / 0.15)' : 'none',
+          transition: 'border 0.2s, box-shadow 0.2s',
+        }}/>
+      {error && <p style={{ fontSize: 12, color: 'var(--danger)', marginTop: 6 }}>{error}</p>}
+      {hint && !error && <p style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 6 }}>{hint}</p>}
     </div>
   );
 }
@@ -29,79 +32,88 @@ export default function SignUpPage({ onNavigate }) {
   const [agreed, setAgreed]     = useState(false);
   const [loading, setLoading]   = useState(false);
   const [errors, setErrors]     = useState({});
+  const [genError, setGenError] = useState('');
 
   function validate() {
     const e = {};
-    if (!name.trim()) e.name = 'Name is required';
-    if (!email.trim()) e.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email';
-    if (!password) e.password = 'Password is required';
-    else if (password.length < 6) e.password = 'At least 6 characters';
-    if (password !== confirm) e.confirm = 'Passwords do not match';
-    if (!agreed) e.agreed = 'Please accept the terms';
-    return e;
+    if (!name.trim())                      e.name = 'Enter your name';
+    if (!email.includes('@'))              e.email = 'Enter a valid email';
+    if (password.length < 6)              e.password = 'At least 6 characters';
+    if (confirm !== password)             e.confirm = 'Passwords do not match';
+    if (!agreed)                          e.agreed = 'You must agree to continue';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   }
 
-  async function handleSignUp(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-    setLoading(true); setErrors({});
+    if (!validate()) return;
+    setLoading(true); setGenError('');
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      onNavigate('profileSetup', { user: result.user, displayName: name });
+      onNavigate('profileSetup', { user: result.user, name });
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') setErrors({ email: 'This email is already registered. Try signing in with Google instead.' });
-      else setErrors({ general: 'Sign up failed. Try again.' });
+      if (err.code === 'auth/email-already-in-use') setGenError('An account with this email already exists.');
+      else setGenError('Could not create account. Try again.');
     }
     setLoading(false);
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:T.pageBg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 }}>
-      <style>{`@keyframes wh-pop{0%{transform:scale(0.95);opacity:0;}100%{transform:scale(1);opacity:1;}}.wh-pop{animation:wh-pop 0.25s cubic-bezier(.34,1.56,.64,1) forwards;}`}</style>
+    <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      <ThemeSwitcher />
+      <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 32px', overflowY: 'auto' }}>
 
-      <div className="wh-pop" style={{ background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:20, padding:28, width:'100%', maxWidth:400, boxShadow:'0 8px 32px rgba(26,26,46,0.1)' }}>
-        <button onClick={()=>onNavigate('welcome')} style={{ background:'none', border:'none', color:T.textSecondary, fontSize:13, cursor:'pointer', marginBottom:16, padding:0 }}>← Back</button>
+        {/* Back */}
+        <button onClick={() => onNavigate('welcome')} style={{ width: 40, height: 40, borderRadius: 99, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', cursor: 'pointer', color: 'var(--ink)', fontSize: 18, marginBottom: 32, flexShrink: 0 }}>←</button>
 
-        <div style={{ textAlign:'center', marginBottom:20 }}>
-          <h2 style={{ fontSize:22, fontWeight:700, color:T.navy, fontFamily:'Georgia,serif', margin:0 }}>Create account</h2>
-          <p style={{ fontSize:12, color:T.textSecondary, marginTop:4 }}>Join Synapse today</p>
+        {/* Header */}
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 11, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>JOIN SYNAPSE</div>
+          <h1 style={{ fontSize: 40, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1, color: 'var(--ink)', marginBottom: 10 }}>Create account</h1>
+          <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Start playing in seconds.</p>
         </div>
 
-        {errors.general && <p style={{ color:T.red, fontSize:12, marginBottom:12, textAlign:'center', background:'#FEE2E2', padding:'8px 12px', borderRadius:8 }}>{errors.general}</p>}
+        {/* Form */}
+        <div className="panel" style={{ padding: 24, marginBottom: 16 }}>
+          {genError && (
+            <div style={{ background: 'oklch(0.68 0.22 22 / 0.15)', border: '1px solid oklch(0.68 0.22 22 / 0.35)', borderRadius: 12, padding: '10px 14px', color: 'var(--danger)', fontSize: 13, marginBottom: 20, textAlign: 'center' }}>{genError}</div>
+          )}
 
-        <form onSubmit={handleSignUp}>
-          <Input label="Full name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" error={errors.name}/>
-          <Input label="Email address" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" error={errors.email}/>
-          <Input label="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min 6 characters" error={errors.password}/>
-          <Input label="Confirm password" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Repeat password" error={errors.confirm}/>
+          <form onSubmit={handleSubmit}>
+            <Field label="Full name" value={name} onChange={e => setName(e.target.value)} placeholder="Alex Reyes" error={errors.name} />
+            <Field label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" error={errors.email} />
+            <Field label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 characters" error={errors.password} hint="At least 6 characters" />
+            <Field label="Confirm password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" error={errors.confirm} />
 
-          <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:16 }}>
-            <div onClick={()=>setAgreed(s=>!s)} style={{ width:18, height:18, borderRadius:5, background: agreed?T.gold:T.white, border:`2px solid ${agreed?T.gold:T.border}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, marginTop:1 }}>
-              {agreed && <span style={{ color:T.navy, fontSize:11, fontWeight:700 }}>✓</span>}
+            {/* Terms */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 24 }}>
+              <button type="button" onClick={() => setAgreed(!agreed)} style={{
+                width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                background: agreed ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'transparent',
+                border: `2px solid ${errors.agreed ? 'var(--danger)' : agreed ? 'transparent' : 'var(--border)'}`,
+                cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--accent-ink)', fontSize: 13,
+                boxShadow: agreed ? 'var(--glow-accent)' : 'none', transition: 'all 200ms',
+              }}>
+                {agreed && '✓'}
+              </button>
+              <div style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.5 }}>
+                I agree to the <span style={{ color: 'var(--accent)', cursor: 'pointer' }}>Terms of Service</span> and <span style={{ color: 'var(--accent)', cursor: 'pointer' }}>Privacy Policy</span>
+                {errors.agreed && <div style={{ color: 'var(--danger)', fontSize: 11, marginTop: 4 }}>{errors.agreed}</div>}
+              </div>
             </div>
-            <p style={{ fontSize:11, color:T.textSecondary, lineHeight:1.5, margin:0 }}>
-              I agree to the <span style={{ color:T.gold, fontWeight:600 }}>Terms of Service</span> and <span style={{ color:T.gold, fontWeight:600 }}>Privacy Policy</span>
-            </p>
-          </div>
-          {errors.agreed && <p style={{ fontSize:11, color:T.red, marginBottom:10 }}>{errors.agreed}</p>}
 
-          <button type="submit" disabled={loading} style={{
-            width:'100%', padding:'14px', borderRadius:12, border:'none',
-            background: `linear-gradient(135deg,${T.gold},#A07010)`,
-            color:T.navy, fontSize:14, fontWeight:800, fontFamily:'Georgia,serif',
-            cursor:loading?'not-allowed':'pointer',
-            boxShadow:'0 4px 16px rgba(200,147,12,0.3)', transition:'all 0.2s',
-          }}>
-            {loading ? 'Creating account…' : 'Create account →'}
-          </button>
-        </form>
-
-        <div style={{ textAlign:'center', marginTop:16 }}>
-          <span style={{ fontSize:12, color:T.textSecondary }}>Already have an account? </span>
-          <button onClick={()=>onNavigate('signin')} style={{ background:'none', border:'none', color:T.gold, fontSize:12, fontWeight:700, cursor:'pointer' }}>Sign in</button>
+            <button type="submit" disabled={loading} className="btn-primary tap-target" style={{ width: '100%', opacity: loading ? 0.7 : 1 }}>
+              {loading ? 'Creating account…' : 'Create account →'}
+            </button>
+          </form>
         </div>
+
+        {/* Sign in link */}
+        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-mute)' }}>
+          Already have an account?{' '}
+          <button onClick={() => onNavigate('signin')} style={{ color: 'var(--accent)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}>Sign in</button>
+        </p>
       </div>
     </div>
   );
