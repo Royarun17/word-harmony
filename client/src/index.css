@@ -171,8 +171,8 @@
   }
   50% {
     transform: scale(1.04);
-    box-shadow: 0 0 40px oklch(from var(--accent) l c h / 0.85),
-      0 0 90px oklch(from var(--accent-2) l c h / 0.55);
+    box-shadow: 0 0 40px oklch(0.82 0.16 195 / 0.85),
+      0 0 90px oklch(0.72 0.19 205 / 0.55);
   }
 }
 @keyframes syn-ring {
@@ -305,7 +305,7 @@
     inset: 0;
     background: radial-gradient(
       circle at 50% 100%,
-      oklch(from var(--accent) l c h / 0.15) 0%,
+      oklch(0.82 0.16 195 / 0.15) 0%,
       transparent 55%
     );
     pointer-events: none;
@@ -368,7 +368,7 @@
   border-width: 2px;
   border-color: var(--color-accent);
   box-shadow:
-    inset 0 0 0 3px oklch(from var(--card) calc(l - 0.05) c h),
+    inset 0 0 0 3px oklch(0.935 0.004 220) c h),
     var(--shadow-card-rest);
 }
 [data-theme="library"] .card-surface::before {
@@ -427,10 +427,10 @@
       oklch(0 0 0 / 0.06) 0 2px,
       transparent 2px 4px
     );
-  border-color: oklch(from var(--accent) l c h / 0.4);
+  border-color: oklch(0.82 0.16 195 / 0.4);
   box-shadow:
     0 12px 32px oklch(0 0 0 / 0.55),
-    inset 0 0 0 1px oklch(from var(--accent) l c h / 0.2);
+    inset 0 0 0 1px oklch(0.82 0.16 195 / 0.2);
 }
 
 @utility chip {
@@ -442,15 +442,15 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  background: oklch(from var(--surface-3) l c h / 0.7);
+  background: oklch(0.32 0.04 228 / 0.7);
   color: var(--color-ink-dim);
   border: 1px solid var(--color-border);
   backdrop-filter: blur(8px);
 }
 @utility chip-accent {
-  background: oklch(from var(--accent) l c h / 0.15);
+  background: oklch(0.82 0.16 195 / 0.15);
   color: var(--color-accent);
-  border-color: oklch(from var(--accent) l c h / 0.35);
+  border-color: oklch(0.82 0.16 195 / 0.35);
 }
 
 @utility btn-primary {
@@ -475,7 +475,7 @@
   box-shadow:
     inset 0 1px 0 oklch(1 0 0 / 0.35),
     inset 0 -2px 0 oklch(0 0 0 / 0.2),
-    0 10px 22px oklch(from var(--accent) l c h / 0.4);
+    0 10px 22px oklch(0.82 0.16 195 / 0.4);
   transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
@@ -501,7 +501,7 @@
   &:active {
     transform: translateY(2px) scale(0.98);
     box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.2),
-      0 4px 10px oklch(from var(--accent) l c h / 0.3);
+      0 4px 10px oklch(0.82 0.16 195 / 0.3);
   }
 }
 
@@ -515,14 +515,14 @@
   border-radius: 999px;
   font-weight: 600;
   color: var(--color-ink);
-  background: oklch(from var(--surface-2) l c h / 0.65);
+  background: oklch(0.27 0.035 230 / 0.65);
   border: 1px solid var(--color-border);
   backdrop-filter: blur(10px);
   transition: transform 140ms, background 140ms;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   &:hover {
-    background: oklch(from var(--surface-3) l c h / 0.9);
+    background: oklch(0.32 0.04 228 / 0.9);
   }
   &:active {
     transform: scale(0.97);
@@ -535,8 +535,8 @@
   padding: 3px;
   background: linear-gradient(
     140deg,
-    oklch(from var(--accent) l c h / 0.35),
-    oklch(from var(--accent-2) l c h / 0.1)
+    oklch(0.82 0.16 195 / 0.35),
+    oklch(0.72 0.19 205 / 0.1)
   );
   &::before {
     content: "";
@@ -564,7 +564,7 @@
   background: var(--table-felt);
   border-radius: 46% / 50%;
   box-shadow:
-    inset 0 0 0 2px oklch(from var(--accent) l c h / 0.25),
+    inset 0 0 0 2px oklch(0.82 0.16 195 / 0.25),
     inset 0 0 60px oklch(0 0 0 / 0.45),
     0 20px 40px oklch(0 0 0 / 0.5);
   overflow: hidden;
@@ -576,11 +576,11 @@
   background: repeating-linear-gradient(
       110deg,
       transparent 0 14px,
-      oklch(from var(--accent) l c h / 0.08) 14px 15px
+      oklch(0.82 0.16 195 / 0.3) 14px 15px
     ),
     radial-gradient(
       circle at 50% 50%,
-      oklch(from var(--accent) l c h / 0.14),
+      oklch(0.82 0.16 195 / 0.3),
       transparent 65%
     );
   animation: syn-flow 6s linear infinite;
@@ -589,8 +589,8 @@
 [data-theme="library"] .table-oval {
   border-radius: 44% / 48%;
   box-shadow:
-    inset 0 0 0 6px oklch(from var(--accent) l c h / 0.5),
-    inset 0 0 0 10px oklch(from var(--bg) l c h / 0.9),
+    inset 0 0 0 6px oklch(0.82 0.16 195 / 0.3),
+    inset 0 0 0 10px oklch(0.22 0.03 232 / 0.3),
     inset 0 0 80px oklch(0 0 0 / 0.55),
     0 20px 40px oklch(0 0 0 / 0.6);
 }
@@ -606,7 +606,7 @@
     ),
     radial-gradient(
       circle at 50% 50%,
-      oklch(from var(--accent) l c h / 0.1),
+      oklch(0.82 0.16 195 / 0.1),
       transparent 60%
     );
   pointer-events: none;
@@ -640,11 +640,11 @@
   background:
     conic-gradient(
       var(--color-accent) calc(var(--p) * 1%),
-      oklch(from var(--surface-3) l c h / 0.6) 0
+      oklch(0.32 0.04 228 / 0.6) 0
     );
   display: grid;
   place-items: center;
-  box-shadow: 0 0 20px oklch(from var(--accent) l c h / 0.4);
+  box-shadow: 0 0 20px oklch(0.82 0.16 195 / 0.4);
 }
 .timer-ring::after {
   content: "";
