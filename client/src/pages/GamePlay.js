@@ -83,11 +83,11 @@ export default function GamePlay({ session, playerId, onExit }) {
   }
 
   return (
-    <div className="syn-scene" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="scene" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
       {showConfetti && <Confetti count={60} />}
 
-      <div className="syn-scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 16px 12px' }}>
@@ -110,7 +110,7 @@ export default function GamePlay({ session, playerId, onExit }) {
 
         {/* Prompt banner */}
         <div style={{ padding: '0 16px 12px' }}>
-          <div className="syn-panel" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="panel" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ color: 'var(--accent)', fontSize: 16 }}>✦</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 9, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 2 }}>YOUR PROMPT</div>
@@ -118,13 +118,13 @@ export default function GamePlay({ session, playerId, onExit }) {
                 Collect 3 {session.gameMode === 'education' ? 'synonyms' : 'associations'} of "{myHandTopic}"
               </div>
             </div>
-            <span className="syn-chip num">{matchCount}/3</span>
+            <span className="chip num">{matchCount}/3</span>
           </div>
         </div>
 
         {/* Table */}
         <div style={{ flex: 1, position: 'relative', margin: '0 16px', minHeight: 260 }}>
-          <div className="syn-table-oval" style={{ position: 'absolute', inset: '8px 8px 8px 8px' }}>
+          <div className="table-oval" style={{ position: 'absolute', inset: '8px 8px 8px 8px' }}>
             {/* Neural grid overlay */}
             <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(110deg, transparent 0 14px, oklch(from var(--accent) l c h / 0.06) 14px 15px), radial-gradient(circle at 50% 50%, oklch(from var(--accent) l c h / 0.1), transparent 65%)', animation: 'syn-flow 6s linear infinite', pointerEvents: 'none' }}/>
 
@@ -135,7 +135,7 @@ export default function GamePlay({ session, playerId, onExit }) {
 
             {/* Buzzer status */}
             <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
-              <span className={`syn-chip${buzzerOpen && !buzzerLocked ? ' syn-chip-accent' : ''}`} style={{ fontSize: 10 }}>
+              <span className={`chip${buzzerOpen && !buzzerLocked ? ' chip-accent' : ''}`} style={{ fontSize: 10 }}>
                 {buzzerLocked ? '🔒 Locked' : buzzerOpen ? '🔓 Open' : '⏳ Waiting'}
               </span>
             </div>
@@ -169,7 +169,7 @@ export default function GamePlay({ session, playerId, onExit }) {
         <div style={{ padding: '8px 12px 0' }}>
           {isMyTurn && (
             <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <span className="syn-chip syn-chip-accent" style={{ fontSize: 11 }}>Your turn — select a card to pass</span>
+              <span className="chip chip-accent" style={{ fontSize: 11 }}>Your turn — select a card to pass</span>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 4, position: 'relative', height: 160 }}>
@@ -196,15 +196,22 @@ export default function GamePlay({ session, playerId, onExit }) {
             })}
           </div>
 
-          {/* Pass / Buzz row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 4px' }}>
-            <button onClick={() => setSelected(null)} className="syn-btn-ghost tap" style={{ flex: 1, minHeight: 52, fontSize: 14 }}>Pass</button>
-            {selected && isMyTurn && (
-              <button onClick={handlePass} className="syn-btn-primary tap" style={{ flex: 2, minHeight: 52, fontSize: 14 }}>
-                Pass "{selected.charAt(0).toUpperCase() + selected.slice(1)}" →
-              </button>
-            )}
-            <button className="syn-btn-ghost tap" style={{ flex: 1, minHeight: 52, fontSize: 14 }}>Keep</button>
+          {/* Quit / Pass / BUZZ / Keep */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px' }}>
+            <button onClick={() => setShowExit(true)} className="btn-ghost tap-target" style={{ flex: 1, minHeight: 56, fontSize: 13 }}>🏳 Quit</button>
+            <button onClick={selected && isMyTurn ? handlePass : () => setSelected(null)} className={selected && isMyTurn ? 'btn-primary tap-target' : 'btn-ghost tap-target'} style={{ flex: 1, minHeight: 56, fontSize: 13 }}>
+              {selected && isMyTurn ? `Pass` : 'Pass'}
+            </button>
+            <div style={{ position: 'relative' }}>
+              <BuzzButton ready={ready} disabled={buzzed || !buzzerOpen || buzzerLocked} onClick={handleBuzz} />
+              {showConfetti && <Confetti count={50} />}
+              {buzzed && (
+                <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', animation: 'syn-pop 500ms cubic-bezier(.2,.8,.2,1) both' }}>
+                  <span className="chip chip-accent" style={{ fontSize: 11 }}>MATCH! +500 PTS</span>
+                </div>
+              )}
+            </div>
+            <button className="btn-ghost tap-target" style={{ flex: 1, minHeight: 56, fontSize: 13 }}>Keep</button>
           </div>
         </div>
       </div>
@@ -212,13 +219,13 @@ export default function GamePlay({ session, playerId, onExit }) {
       {/* Exit dialog */}
       {showExit && (
         <div style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div className="syn-panel" style={{ padding: 24, width: '100%', maxWidth: 380, textAlign: 'center', animation: 'syn-pop 300ms cubic-bezier(.2,.8,.2,1)' }}>
+          <div className="panel" style={{ padding: 24, width: '100%', maxWidth: 380, textAlign: 'center', animation: 'syn-pop 300ms cubic-bezier(.2,.8,.2,1)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🚪</div>
             <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 8 }}>Leave game?</h2>
             <p style={{ fontSize: 14, color: 'var(--ink-dim)', marginBottom: 20 }}>Your spot will be held for 90 seconds.</p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowExit(false)} className="syn-btn-ghost tap" style={{ flex: 1 }}>Stay</button>
-              <button onClick={onExit} className="syn-btn-primary tap" style={{ flex: 1 }}>Leave</button>
+              <button onClick={() => setShowExit(false)} className="btn-ghost tap" style={{ flex: 1 }}>Stay</button>
+              <button onClick={onExit} className="btn-primary tap" style={{ flex: 1 }}>Leave</button>
             </div>
           </div>
         </div>
