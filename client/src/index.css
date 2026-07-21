@@ -1,7 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
-
-
 /* =========================================================
  * SYNAPSE — Dual-theme mobile game design system
  * Themes swap via [data-theme="neural"|"library"] on <html>.
@@ -9,39 +7,7 @@
  * Only palette, textures, lighting, and decoration change.
  * ========================================================= */
 
-/* theme tokens removed - using CSS vars directly */
-  /* 8pt spacing scale is Tailwind default; expose radii + tokens */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
-  --radius-3xl: 44px;
 
-  --color-bg: var(--bg);
-  --color-bg-deep: var(--bg-deep);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-ink: var(--ink);
-  --color-ink-dim: var(--ink-dim);
-  --color-ink-mute: var(--ink-mute);
-  --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
-  --color-accent-ink: var(--accent-ink);
-  --color-warn: var(--warn);
-  --color-danger: var(--danger);
-  --color-win: var(--win);
-  --color-card: var(--card);
-  --color-card-ink: var(--card-ink);
-  --color-card-edge: var(--card-edge);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-
-  --font-display: var(--font-display);
-  --font-body: var(--font-body);
-  --font-numeric: var(--font-numeric);
-}
 
 /* -------- Theme 1: Neural Network (default) -------- */
 :root,
