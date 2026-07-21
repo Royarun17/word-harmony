@@ -85,8 +85,8 @@ export function WordCard({ word, kind = 'normal', selected, dim, small, hint, on
   const w = small ? 88 : 120;
   const h = small ? 126 : 176;
   return (
-    <button onClick={onClick} style={style} className={`syn-card tap${selected ? ' selected' : ''}${kind === 'match' ? ' match' : ''}${dim ? '' : ''}`}
-      style={{ ...style, width: w, height: h, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 12, opacity: dim ? 0.6 : 1 }}>
+    <button onClick={onClick} className={`syn-card tap${selected ? ' selected' : ''}${kind === 'match' ? ' match' : ''}`}
+      style={{ ...style, width: w, height: h, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 12, opacity: dim ? 0.6 : 1, cursor: 'pointer', border: 'none', textAlign: 'left' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, opacity: 0.7 }}>
         <span>{hint || 'SYN'}</span>
         <span style={{ width: 8, height: 8, borderRadius: 99, background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)', display: 'inline-block' }}/>
