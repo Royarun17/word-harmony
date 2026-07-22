@@ -106,6 +106,15 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
     <>
       {step === 'mode' && (
         <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+          <style>{`
+            .mode-card:hover {
+              outline: 2px solid var(--accent) !important;
+              box-shadow: 0 0 0 4px oklch(0.82 0.16 195 / 0.2), 0 0 28px oklch(0.82 0.16 195 / 0.45) !important;
+            }
+            .mode-card:active {
+              transform: scale(0.97) !important;
+            }
+          `}</style>
           <ThemeSwitcher />
           <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto' }}>
 
