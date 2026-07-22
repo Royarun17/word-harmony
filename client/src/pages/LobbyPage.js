@@ -16,7 +16,7 @@ const MODES = {
 function ModePopup({ mode, onContinue, onBack }) {
   const m = MODES[mode];
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100, padding: '0 16px 24px' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px 16px' }}>
       <div className="panel" style={{ width: '100%', maxWidth: 420, padding: 24, borderRadius: 28, animation: 'syn-pop 300ms cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
           <div style={{ width: 52, height: 52, borderRadius: 14, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', fontSize: 26, boxShadow: m.accent ? 'var(--glow-accent)' : undefined }}>{m.icon}</div>
@@ -128,17 +128,20 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
             </div>
 
             {/* Mode cards */}
-            <div style={{ marginBottom: 32 }}>
+            <div style={{ marginBottom: 20 }}>
               <SectionHeader eyebrow="Choose a mode" title="Play" />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 {Object.entries(MODES).map(([key, m]) => (
                   <button key={key} onClick={() => { setMode(key); setShowPopup(true); }} className="panel tap-target" type="button"
-                    style={{ padding: 16, textAlign: 'left', cursor: 'pointer', border: 'none', outline: m.accent ? '1px solid var(--accent)' : 'none', transition: 'transform 140ms', position: 'relative', overflow: 'hidden' }}
-                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
-                    <div style={{ width: 36, height: 36, borderRadius: 99, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', marginBottom: 12, fontSize: 18, boxShadow: m.accent ? 'var(--glow-accent)' : undefined, color: m.accent ? 'var(--accent-ink)' : 'var(--ink)' }}>{m.icon}</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>{m.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>{m.desc}</div>
+                    style={{ padding: 16, textAlign: 'left', cursor: 'pointer', border: 'none', outline: 'none', transition: 'transform 140ms, box-shadow 150ms', position: 'relative', overflow: 'hidden' }}
+                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; e.currentTarget.style.boxShadow = 'var(--glow-accent)'; }}
+                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = ''; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = ''; }}
+                    onTouchStart={e => { e.currentTarget.style.boxShadow = 'var(--glow-accent)'; }}
+                    onTouchEnd={e => { e.currentTarget.style.boxShadow = ''; }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 99, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', marginBottom: 8, fontSize: 15, boxShadow: m.accent ? 'var(--glow-accent)' : undefined, color: m.accent ? 'var(--accent-ink)' : 'var(--ink)' }}>{m.icon}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>{m.name}</div>
+                    <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2 }}>{m.desc}</div>
                     {m.accent && <span className="chip chip-accent" style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, padding: '2px 8px' }}>POPULAR</span>}
                   </button>
                 ))}
@@ -146,12 +149,12 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
             </div>
 
             {/* Quick play */}
-            <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <div className="panel" style={{ padding: 12, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 4 }}>QUICK PLAY</div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jump into a lobby</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Medium · Syntax · 5 rounds</div>
+                  <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 3 }}>QUICK PLAY</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Jump into a lobby</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Medium · Syntax · 5 rounds</div>
                 </div>
                 <button onClick={() => { setMode('syntax'); setShowPopup(true); }} className="btn-primary tap-target" style={{ whiteSpace: 'nowrap' }}>▶ PLAY</button>
               </div>
@@ -166,9 +169,9 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
               <SectionHeader eyebrow="Online" title="Friends" right={
                 <button style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>See all</button>
               }/>
-              <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 4 }}>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 {['Mika T.','Priya S.','Diego A.','Noor I.','Sam C.'].map(n => (
-                  <div key={n} style={{ flexShrink: 0 }}>
+                  <div key={n}>
                     <PlayerAvatar name={n} seed={n} compact size="md" active={n === 'Mika T.'} />
                   </div>
                 ))}
