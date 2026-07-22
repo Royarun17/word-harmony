@@ -252,6 +252,10 @@ export default function App() {
       profile={profile}
       onSignOut={handleSignOut}
       onBack={() => setShowProfile(false)}
+      onProfileUpdate={(updatedProfile) => {
+        setProfile(updatedProfile);
+        try { localStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile)); } catch {}
+      }}
     />
     </ThemeProvider>
   );
