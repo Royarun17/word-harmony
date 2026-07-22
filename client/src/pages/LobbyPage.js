@@ -116,7 +116,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
             }
           `}</style>
           <ThemeSwitcher />
-          <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto' }}>
+          <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto', justifyContent: 'center' }}>
 
             {/* Profile row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
