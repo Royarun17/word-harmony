@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { auth, signOut } from '../utils/firebase';
+import { useEffect } from 'react';
 import axios from 'axios';
 import { ThemeSwitcher } from '../SynapseComponents';
 
@@ -37,11 +38,19 @@ export default function ProfilePage({ profile, onSignOut, onBack }) {
   async function handleSave() {
     setLoading(true); setError('');
     try {
-      await axios.patch('/auth/profile', { username, avatar });
+      const uid = auth.currentUser?.uid || profile?.firebaseUid;
+      if (!uid) { setError('Not logged in. Please sign in again.'); setLoading(false); return; }
+      const { data } = await axios.patch('/auth/profile', { firebaseUid: uid, username, avatar });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       setEditing(false);
-    } catch { setError('Failed to save. Try again.'); }
+      // Update local profile data
+      if (data?.username) {
+        try { localStorage.setItem('synapseProfile', JSON.stringify(data)); } catch {}
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save. Try again.');
+    }
     setLoading(false);
   }
 
