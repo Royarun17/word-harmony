@@ -38,16 +38,40 @@ export default function ProfilePage({ profile, onSignOut, onBack, onProfileUpdat
   async function handleSave() {
     setLoading(true); setError('');
     try {
-      const uid = auth.currentUser?.uid || profile?.firebaseUid;
-      if (!uid) { setError('Not logged in. Please sign in again.'); setLoading(false); return; }
-      const { data } = await axios.patch('/auth/profile', { firebaseUid: uid, username, avatar });
+      // On mobile Capacitor, auth.currentUser may be null
+      // Use profile.firebaseUid first, then try auth.currentUser
+      const uid = profile?.firebaseUid
+        || profile?.uid
+        || auth.currentUser?.uid;
+
+      if (!uid) {
+        setError('Session expired. Please sign out and sign in again.');
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await axios.patch('/auth/profile', {
+        firebaseUid: uid,
+        username: username.trim(),
+        avatar,
+      });
+
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), 2500);
       setEditing(false);
-      // Push updated profile back to App.js so UI reflects changes immediately
+
+      // Update App.js state AND local storage
       if (data && onProfileUpdate) {
         onProfileUpdate(data);
       }
+
+      // Also update localStorage directly for mobile cache
+      try {
+        const cached = JSON.parse(localStorage.getItem('synapseProfile') || '{}');
+        const updated = { ...cached, username: username.trim(), avatar };
+        localStorage.setItem('synapseProfile', JSON.stringify(updated));
+      } catch {}
+
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save. Try again.');
     }
