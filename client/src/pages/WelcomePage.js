@@ -1,50 +1,71 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ThemeSwitcher } from '../SynapseComponents';
 
 export default function WelcomePage({ onNavigate }) {
-  const [loading, setLoading] = useState('');
-  const [error, setError] = useState('');
-
   return (
-    <div className="syn-scene" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '56px 24px 40px' }}>
       <ThemeSwitcher />
-      <div className="syn-scene-content" style={{ width: '100%', maxWidth: 420 }}>
+      <div className="scene-content" style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-        {/* Logo glow */}
-        <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
-          <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)', width: 160, height: 100, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent), transparent 60%)', opacity: 0.4, filter: 'blur(20px)', pointerEvents: 'none' }}/>
-          <div style={{ fontSize: 10, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', marginBottom: 8 }}>REAL-TIME WORD GAME</div>
-          <h1 style={{ fontSize: 72, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)', lineHeight: 1, letterSpacing: '-0.02em' }}>Synapse</h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-dim)', marginTop: 12 }}>Submit a word. Collect a set. Buzz first.</p>
+        {/* Logo glow + wordmark */}
+        <div style={{ textAlign: 'center', marginBottom: 40, position: 'relative', width: '100%' }}>
+          <div aria-hidden style={{
+            position: 'absolute', left: '50%', top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 200, height: 120,
+            background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)',
+            filter: 'blur(28px)', opacity: 0.55, pointerEvents: 'none',
+          }}/>
+          <div style={{ fontSize: 11, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 10, position: 'relative' }}>
+            Real-time word game
+          </div>
+          <h1 style={{
+            fontSize: 72, fontWeight: 700, lineHeight: 1,
+            letterSpacing: '-0.02em', fontFamily: 'var(--font-display)',
+            position: 'relative', marginBottom: 14,
+          }}>
+            <span style={{ color: 'var(--ink)' }}>Syn</span>
+            <span style={{ color: 'var(--accent)', textShadow: '0 0 30px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
+          </h1>
+          <p style={{ fontSize: 15, color: 'var(--ink-dim)', maxWidth: 280, margin: '0 auto', lineHeight: 1.5, position: 'relative' }}>
+            Submit a word. Collect a matching set. Buzz first.
+          </p>
         </div>
 
         {/* CTA panel */}
-        <div className="syn-panel" style={{ padding: 24 }}>
-          {error && (
-            <div style={{ background: 'oklch(from var(--danger) l c h / 0.15)', border: '1px solid oklch(from var(--danger) l c h / 0.35)', borderRadius: 14, padding: '10px 14px', color: 'var(--danger)', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>{error}</div>
-          )}
+        <div className="panel" style={{ padding: 24, width: '100%', marginBottom: 20 }}>
 
-          <button onClick={() => onNavigate('signup')} className="syn-btn-primary tap" style={{ width: '100%', marginBottom: 10 }}>
-            Get started
+          {/* Get started */}
+          <button
+            onClick={() => onNavigate('signup')}
+            className="btn-primary tap-target"
+            style={{ width: '100%', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            Get started →
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0' }}>
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-            <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>already have an account</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-mute)', whiteSpace: 'nowrap' }}>already have an account</span>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
           </div>
 
-          <button onClick={() => onNavigate('signin')} className="syn-btn-ghost tap" style={{ width: '100%' }}>
+          {/* Sign in */}
+          <button
+            onClick={() => onNavigate('signin')}
+            className="btn-ghost tap-target"
+            style={{ width: '100%' }}>
             Sign in
           </button>
         </div>
 
-        {/* Feature pills */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-          <span className="syn-chip">🎮 3–8 players</span>
-          <span className="syn-chip">🤖 Bot opponents</span>
-          <span className="syn-chip">⚡ Real-time</span>
+        {/* Feature chips */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span className="chip">🎮 3–8 players</span>
+          <span className="chip">🤖 Bot opponents</span>
+          <span className="chip">⚡ Real-time</span>
         </div>
+
       </div>
     </div>
   );
