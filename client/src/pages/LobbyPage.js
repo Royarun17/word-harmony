@@ -239,7 +239,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                   <button type="submit" disabled={loading} className="btn-primary tap-target" style={{ width: '100%' }}>{loading ? 'Creating…' : 'Create game →'}</button>
                 </form>
               )}
-              <button onClick={onShowTutorial} className="btn-ghost tap-target" style={{ width: '100%', marginTop: 10 }}>📖 How to play</button>
+
             </div>
           </div>
         </div>
