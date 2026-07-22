@@ -293,7 +293,7 @@ export default function App() {
           profile={profile}
         />
       )}
-      {gameState === 'waiting' && session && myInfo && <WaitingRoom session={session} playerId={myInfo.playerId} isHost={myInfo.isHost}/>}
+      {gameState === 'waiting' && session && myInfo && <WaitingRoom session={session} playerId={myInfo.playerId} isHost={myInfo.isHost} onBack={() => { socket.disconnect(); clearSession(); setSession(null); setMyInfo(null); setGameState('lobby'); }}/>}
       {gameState === 'submit'  && session && myInfo && <SubmitWord  session={session} playerId={myInfo.playerId}/>}
       {gameState === 'playing' && session && myInfo && <GamePlay    session={session} playerId={myInfo.playerId} onExit={handlePlayAgain}/>}
       {gameState === 'scoring' && session && myInfo && <ScoringPage session={session} playerId={myInfo.playerId} isHost={myInfo.isHost} scoringData={scoringData}/>}
