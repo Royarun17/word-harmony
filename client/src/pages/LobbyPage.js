@@ -22,7 +22,7 @@ function ModePopup({ mode, onContinue, onBack }) {
           <div style={{ width: 52, height: 52, borderRadius: 14, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', fontSize: 26, boxShadow: m.accent ? 'var(--glow-accent)' : undefined }}>{m.icon}</div>
           <h2 style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{m.name}</h2>
         </div>
-        <div style={{ background: 'oklch(from var(--surface-3) l c h / .5)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+        <div style={{ background: 'oklch(0.32 0.04 228 / 0.5)', borderRadius: 14, padding: 14, marginBottom: 16 }}>
           {m.bullets.map((b, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: i < m.bullets.length - 1 ? 10 : 0 }}>
               <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 16, lineHeight: 1.4, flexShrink: 0 }}>•</span>
@@ -30,7 +30,7 @@ function ModePopup({ mode, onContinue, onBack }) {
             </div>
           ))}
         </div>
-        <div style={{ background: 'oklch(from var(--accent) l c h / .1)', border: '1px solid oklch(from var(--accent) l c h / .25)', borderRadius: 14, padding: 14, marginBottom: 20 }}>
+        <div style={{ background: 'oklch(0.82 0.16 195 / 0.1)', border: '1px solid oklch(0.82 0.16 195 / 0.25)', borderRadius: 14, padding: 14, marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 10 }}>EXAMPLE</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ background: 'var(--accent)', color: 'var(--accent-ink)', borderRadius: 99, padding: '4px 12px', fontSize: 13, fontWeight: 700 }}>{m.example.word}</span>
@@ -54,7 +54,7 @@ function Pill({ label, active, onClick }) {
     <button onClick={onClick} className="tap-target" style={{
       padding: '8px 16px', borderRadius: 99,
       border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-      background: active ? 'oklch(from var(--accent) l c h / .15)' : 'transparent',
+      background: active ? 'oklch(0.82 0.16 195 / 0.15)' : 'transparent',
       color: active ? 'var(--accent)' : 'var(--ink-mute)',
       fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer',
       transition: 'all 150ms', fontFamily: 'var(--font-body)',
@@ -112,7 +112,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
             {/* Profile row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
               <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
-              <span className="chip chip-accent" style={{ cursor: 'pointer' }} onClick={onShowProfile}>
+              <span className="chip chip-accent" style={{ cursor: 'pointer' }} onClick={() => onShowProfile && onShowProfile()}>
                 ⚡ LVL {profile?.level || 1}
               </span>
             </div>
@@ -151,7 +151,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                   <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jump into a lobby</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Medium · Syntax · 5 rounds</div>
                 </div>
-                <button onClick={() => { setMode('syntax'); setStep('play'); }} className="btn-primary tap-target" style={{ whiteSpace: 'nowrap' }}>▶ PLAY</button>
+                <button onClick={() => { setMode('syntax'); setShowPopup(true); }} className="btn-primary tap-target" style={{ whiteSpace: 'nowrap' }}>▶ PLAY</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <button onClick={onShowTutorial} className="btn-ghost tap-target">📖 Tutorial</button>
@@ -186,16 +186,16 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
               <span className="chip chip-accent">{MODES[selectedMode].icon} {MODES[selectedMode].name}</span>
             </div>
             <div className="panel" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', background: 'oklch(from var(--surface-3) l c h / .5)', borderRadius: 99, padding: 4, marginBottom: 24 }}>
+              <div style={{ display: 'flex', background: 'oklch(0.32 0.04 228 / 0.5)', borderRadius: 99, padding: 4, marginBottom: 24 }}>
                 {['create','join'].map(t => (
-                  <button key={t} onClick={() => setTab(t)} className="tap-target" style={{ flex: 1, padding: '10px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-body)', background: tab === t ? 'var(--surface-2)' : 'transparent', color: tab === t ? 'var(--ink)' : 'var(--ink-mute)', transition: 'all 200ms' }}>{t === 'create' ? 'Create game' : 'Join game'}</button>
+                  <button key={t} onClick={() => setTab(t)} className="tap-target" style={{ flex: 1, padding: '10px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-body)', background: tab === t ? 'oklch(0.27 0.035 230)' : 'transparent', color: tab === t ? 'var(--ink)' : 'var(--ink-mute)', transition: 'all 200ms' }}>{t === 'create' ? 'Create game' : 'Join game'}</button>
                 ))}
               </div>
               {tab === 'join' ? (
                 <form onSubmit={handleJoin}>
                   <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--ink-mute)', textTransform: 'uppercase', marginBottom: 8 }}>Session code</div>
                   <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="XK7F2" maxLength={5}
-                    style={{ width: '100%', padding: '14px', borderRadius: 14, border: '1.5px solid var(--border)', background: 'var(--surface)', color: 'var(--accent)', fontSize: 28, fontFamily: 'monospace', fontWeight: 800, letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box', outline: 'none', marginBottom: 16 }}/>
+                    style={{ width: '100%', padding: '14px', borderRadius: 14, border: '1.5px solid var(--border)', background: 'var(--s1, oklch(0.22 0.03 232))', color: 'var(--accent)', fontSize: 28, fontFamily: 'monospace', fontWeight: 800, letterSpacing: '0.2em', textAlign: 'center', boxSizing: 'border-box', outline: 'none', marginBottom: 16 }}/>
                   {error && <p style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>{error}</p>}
                   <button type="submit" disabled={loading} className="btn-primary tap-target" style={{ width: '100%' }}>{loading ? 'Joining…' : 'Join game →'}</button>
                 </form>
