@@ -54,9 +54,11 @@ export default function App() {
         try {
           const { data } = await axios.get(`/auth/profile/${user.uid}`);
           if (data?.username) {
-            setProfile(data);
+            // Always attach firebaseUid so mobile can use it
+            const profileWithUid = { ...data, firebaseUid: user.uid, uid: user.uid };
+            setProfile(profileWithUid);
             // Save to localStorage for quick access
-            try { localStorage.setItem(PROFILE_KEY, JSON.stringify(data)); } catch {}
+            try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profileWithUid)); } catch {}
             setAuthScreen('done');
             // Check tutorial
             if (!localStorage.getItem(TUTORIAL_KEY)) setShowTutorial(true);
@@ -105,8 +107,9 @@ export default function App() {
       try {
         const { data } = await axios.get(`/auth/profile/${pendingUser.uid}`);
         if (data?.username) {
-          setProfile(data);
-          try { localStorage.setItem(PROFILE_KEY, JSON.stringify(data)); } catch {}
+          const profileWithUid = { ...data, firebaseUid: pendingUser.uid, uid: pendingUser.uid };
+          setProfile(profileWithUid);
+          try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profileWithUid)); } catch {}
           setAuthScreen('done');
           if (!localStorage.getItem(TUTORIAL_KEY)) setShowTutorial(true);
         } else {
