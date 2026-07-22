@@ -126,7 +126,7 @@ export default function GamePlay({ session, playerId, onExit }) {
         <div style={{ flex: 1, position: 'relative', margin: '0 16px', minHeight: 260 }}>
           <div className="table-oval" style={{ position: 'absolute', inset: '8px 8px 8px 8px' }}>
             {/* Neural grid overlay */}
-            <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(110deg, transparent 0 14px, oklch(from var(--accent) l c h / 0.06) 14px 15px), radial-gradient(circle at 50% 50%, oklch(from var(--accent) l c h / 0.1), transparent 65%)', animation: 'syn-flow 6s linear infinite', pointerEvents: 'none' }}/>
+            <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(110deg, transparent 0 14px, oklch(0.82 0.16 195 / 0.06) 14px 15px), radial-gradient(circle at 50% 50%, oklch(0.82 0.16 195 / 0.1), transparent 65%)', animation: 'syn-flow 6s linear infinite', pointerEvents: 'none' }}/>
 
             {/* Centre card / buzz area */}
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
@@ -172,22 +172,17 @@ export default function GamePlay({ session, playerId, onExit }) {
               <span className="chip chip-accent" style={{ fontSize: 11 }}>Your turn — select a card to pass</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 4, position: 'relative', height: 160 }}>
+          {/* YOUR HAND — cards spread horizontally */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 8, paddingBottom: 4, paddingLeft: 8, paddingRight: 8, flexWrap: 'nowrap', overflowX: 'auto' }}>
             {myHand.map((word, i) => {
-              const offset = i - (myHand.length - 1) / 2;
-              const rotate = offset * 6;
-              const y = Math.abs(offset) * 5;
               const isSelected = selected === word;
               const isMatch = matchCount >= 3 && session.synonymClusters && Object.entries(session.synonymClusters).some(([, words]) => words.includes(word.toLowerCase()) && myHand.filter(w => words.includes(w.toLowerCase())).length >= 3);
               return (
                 <div key={word} style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: '50%',
-                  transform: `translateX(calc(-50% + ${offset * 52}px)) translateY(${isSelected ? -20 : y}px) rotate(${rotate}deg)`,
-                  transformOrigin: '50% 100%',
+                  flexShrink: 0,
+                  transform: isSelected ? 'translateY(-14px) scale(1.05)' : 'translateY(0)',
                   transition: 'transform 220ms cubic-bezier(.2,.8,.2,1)',
-                  zIndex: isSelected ? 10 : 1 + i,
+                  zIndex: isSelected ? 10 : 1,
                   animation: `syn-deal 600ms ${i * 80}ms cubic-bezier(.2,.8,.2,1) both`,
                 }}>
                   <WordCard word={word.charAt(0).toUpperCase() + word.slice(1)} kind={isMatch ? 'match' : 'normal'} selected={isSelected} onClick={() => setSelected(isSelected ? null : word)} small />
