@@ -4,7 +4,7 @@ import { PlayerAvatar, ThemeSwitcher, Dialog, OfflineState } from '../SynapseCom
 
 const AVATARS = ['😎','🧠','🦊','🐯','🐸','🦁','🐧','🐉','🦋','🐺','🦅','🐬','🎭','🧩','⚡','🔥'];
 
-export default function WaitingRoom({ session, playerId, isHost }) {
+export default function WaitingRoom({ session, playerId, isHost, onBack }) {
   const [showAvatar, setShowAvatar] = useState(false);
   const [copied, setCopied] = useState(false);
   const players = session.players || [];
@@ -24,7 +24,7 @@ export default function WaitingRoom({ session, playerId, isHost }) {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 99, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: 'var(--ink)', fontSize: 18 }}>←</div>
+          <button onClick={() => { socket.disconnect(); onBack && onBack(); }} className="tap-target" style={{ width: 40, height: 40, borderRadius: 99, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: 'var(--ink)', fontSize: 18, cursor: 'pointer' }}>←</button>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 10, letterSpacing: '0.32em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase' }}>PRIVATE ROOM</div>
             <div style={{ fontSize: 14, fontWeight: 600 }}>{session.gameMode === 'fun' ? 'Spark' : 'Syntax'} · {session.rounds} rounds</div>
