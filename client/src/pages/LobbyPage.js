@@ -111,8 +111,10 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
 
             {/* Profile row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
-              <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
-              <span className="chip chip-accent" style={{ cursor: 'pointer' }} onClick={() => onShowProfile && onShowProfile()}>
+              <div onClick={() => onShowProfile && onShowProfile()} style={{ cursor: 'pointer' }}>
+                <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
+              </div>
+              <span className="chip chip-accent">
                 ⚡ LVL {profile?.level || 1}
               </span>
             </div>
