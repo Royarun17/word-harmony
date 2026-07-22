@@ -11,7 +11,6 @@ import CardLoader        from './components/CardLoader';
 import WelcomePage       from './pages/WelcomePage';
 import SignUpPage        from './pages/SignUpPage';
 import SignInPage        from './pages/SignInPage';
-import PhoneAuthPage     from './pages/PhoneAuthPage';
 import ProfileSetupPage  from './pages/ProfileSetupPage';
 import ProfilePage       from './pages/ProfilePage';
 import LobbyPage         from './pages/LobbyPage';
@@ -224,22 +223,37 @@ export default function App() {
   if (authScreen === 'welcome')      return <WelcomePage onNavigate={handleAuthNavigate}/>;
   if (authScreen === 'signup')       return <SignUpPage onNavigate={handleAuthNavigate}/>;
   if (authScreen === 'signin')       return <SignInPage onNavigate={handleAuthNavigate}/>;
-  if (authScreen === 'phone')        return <PhoneAuthPage onNavigate={handleAuthNavigate}/>;
   if (authScreen === 'profileSetup') return (
     <ProfileSetupPage
       user={pendingUser || authUser}
-      displayName={pendingName}
-      onComplete={handleProfileComplete}
+      prefillName={pendingName}
+      onNavigate={(screen, data) => {
+        if (screen === 'lobby') {
+          // Profile was saved — fetch fresh profile from server
+          const u = pendingUser || authUser;
+          if (u) {
+            axios.get(`/auth/profile/${u.uid}`).then(({ data: profileData }) => {
+              if (profileData?.username) handleProfileComplete(profileData);
+            }).catch(() => handleProfileComplete({ username: data?.username || pendingName }));
+          } else {
+            handleProfileComplete({});
+          }
+        } else {
+          setAuthScreen(screen);
+        }
+      }}
     />
   );
 
   // Profile page overlay
   if (showProfile) return (
+    <ThemeProvider>
     <ProfilePage
       profile={profile}
       onSignOut={handleSignOut}
       onBack={() => setShowProfile(false)}
     />
+    </ThemeProvider>
   );
 
   // Rejoining spinner
