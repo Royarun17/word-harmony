@@ -1,0 +1,258 @@
+/* =========================================================
+ * GAMEPLAY SCREEN — layout & polish
+ * Relies on design tokens + animations from src/index.css
+ * (--accent, --warn, --danger, .panel, .chip, .btn-*, syn-* keyframes)
+ * ========================================================= */
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+/* ---------- Header ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(20px, env(safe-area-inset-top)) 16px 12px;
+}
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  background: oklch(0 0 0 / 0.3);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms, background 140ms;
+}
+.iconBtn:active { transform: scale(0.92); }
+.iconBtn:hover { background: oklch(0 0 0 / 0.45); }
+
+.headerCenter { display: flex; align-items: center; gap: 14px; }
+.headerStat { text-align: center; }
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  font-weight: 600;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+}
+.statValue { font-size: 15px; font-weight: 700; }
+
+/* ---------- Prompt banner ---------- */
+.promptBanner { padding: 0 16px 12px; }
+.promptPanel {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: box-shadow 300ms ease;
+}
+.promptPanel.complete {
+  box-shadow: 0 12px 32px oklch(0 0 0 / 0.35), 0 0 0 1px oklch(0.85 0.18 145 / 0.4), 0 0 30px oklch(0.85 0.18 145 / 0.35);
+}
+.promptSpark { color: var(--accent); font-size: 16px; flex-shrink: 0; }
+.promptBody { flex: 1; min-width: 0; }
+.promptLabel {
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.promptText {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.promptChip { flex-shrink: 0; position: relative; }
+.promptChip.complete { animation: syn-pop 320ms cubic-bezier(.2,.8,.2,1) both; }
+.sparkleDot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--win);
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  animation: gp-sparkle 700ms ease-out forwards;
+}
+@keyframes gp-sparkle {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1); opacity: 0; }
+}
+
+/* ---------- Table ---------- */
+.tableWrap {
+  flex: 1;
+  position: relative;
+  margin: 0 16px;
+  min-height: 260px;
+}
+.table {
+  position: absolute;
+  inset: 8px;
+}
+.tableGrid {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(110deg, transparent 0 14px, oklch(0.82 0.16 195 / 0.06) 14px 15px),
+    radial-gradient(circle at 50% 50%, oklch(0.82 0.16 195 / 0.1), transparent 65%);
+  animation: syn-flow 6s linear infinite;
+  pointer-events: none;
+}
+.buzzArea {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.buzzStatusRow {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.timerBarWrap {
+  position: absolute;
+  bottom: -2px;
+  left: 20%;
+  right: 20%;
+  height: 3px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: oklch(0.32 0.04 228 / 0.5);
+}
+.timerBarFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 1s linear, background 300ms ease;
+}
+.timerBarFill.warn { background: var(--warn); }
+.timerBarFill.danger { background: var(--danger); }
+
+/* ---------- Player seats ---------- */
+.seat { position: absolute; }
+.seatTop       { top: -12px; left: 50%; transform: translateX(-50%); }
+.seatRightTop  { top: 18%; right: -12px; }
+.seatRightBot  { bottom: 18%; right: -12px; }
+.seatLeftTop   { top: 18%; left: -12px; }
+.seatLeftBot   { bottom: 18%; left: -12px; }
+
+.seatInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 300ms ease;
+}
+.seatInner.disconnected { opacity: 0.45; }
+.seatName {
+  font-size: 10px;
+  color: var(--ink-mute);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.reconnectIcon { font-size: 9px; }
+
+.cardStack { display: flex; }
+.cardBack {
+  border-radius: 4px;
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+.cardBack.overflow { border-color: var(--warn); }
+
+/* ---------- Hand ---------- */
+.handSection { padding: 8px 12px 0; }
+.turnHint { text-align: center; margin-bottom: 6px; }
+.handFan {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 4px 8px 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.cardSlot {
+  flex-shrink: 0;
+  transform: translateY(0);
+  transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+  animation: syn-deal 600ms cubic-bezier(.2,.8,.2,1) both;
+}
+.cardSlot.selected { transform: translateY(-14px) scale(1.05); z-index: 10; }
+.cardSlot:not(.selected) { z-index: 1; }
+
+/* ---------- Action bar ---------- */
+.actionBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px max(8px, env(safe-area-inset-bottom));
+}
+.actionBtn { flex: 1; min-height: 56px; font-size: 13px; }
+.buzzSlot { position: relative; }
+.buzzToast {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  animation: syn-pop 500ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+/* ---------- Info / rules dialog ---------- */
+.rulesList { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.ruleItem { display: flex; align-items: flex-start; gap: 10px; }
+.ruleIndex {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: oklch(0.82 0.16 195 / 0.15);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-numeric);
+}
+
+/* =========================================================
+ * Desktop / tablet — wider table, roomier hand, calmer spacing
+ * ========================================================= */
+@media (min-width: 768px) {
+  .tableWrap { min-height: 360px; margin: 0 24px; }
+  .header { padding-top: 28px; }
+  .handFan { gap: 12px; }
+  .promptText { font-size: 18px; }
+  .actionBtn { min-height: 60px; font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tableGrid, .cardSlot, .promptChip.complete, .buzzToast { animation: none !important; }
+}
