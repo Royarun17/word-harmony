@@ -1,230 +1,174 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import socket from '../utils/socket';
-import { WordCard, BuzzButton, PlayerAvatar, TimerRing, Confetti, BackCard, ThemeSwitcher } from '../SynapseComponents';
+import { useSocketEvent } from '../hooks/useSocketEvent';
+import { Confetti, ThemeSwitcher } from '../SynapseComponents';
+import Header from '../components/gameplay/Header';
+import PromptBanner from '../components/gameplay/PromptBanner';
+import GameTable from '../components/gameplay/GameTable';
+import PlayerHand from '../components/gameplay/PlayerHand';
+import ActionBar from '../components/gameplay/ActionBar';
+import ExitDialog from '../components/gameplay/ExitDialog';
+import InfoDialog from '../components/gameplay/InfoDialog';
+import styles from '../components/gameplay/gameplay.module.css';
+
+const TURN_TIME_LIMIT = 30;
+const BUZZER_WINDOW = 3;
 
 export default function GamePlay({ session, playerId, onExit }) {
   const [selected, setSelected] = useState(null);
   const [showExit, setShowExit] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [buzzed, setBuzzed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [myHand, setMyHand] = useState([]);
   const [isStarter, setIsStarter] = useState(false);
+  const [hasCompleteSet, setHasCompleteSet] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
+  const [buzzWindowLeft, setBuzzWindowLeft] = useState(0);
+  const lastRoundRef = useRef(session.currentRound);
 
-  // Listen for hand updates from server
   useEffect(() => {
-    const handleHand = ({ hand, isStarter: starter }) => {
+    const handleHand = ({ hand, isStarter: starter, hasCompleteSet: complete }) => {
       setMyHand(hand || []);
       setIsStarter(!!starter);
-      setBuzzed(false);
+      setHasCompleteSet(!!complete);
     };
     socket.on(`hand_update_${playerId}`, handleHand);
+    socket.emit('request_hand', { sessionId: session.id, playerId });
     return () => socket.off(`hand_update_${playerId}`, handleHand);
-  }, [playerId]);
+  }, [playerId, session.id]);
+
+  useEffect(() => {
+    if (session.currentRound !== lastRoundRef.current) {
+      lastRoundRef.current = session.currentRound;
+      setBuzzed(false);
+      setSelected(null);
+    }
+  }, [session.currentRound]);
+
+  useSocketEvent('turn_timer', ({ seconds }) => {
+    setTimeLeft(seconds ?? TURN_TIME_LIMIT);
+  });
+  useEffect(() => {
+    if (session.phase !== 'playing') return;
+    const id = setInterval(() => setTimeLeft(t => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [session.phase]);
+
+  useSocketEvent('buzzer_window_open', ({ playerId: pid, seconds }) => {
+    if (pid === playerId) setBuzzWindowLeft(seconds ?? BUZZER_WINDOW);
+  });
+  useSocketEvent('buzzer_window_closed', ({ playerId: pid }) => {
+    if (pid === playerId) setBuzzWindowLeft(0);
+  });
+  useEffect(() => {
+    if (buzzWindowLeft <= 0) return;
+    const id = setInterval(() => setBuzzWindowLeft(t => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [buzzWindowLeft > 0]);
 
   const players    = session.players || [];
   const myPlayer   = players.find(p => p.id === playerId);
-  const turnPlayer = players.find(p => p.id === session.currentTurn);
-  const isMyTurn   = session.currentTurn === playerId;
-  const timerPct   = ((session.timer || 30) / 30) * 100;
-  const buzzerOpen = session.phase === 'buzzing';
+  const isMyTurn   = session.turnOrder?.[session.currentTurnIndex] === playerId;
+  const timerPct   = (timeLeft / TURN_TIME_LIMIT) * 100;
   const buzzerLocked = !session.firstRoundOver;
+  const urgency = timeLeft <= 5 ? 'danger' : timeLeft <= 10 ? 'warn' : 'normal';
 
-  const matchCount = useMemo(() => {
-    if (!session.synonymClusters) return 0;
-    const counts = {};
-    for (const word of myHand) {
-      for (const [topic, words] of Object.entries(session.synonymClusters)) {
-        if (words.includes(word.toLowerCase())) { counts[topic] = (counts[topic] || 0) + 1; }
-      }
-    }
-    return Math.max(0, ...Object.values(counts));
-  }, [myHand, session.synonymClusters]);
-
-  const ready = matchCount >= 3 && buzzerOpen && !buzzerLocked;
-
-  function handlePass() {
-    if (!selected || !isMyTurn) return;
-    socket.emit('pass_card', { sessionId: session.id, playerId, card: selected });
-    setSelected(null);
-  }
-
-  function handleBuzz() {
-    if (!ready || buzzed) return;
-    setBuzzed(true);
-    setShowConfetti(true);
-    socket.emit('press_buzzer', { sessionId: session.id, playerId });
-    setTimeout(() => setShowConfetti(false), 3000);
-  }
+  const starterLocked   = playerId === session.starterPlayerId && !session.firstRoundOver;
+  const hasFourCards    = myHand.length >= 4;
+  const inBuzzWindow    = buzzWindowLeft > 0;
+  const raceStarted     = session.phase === 'buzzing';
+  const preRaceEligible = session.firstRoundOver && !starterLocked &&
+    (hasFourCards ? inBuzzWindow : (inBuzzWindow || isMyTurn));
+  const canBuzz = !buzzed && (raceStarted || preRaceEligible);
+  const ready   = hasCompleteSet && canBuzz;
 
   const myHandTopic = useMemo(() => {
     if (!session.wordSubmissions) return myPlayer?.name || 'Word';
     return session.wordSubmissions[playerId] || 'Word';
   }, [session.wordSubmissions, playerId, myPlayer]);
 
-  // Seat positions for players
-  const otherPlayers = players.filter(p => p.id !== playerId);
-  const seatPositions = ['top', 'right-top', 'right-bot', 'left-top', 'left-bot'].slice(0, otherPlayers.length);
+  const otherPlayers = useMemo(() => players.filter(p => p.id !== playerId), [players, playerId]);
+  const turnPlayerId = session.turnOrder?.[session.currentTurnIndex];
+  const lastBuzzerId = session.buzzerLog?.[session.buzzerLog.length - 1]?.playerId;
 
-  function getSeatStyle(pos) {
-    switch(pos) {
-      case 'top':       return { top: -12, left: '50%', transform: 'translateX(-50%)' };
-      case 'right-top': return { top: '18%', right: -12 };
-      case 'right-bot': return { bottom: '18%', right: -12 };
-      case 'left-top':  return { top: '18%', left: -12 };
-      case 'left-bot':  return { bottom: '18%', left: -12 };
-      default: return {};
-    }
+  function handlePass() {
+    if (!selected || !isMyTurn) return;
+    socket.emit('pass_card', { sessionId: session.id, playerId, cardToPass: selected });
+    setSelected(null);
   }
 
-  function getSeatAlign(pos) {
-    if (pos.startsWith('right')) return 'right';
-    if (pos.startsWith('left')) return 'left';
-    return 'center';
+  function handleBuzz() {
+    if (!canBuzz || buzzed) return;
+    setBuzzed(true);
+    setShowConfetti(true);
+    socket.emit('press_buzzer', { sessionId: session.id, playerId });
+    setTimeout(() => setShowConfetti(false), 3000);
   }
 
   return (
-    <div className="scene" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className={`scene ${styles.screen}`}>
       <ThemeSwitcher />
       {showConfetti && <Confetti count={60} />}
 
       <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Header
+          round={session.currentRound}
+          rounds={session.rounds}
+          timeLeft={timeLeft}
+          urgency={urgency}
+          modeLabel={session.gameMode === 'education' ? 'Syntax' : 'Spark'}
+          onExit={() => setShowExit(true)}
+          onInfo={() => setShowInfo(true)}
+        />
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '48px 16px 12px' }}>
-          <button onClick={() => setShowExit(true)} style={{ width: 40, height: 40, borderRadius: 99, background: 'oklch(0 0 0 / 0.3)', border: '1px solid oklch(1 0 0 / 0.1)', display: 'grid', placeItems: 'center', cursor: 'pointer', color: 'var(--ink)', fontSize: 18 }}>←</button>
+        <PromptBanner
+          topic={myHandTopic}
+          associationWord={session.gameMode === 'education' ? 'synonyms' : 'associations'}
+          handCount={myHand.length}
+          complete={hasCompleteSet}
+        />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 9, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>ROUND</div>
-              <div className="num" style={{ fontSize: 15, fontWeight: 700 }}>{session.currentRound}/{session.rounds}</div>
-            </div>
-            <TimerRing progress={timerPct} seconds={session.timer || 30} />
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 9, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>MODE</div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{session.gameMode === 'education' ? 'Syntax' : 'Spark'}</div>
-            </div>
-          </div>
+        <GameTable
+          otherPlayers={otherPlayers}
+          turnPlayerId={turnPlayerId}
+          lastBuzzerId={lastBuzzerId}
+          totalScores={session.totalScores}
+          handCounts={session.handCounts}
+          ready={ready}
+          canBuzz={canBuzz}
+          buzzed={buzzed}
+          buzzerLocked={buzzerLocked}
+          onBuzz={handleBuzz}
+          timerPercent={timerPct}
+          urgency={urgency}
+          buzzWindowLeft={buzzWindowLeft}
+        />
 
-          <button style={{ width: 40, height: 40, borderRadius: 99, background: 'oklch(0 0 0 / 0.3)', border: '1px solid oklch(1 0 0 / 0.1)', display: 'grid', placeItems: 'center', cursor: 'pointer', color: 'var(--ink)', fontSize: 14 }}>ℹ</button>
-        </div>
+        <PlayerHand
+          hand={myHand}
+          selected={selected}
+          onSelect={setSelected}
+          hasCompleteSet={hasCompleteSet}
+          isMyTurn={isMyTurn}
+        />
 
-        {/* Prompt banner */}
-        <div style={{ padding: '0 16px 12px' }}>
-          <div className="panel" style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ color: 'var(--accent)', fontSize: 16 }}>✦</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 2 }}>YOUR PROMPT</div>
-              <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                Collect 3 {session.gameMode === 'education' ? 'synonyms' : 'associations'} of "{myHandTopic}"
-              </div>
-            </div>
-            <span className="chip num">{matchCount}/3</span>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div style={{ flex: 1, position: 'relative', margin: '0 16px', minHeight: 260 }}>
-          <div className="table-oval" style={{ position: 'absolute', inset: '8px 8px 8px 8px' }}>
-            {/* Neural grid overlay */}
-            <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(110deg, transparent 0 14px, oklch(0.82 0.16 195 / 0.06) 14px 15px), radial-gradient(circle at 50% 50%, oklch(0.82 0.16 195 / 0.1), transparent 65%)', animation: 'syn-flow 6s linear infinite', pointerEvents: 'none' }}/>
-
-            {/* Centre card / buzz area */}
-            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-              <BuzzButton ready={ready} disabled={buzzed || !buzzerOpen || buzzerLocked} onClick={handleBuzz} />
-            </div>
-
-            {/* Buzzer status */}
-            <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
-              <span className={`chip${buzzerOpen && !buzzerLocked ? ' chip-accent' : ''}`} style={{ fontSize: 10 }}>
-                {buzzerLocked ? '🔒 Locked' : buzzerOpen ? '🔓 Open' : '⏳ Waiting'}
-              </span>
-            </div>
-
-            {/* Other players */}
-            {otherPlayers.map((p, i) => {
-              const pos = seatPositions[i];
-              const isActive = p.id === session.currentTurn;
-              const cardCount = (session.hands?.[p.id] || []).length;
-              return (
-                <div key={p.id} style={{ position: 'absolute', ...getSeatStyle(pos) }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <PlayerAvatar name={p.name} seed={p.name} active={isActive} buzzing={p.id === session.lastBuzzer} compact size={pos === 'top' ? 'lg' : 'md'} />
-                    <div className="num" style={{ fontSize: 10, color: 'var(--ink-mute)', textAlign: 'center' }}>
-                      {p.name.split(' ')[0]} · {session.totalScores?.[p.id] || 0}
-                    </div>
-                    {/* Face down cards */}
-                    <div style={{ display: 'flex', gap: -8 }}>
-                      {Array.from({ length: Math.min(cardCount, 4) }).map((_, ci) => (
-                        <div key={ci} style={{ width: pos === 'top' ? 20 : 16, height: pos === 'top' ? 28 : 22, borderRadius: 4, background: 'linear-gradient(160deg, var(--surface-2), var(--surface))', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)', marginLeft: ci > 0 ? -8 : 0, transform: `rotate(${(ci - 1) * 8}deg)`, ...(ci === cardCount - 1 && cardCount === 4 ? { border: '1px solid var(--warn)' } : {}) }}/>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Your hand */}
-        <div style={{ padding: '8px 12px 0' }}>
-          {isMyTurn && (
-            <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <span className="chip chip-accent" style={{ fontSize: 11 }}>Your turn — select a card to pass</span>
-            </div>
-          )}
-          {/* YOUR HAND — cards spread horizontally */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 8, paddingBottom: 4, paddingLeft: 8, paddingRight: 8, flexWrap: 'nowrap', overflowX: 'auto' }}>
-            {myHand.map((word, i) => {
-              const isSelected = selected === word;
-              const isMatch = matchCount >= 3 && session.synonymClusters && Object.entries(session.synonymClusters).some(([, words]) => words.includes(word.toLowerCase()) && myHand.filter(w => words.includes(w.toLowerCase())).length >= 3);
-              return (
-                <div key={word} style={{
-                  flexShrink: 0,
-                  transform: isSelected ? 'translateY(-14px) scale(1.05)' : 'translateY(0)',
-                  transition: 'transform 220ms cubic-bezier(.2,.8,.2,1)',
-                  zIndex: isSelected ? 10 : 1,
-                  animation: `syn-deal 600ms ${i * 80}ms cubic-bezier(.2,.8,.2,1) both`,
-                }}>
-                  <WordCard word={word.charAt(0).toUpperCase() + word.slice(1)} kind={isMatch ? 'match' : 'normal'} selected={isSelected} onClick={() => setSelected(isSelected ? null : word)} small />
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Quit / Pass / BUZZ / Keep */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px' }}>
-            <button onClick={() => setShowExit(true)} className="btn-ghost tap-target" style={{ flex: 1, minHeight: 56, fontSize: 13 }}>🏳 Quit</button>
-            <button onClick={selected && isMyTurn ? handlePass : () => setSelected(null)} className={selected && isMyTurn ? 'btn-primary tap-target' : 'btn-ghost tap-target'} style={{ flex: 1, minHeight: 56, fontSize: 13 }}>
-              {selected && isMyTurn ? `Pass` : 'Pass'}
-            </button>
-            <div style={{ position: 'relative' }}>
-              <BuzzButton ready={ready} disabled={buzzed || !buzzerOpen || buzzerLocked} onClick={handleBuzz} />
-              {showConfetti && <Confetti count={50} />}
-              {buzzed && (
-                <div style={{ position: 'absolute', top: -30, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', animation: 'syn-pop 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-                  <span className="chip chip-accent" style={{ fontSize: 11 }}>MATCH! +500 PTS</span>
-                </div>
-              )}
-            </div>
-            <button className="btn-ghost tap-target" style={{ flex: 1, minHeight: 56, fontSize: 13 }}>Keep</button>
-          </div>
-        </div>
+        <ActionBar
+          selected={selected}
+          isMyTurn={isMyTurn}
+          onPass={handlePass}
+          onKeep={() => setSelected(null)}
+          onQuit={() => setShowExit(true)}
+          ready={ready}
+          canBuzz={canBuzz}
+          onBuzz={handleBuzz}
+          buzzed={buzzed}
+          showConfetti={showConfetti}
+        />
       </div>
 
-      {/* Exit dialog */}
-      {showExit && (
-        <div style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div className="panel" style={{ padding: 24, width: '100%', maxWidth: 380, textAlign: 'center', animation: 'syn-pop 300ms cubic-bezier(.2,.8,.2,1)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🚪</div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 8 }}>Leave game?</h2>
-            <p style={{ fontSize: 14, color: 'var(--ink-dim)', marginBottom: 20 }}>Your spot will be held for 90 seconds.</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowExit(false)} className="btn-ghost tap" style={{ flex: 1 }}>Stay</button>
-              <button onClick={onExit} className="btn-primary tap" style={{ flex: 1 }}>Leave</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExitDialog open={showExit} onStay={() => setShowExit(false)} onLeave={onExit} />
+      <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} />
     </div>
   );
 }
