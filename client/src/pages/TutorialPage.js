@@ -95,11 +95,10 @@ export default function TutorialPage({ onDone }) {
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
-  useEffect(() => {
-    if (step.interactive === 'buzz' && !demoBuzzed) startBuzzTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stepIndex]);
+ useEffect(() => {
+  if (step.interactive === 'buzz' && !demoBuzzed) startBuzzTimer();
+  return () => { if (timerRef.current) clearInterval(timerRef.current); };
+}, [stepIndex]);
 
   return (
     <div className="scene" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
