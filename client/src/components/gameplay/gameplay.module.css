@@ -232,23 +232,20 @@
 }
 
 .passHint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 6px;
+  cursor: default;
   text-align: center;
-  border-radius: 999px;
-  border: 1px dashed var(--border);
-  color: var(--ink-mute);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
 }
+.passHintWord { color: var(--accent); font-weight: 700; }
 .passHintActive {
-  border-style: solid;
-  border-color: var(--accent);
-  color: var(--accent);
-  background: oklch(0.82 0.16 195 / 0.1);
+  border-color: var(--accent) !important;
+  color: var(--accent-ink) !important;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2)) !important;
+  box-shadow: var(--glow-accent);
 }
+.passHintActive .passHintWord { color: var(--accent-ink); }
 
 /* ---------- Action bar ---------- */
 .actionBar {
