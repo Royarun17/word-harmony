@@ -96,60 +96,93 @@
   100% { transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1); opacity: 0; }
 }
 
-/* ---------- Table ---------- */
-.tableWrap {
-  flex: 1;
-  position: relative;
-  margin: 0 16px;
-  min-height: 260px;
-  max-height: 440px;
+/* ---------- Player grid (replaces the oval table) ---------- */
+.tableArea {
+  border-radius: 24px;
+  padding: 2px;
+  transition: box-shadow 200ms ease;
 }
-.table {
-  position: absolute;
-  inset: 8px;
+.tableArea.dropActive {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 30px oklch(0.82 0.16 195 / 0.35);
 }
-.tableGrid {
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(110deg, transparent 0 14px, oklch(0.82 0.16 195 / 0.06) 14px 15px),
-    radial-gradient(circle at 50% 50%, oklch(0.82 0.16 195 / 0.1), transparent 65%);
-  animation: syn-flow 6s linear infinite;
-  pointer-events: none;
-}
-.trackRing {
-  position: absolute;
-  inset: 34px;
-  border-radius: 46% / 50%;
-  border: 1.5px solid oklch(0.82 0.16 195 / 0.45);
-  box-shadow: 0 0 16px oklch(0.82 0.16 195 / 0.35), inset 0 0 16px oklch(0.82 0.16 195 / 0.25);
-  pointer-events: none;
-}
-.dropActive {
-  box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 60px oklch(0.82 0.16 195 / 0.45), 0 0 40px oklch(0.82 0.16 195 / 0.5);
-  transition: box-shadow 150ms ease;
-}
-.buzzArea {
-  position: absolute;
-  inset: 0;
+.playerGrid {
   display: grid;
-  place-items: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 4px 16px 16px;
 }
-.buzzStatusRow {
+.profileCard {
+  padding: 10px 8px;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: box-shadow 200ms ease, opacity 200ms ease;
+}
+.profileCardMe { box-shadow: 0 0 0 1px var(--accent), 0 0 20px oklch(0.82 0.16 195 / 0.25); }
+.profileCardActive { box-shadow: 0 0 0 1px var(--accent), 0 0 16px oklch(0.82 0.16 195 / 0.3); }
+.profileCardOffline { opacity: 0.5; }
+.pfTurnTag {
   position: absolute;
-  bottom: 14px;
+  top: -7px;
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.pfAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,.3), 0 4px 10px rgba(0,0,0,.4);
+  margin-bottom: 6px;
+}
+.pfAvatarMe {
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  color: var(--accent-ink);
+}
+.pfName { font-size: 11px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.pfScore { font-size: 10px; color: var(--ink-mute); margin-top: 1px; }
+.pfCards { display: flex; justify-content: center; gap: 2px; margin-top: 6px; }
+.pfCardDot {
+  width: 11px;
+  height: 15px;
+  border-radius: 2px;
+  background: linear-gradient(160deg, var(--surface-3), var(--surface));
+  border: 1px solid var(--border);
+}
+.pfCardDotOverflow { border-color: var(--warn); }
+.pfReconnect { position: absolute; top: 6px; right: 8px; font-size: 10px; }
+
+/* ---------- Standalone buzz section ---------- */
+.buzzStandalone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 20px;
+}
+.buzzStatusRow {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 .timerBarWrap {
-  position: absolute;
-  bottom: -2px;
-  left: 20%;
-  right: 20%;
+  position: relative;
+  width: 55%;
   height: 3px;
   border-radius: 999px;
   overflow: hidden;
@@ -163,56 +196,6 @@
 }
 .timerBarFill.warn { background: var(--warn); }
 .timerBarFill.danger { background: var(--danger); }
-
-/* ---------- Player seats ---------- */
-.seat { position: absolute; }
-.seatTop       { top: -12px; left: 50%; transform: translateX(-50%); }
-.seatRightTop  { top: 18%; right: -12px; }
-.seatRightBot  { bottom: 18%; right: -12px; }
-.seatLeftTop   { top: 18%; left: -12px; }
-.seatLeftBot   { bottom: 18%; left: -12px; }
-.seatYou       { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); }
-.youAvatar {
-  width: 68px;
-  height: 68px;
-  border-radius: 99px;
-  background: linear-gradient(140deg, var(--accent), var(--accent-2));
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--accent-ink);
-  font-family: var(--font-display);
-  box-shadow: inset 0 2px 4px rgba(255,255,255,.35), 0 6px 16px rgba(0,0,0,.5);
-}
-
-.seatInner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  transition: opacity 300ms ease;
-}
-.seatInner.disconnected { opacity: 0.45; }
-.seatName {
-  font-size: 10px;
-  color: var(--ink-mute);
-  text-align: center;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.reconnectIcon { font-size: 9px; }
-
-.cardStack { display: flex; }
-.cardBack {
-  border-radius: 4px;
-  background: linear-gradient(160deg, var(--surface-2), var(--surface));
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
-}
-.cardBack.overflow { border-color: var(--warn); }
 
 /* ---------- Hand ---------- */
 .handSection { padding: 8px 12px 0; }
@@ -325,7 +308,7 @@
  * Desktop / tablet — wider table, roomier hand, calmer spacing
  * ========================================================= */
 @media (min-width: 768px) {
-  .tableWrap { min-height: 360px; max-height: 520px; margin: 0 24px; }
+  .playerGrid { grid-template-columns: repeat(4, 1fr); padding: 4px 24px 16px; gap: 14px; }
   .header { padding-top: 28px; }
   .handFan { gap: 12px; }
   .promptText { font-size: 18px; }
@@ -333,5 +316,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tableGrid, .cardSlot, .promptChip.complete, .buzzToast { animation: none !important; }
+  .cardSlot, .promptChip.complete, .buzzToast { animation: none !important; }
 }
