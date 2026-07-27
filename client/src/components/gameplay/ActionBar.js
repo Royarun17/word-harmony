@@ -6,20 +6,25 @@ function ActionBar({
   selected, isMyTurn, isDragging, onKeep, onQuit,
   ready, canBuzz, onBuzz, buzzed, showConfetti,
 }) {
-  const hintLabel = isDragging
-    ? 'Drop on table →'
-    : selected
-      ? `"${selected.charAt(0).toUpperCase() + selected.slice(1)}" selected`
-      : isMyTurn
-        ? 'Drag a card to pass'
-        : 'Pass';
+  const selectedLabel = selected ? selected.charAt(0).toUpperCase() + selected.slice(1) : null;
 
   return (
     <div className={styles.actionBar}>
       <button onClick={onQuit} className={`btn-ghost tap-target ${styles.actionBtn}`}>🏳 Quit</button>
 
-      <div className={`${styles.actionBtn} ${styles.passHint}${isDragging ? ` ${styles.passHintActive}` : ''}`}>
-        {hintLabel}
+      <div
+        className={`btn-ghost ${styles.actionBtn} ${styles.passHint}${isDragging ? ` ${styles.passHintActive}` : ''}`}
+        title="Drag a card onto the table to pass it"
+      >
+        {isDragging ? (
+          <>Drop on table <span aria-hidden>→</span></>
+        ) : selectedLabel ? (
+          <>Pass <span className={styles.passHintWord}>&quot;{selectedLabel}&quot;</span> <span aria-hidden>→</span></>
+        ) : isMyTurn ? (
+          'Drag a card to pass'
+        ) : (
+          'Pass'
+        )}
       </div>
 
       <div className={styles.buzzSlot}>
