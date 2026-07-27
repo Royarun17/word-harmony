@@ -145,10 +145,11 @@ export function BuzzButton({ onClick, disabled, ready }) {
 }
 
 // ── TimerRing ──────────────────────────────────────────────────────────────
-export function TimerRing({ progress, seconds }) {
+export function TimerRing({ progress, seconds, tone = 'accent' }) {
   const p = Math.max(0, Math.min(100, progress));
+  const ringColor = tone === 'danger' ? 'var(--danger)' : tone === 'warn' ? 'var(--warn)' : 'var(--accent)';
   return (
-    <div className="timer-ring number-tab" style={{ '--p': p }}>
+    <div className="timer-ring number-tab" style={{ '--p': p, '--ring-color': ringColor }}>
       <span style={{ position: 'relative', fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{seconds}</span>
     </div>
   );

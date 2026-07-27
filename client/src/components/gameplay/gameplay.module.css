@@ -116,6 +116,18 @@
   animation: syn-flow 6s linear infinite;
   pointer-events: none;
 }
+.trackRing {
+  position: absolute;
+  inset: 34px;
+  border-radius: 46% / 50%;
+  border: 1.5px solid oklch(0.82 0.16 195 / 0.45);
+  box-shadow: 0 0 16px oklch(0.82 0.16 195 / 0.35), inset 0 0 16px oklch(0.82 0.16 195 / 0.25);
+  pointer-events: none;
+}
+.dropActive {
+  box-shadow: inset 0 0 0 3px var(--accent), inset 0 0 60px oklch(0.82 0.16 195 / 0.45), 0 0 40px oklch(0.82 0.16 195 / 0.5);
+  transition: box-shadow 150ms ease;
+}
 .buzzArea {
   position: absolute;
   inset: 0;
@@ -158,6 +170,7 @@
 .seatRightBot  { bottom: 18%; right: -12px; }
 .seatLeftTop   { top: 18%; left: -12px; }
 .seatLeftBot   { bottom: 18%; left: -12px; }
+.seatYou       { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); }
 
 .seatInner {
   display: flex;
@@ -203,9 +216,39 @@
   transform: translateY(0);
   transition: transform 220ms cubic-bezier(.2,.8,.2,1);
   animation: syn-deal 600ms cubic-bezier(.2,.8,.2,1) both;
+  touch-action: none;
+  cursor: grab;
 }
 .cardSlot.selected { transform: translateY(-14px) scale(1.05); z-index: 10; }
 .cardSlot:not(.selected) { z-index: 1; }
+.cardSlot.beingDragged { opacity: 0.25; }
+
+.dragGhost {
+  position: fixed;
+  transform: translate(-50%, -50%) scale(1.08);
+  z-index: 300;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 24px oklch(0 0 0 / 0.5));
+}
+
+.passHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  color: var(--ink-mute);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 10px;
+}
+.passHintActive {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: oklch(0.82 0.16 195 / 0.1);
+}
 
 /* ---------- Action bar ---------- */
 .actionBar {
@@ -215,7 +258,31 @@
   padding: 8px 4px max(8px, env(safe-area-inset-bottom));
 }
 .actionBtn { flex: 1; min-height: 56px; font-size: 13px; }
-.buzzSlot { position: relative; }
+.buzzSlot { position: relative; flex: 1; display: flex; }
+.buzzPill {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: oklch(0.27 0.035 230 / 0.65);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms, box-shadow 220ms, background 220ms, color 220ms;
+}
+.buzzPill:disabled { cursor: not-allowed; opacity: 0.6; }
+.buzzPill:active:not(:disabled) { transform: scale(0.97); }
+.buzzPillReady {
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  color: var(--accent-ink);
+  border-color: transparent;
+  box-shadow: var(--glow-accent);
+  animation: syn-pulse 1.8s ease-in-out infinite;
+}
 .buzzToast {
   position: absolute;
   top: -30px;

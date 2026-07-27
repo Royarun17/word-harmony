@@ -360,6 +360,7 @@ io.on('connection', (socket) => {
         socket.emit(`hand_update_${activePlayerId}`, {
           hand: s.cards[activePlayerId] || [],
           isStarter: activePlayerId === s.starterPlayerId,
+          hasCompleteSet: isCompleteSet(s.cards[activePlayerId], s.synonymClusters),
         });
       }
     }
@@ -386,6 +387,7 @@ io.on('connection', (socket) => {
       socket.emit(`hand_update_${playerId}`, {
         hand: s.cards[playerId] || [],
         isStarter: playerId === s.starterPlayerId,
+        hasCompleteSet: isCompleteSet(s.cards[playerId], s.synonymClusters),
       });
     }
   });
@@ -634,6 +636,7 @@ io.on('connection', (socket) => {
         socket.emit(`hand_update_${playerId}`, {
           hand: s.cards[playerId] || [],
           isStarter: playerId === s.starterPlayerId,
+          hasCompleteSet: isCompleteSet(s.cards[playerId], s.synonymClusters),
         });
       }
 
@@ -825,7 +828,11 @@ function buildTurnOrder(s) {
 
 function broadcastHands(s) {
   s.players.forEach(p => {
-    io.to(s.id).emit(`hand_update_${p.id}`, { hand: s.cards[p.id] || [], isStarter: p.id === s.starterPlayerId });
+    io.to(s.id).emit(`hand_update_${p.id}`, {
+      hand: s.cards[p.id] || [],
+      isStarter: p.id === s.starterPlayerId,
+      hasCompleteSet: isCompleteSet(s.cards[p.id], s.synonymClusters),
+    });
   });
 }
 
@@ -838,6 +845,8 @@ function sanitize(s) {
     starterPlayerId: s.starterPlayerId, starterHasPassed: s.starterHasPassed,
     firstRoundOver: s.firstRoundOver, buzzerActive: s.buzzerActive,
     buzzerLog: s.buzzerLog, totalScores: s.totalScores,
+    // Card counts only — never the words themselves, so opponents' hands stay hidden.
+    handCounts: Object.fromEntries(Object.entries(s.cards || {}).map(([pid, c]) => [pid, c.length])),
   };
 }
 

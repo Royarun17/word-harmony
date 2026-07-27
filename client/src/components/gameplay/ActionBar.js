@@ -1,27 +1,35 @@
 import React from 'react';
-import { BuzzButton, Confetti } from '../../SynapseComponents';
+import { Confetti } from '../../SynapseComponents';
 import styles from './gameplay.module.css';
 
 function ActionBar({
-  selected, isMyTurn, onPass, onKeep, onQuit,
+  selected, isMyTurn, isDragging, onKeep, onQuit,
   ready, canBuzz, onBuzz, buzzed, showConfetti,
 }) {
-  const canPass = !!selected && isMyTurn;
-  const passLabel = canPass ? `Pass "${selected.charAt(0).toUpperCase() + selected.slice(1)}"` : 'Pass';
+  const hintLabel = isDragging
+    ? 'Drop on table →'
+    : selected
+      ? `"${selected.charAt(0).toUpperCase() + selected.slice(1)}" selected`
+      : isMyTurn
+        ? 'Drag a card to pass'
+        : 'Pass';
 
   return (
     <div className={styles.actionBar}>
       <button onClick={onQuit} className={`btn-ghost tap-target ${styles.actionBtn}`}>🏳 Quit</button>
 
-      <button
-        onClick={canPass ? onPass : onKeep}
-        className={`${canPass ? 'btn-primary' : 'btn-ghost'} tap-target ${styles.actionBtn}`}
-      >
-        {passLabel}
-      </button>
+      <div className={`${styles.actionBtn} ${styles.passHint}${isDragging ? ` ${styles.passHintActive}` : ''}`}>
+        {hintLabel}
+      </div>
 
       <div className={styles.buzzSlot}>
-        <BuzzButton ready={ready} disabled={!canBuzz} onClick={onBuzz} />
+        <button
+          onClick={onBuzz}
+          disabled={!canBuzz}
+          className={`tap-target ${styles.actionBtn} ${styles.buzzPill}${ready ? ` ${styles.buzzPillReady}` : ''}`}
+        >
+          <span aria-hidden>⚡</span> Buzz
+        </button>
         {showConfetti && <Confetti count={50} />}
         {buzzed && (
           <div className={styles.buzzToast}>
@@ -36,7 +44,7 @@ function ActionBar({
         className={`btn-ghost tap-target ${styles.actionBtn}`}
         style={{ opacity: selected ? 1 : 0.5 }}
       >
-        Keep
+        <span aria-hidden>↻</span> Keep
       </button>
     </div>
   );

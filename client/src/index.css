@@ -304,11 +304,12 @@ input, select, textarea { font-size: 16px !important; }
   width: 56px;
   height: 56px;
   border-radius: 999px;
-  background: conic-gradient(var(--accent) calc(var(--p) * 1%), oklch(0.32 0.04 228 / 0.6) 0);
+  background: conic-gradient(var(--ring-color, var(--accent)) calc(var(--p) * 1%), oklch(0.32 0.04 228 / 0.6) 0);
   display: grid;
   place-items: center;
-  box-shadow: 0 0 20px oklch(0.82 0.16 195 / 0.4);
+  box-shadow: 0 0 20px oklch(from var(--ring-color, var(--accent)) l c h / 0.4);
   position: relative;
+  transition: box-shadow 300ms ease;
 }
 .timer-ring::after {
   content: '';

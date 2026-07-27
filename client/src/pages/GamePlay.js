@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import socket from '../utils/socket';
 import { useSocketEvent } from '../hooks/useSocketEvent';
-import { Confetti, ThemeSwitcher } from '../SynapseComponents';
+import { Confetti, ThemeSwitcher, WordCard } from '../SynapseComponents';
 import Header from '../components/gameplay/Header';
 import PromptBanner from '../components/gameplay/PromptBanner';
 import GameTable from '../components/gameplay/GameTable';
@@ -15,6 +15,7 @@ const TURN_TIME_LIMIT = 30;
 const BUZZER_WINDOW = 3;
 
 export default function GamePlay({ session, playerId, onExit }) {
+  // ── State ──────────────────────────────────────────────────────────────
   const [selected, setSelected] = useState(null);
   const [showExit, setShowExit] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -25,8 +26,14 @@ export default function GamePlay({ session, playerId, onExit }) {
   const [hasCompleteSet, setHasCompleteSet] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
   const [buzzWindowLeft, setBuzzWindowLeft] = useState(0);
+  const [drag, setDrag] = useState(null); // { word, x, y, over }
   const lastRoundRef = useRef(session.currentRound);
+  const tableRef = useRef(null);
 
+  // ── Hand updates from server ──────────────────────────────────────────
+  // The server never sends synonymClusters during play (that would spoil the
+  // round for everyone), so it tells us instead whether OUR OWN current hand
+  // happens to form a complete set.
   useEffect(() => {
     const handleHand = ({ hand, isStarter: starter, hasCompleteSet: complete }) => {
       setMyHand(hand || []);
@@ -34,10 +41,15 @@ export default function GamePlay({ session, playerId, onExit }) {
       setHasCompleteSet(!!complete);
     };
     socket.on(`hand_update_${playerId}`, handleHand);
+    // In case this component mounted after the server's initial deal already
+    // went out (e.g. right as the phase flips to "playing"), ask for a resend.
     socket.emit('request_hand', { sessionId: session.id, playerId });
     return () => socket.off(`hand_update_${playerId}`, handleHand);
   }, [playerId, session.id]);
 
+  // Only clear "buzzed" when a new round actually starts — hand_update fires on
+  // every card pass (even other players'), so resetting it there would let a
+  // player who already locked in a buzz look re-armed mid-round.
   useEffect(() => {
     if (session.currentRound !== lastRoundRef.current) {
       lastRoundRef.current = session.currentRound;
@@ -46,6 +58,7 @@ export default function GamePlay({ session, playerId, onExit }) {
     }
   }, [session.currentRound]);
 
+  // ── Live turn countdown, driven by the server's `turn_timer` broadcast ──
   useSocketEvent('turn_timer', ({ seconds }) => {
     setTimeLeft(seconds ?? TURN_TIME_LIMIT);
   });
@@ -55,6 +68,7 @@ export default function GamePlay({ session, playerId, onExit }) {
     return () => clearInterval(id);
   }, [session.phase]);
 
+  // ── 3-second "buzz now" window granted right after passing a card ──────
   useSocketEvent('buzzer_window_open', ({ playerId: pid, seconds }) => {
     if (pid === playerId) setBuzzWindowLeft(seconds ?? BUZZER_WINDOW);
   });
@@ -67,6 +81,7 @@ export default function GamePlay({ session, playerId, onExit }) {
     return () => clearInterval(id);
   }, [buzzWindowLeft > 0]);
 
+  // ── Derived state ────────────────────────────────────────────────────
   const players    = session.players || [];
   const myPlayer   = players.find(p => p.id === playerId);
   const isMyTurn   = session.turnOrder?.[session.currentTurnIndex] === playerId;
@@ -74,6 +89,10 @@ export default function GamePlay({ session, playerId, onExit }) {
   const buzzerLocked = !session.firstRoundOver;
   const urgency = timeLeft <= 5 ? 'danger' : timeLeft <= 10 ? 'warn' : 'normal';
 
+  // Mirrors the server's press_buzzer gating in server/index.js: before anyone
+  // has buzzed, you may only buzz on your turn, or during the 3s window right
+  // after passing (mandatory if you're holding 4 cards). Once the race has
+  // started (phase === 'buzzing'), anyone who hasn't buzzed yet may free-buzz.
   const starterLocked   = playerId === session.starterPlayerId && !session.firstRoundOver;
   const hasFourCards    = myHand.length >= 4;
   const inBuzzWindow    = buzzWindowLeft > 0;
@@ -92,11 +111,49 @@ export default function GamePlay({ session, playerId, onExit }) {
   const turnPlayerId = session.turnOrder?.[session.currentTurnIndex];
   const lastBuzzerId = session.buzzerLog?.[session.buzzerLog.length - 1]?.playerId;
 
-  function handlePass() {
-    if (!selected || !isMyTurn) return;
-    socket.emit('pass_card', { sessionId: session.id, playerId, cardToPass: selected });
+  // ── Handlers ─────────────────────────────────────────────────────────
+  function passCard(word) {
+    if (!word || !isMyTurn) return;
+    socket.emit('pass_card', { sessionId: session.id, playerId, cardToPass: word });
     setSelected(null);
   }
+
+  // Drag-to-pass: pointer-down on a hand card starts tracking; a plain tap
+  // (no movement into the table) just selects the card, matching the GDD's
+  // "tap to select, then drag to centre to pass."
+  function handleCardPointerDown(word, e) {
+    setSelected(word);
+    if (!isMyTurn) return;
+    setDrag({ word, x: e.clientX, y: e.clientY, over: false });
+  }
+
+  useEffect(() => {
+    if (!drag) return;
+    function point(e) {
+      if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      return { x: e.clientX, y: e.clientY };
+    }
+    function onMove(e) {
+      const { x, y } = point(e);
+      const rect = tableRef.current?.getBoundingClientRect();
+      const over = !!rect && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      setDrag(d => (d ? { ...d, x, y, over } : d));
+    }
+    function onUp() {
+      setDrag(d => {
+        if (d && d.over) passCard(d.word);
+        return null;
+      });
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [drag?.word]);
 
   function handleBuzz() {
     if (!canBuzz || buzzed) return;
@@ -130,6 +187,7 @@ export default function GamePlay({ session, playerId, onExit }) {
         />
 
         <GameTable
+          ref={tableRef}
           otherPlayers={otherPlayers}
           turnPlayerId={turnPlayerId}
           lastBuzzerId={lastBuzzerId}
@@ -143,6 +201,11 @@ export default function GamePlay({ session, playerId, onExit }) {
           timerPercent={timerPct}
           urgency={urgency}
           buzzWindowLeft={buzzWindowLeft}
+          me={myPlayer}
+          myScore={session.totalScores?.[playerId]}
+          myCardCount={myHand.length}
+          isMyTurn={isMyTurn}
+          dropActive={!!drag?.over}
         />
 
         <PlayerHand
@@ -151,12 +214,14 @@ export default function GamePlay({ session, playerId, onExit }) {
           onSelect={setSelected}
           hasCompleteSet={hasCompleteSet}
           isMyTurn={isMyTurn}
+          onCardPointerDown={handleCardPointerDown}
+          draggingWord={drag?.word}
         />
 
         <ActionBar
           selected={selected}
           isMyTurn={isMyTurn}
-          onPass={handlePass}
+          isDragging={!!drag}
           onKeep={() => setSelected(null)}
           onQuit={() => setShowExit(true)}
           ready={ready}
@@ -166,6 +231,19 @@ export default function GamePlay({ session, playerId, onExit }) {
           showConfetti={showConfetti}
         />
       </div>
+
+      {drag && (
+        <div
+          className={styles.dragGhost}
+          style={{ left: drag.x, top: drag.y }}
+        >
+          <WordCard
+            word={drag.word.charAt(0).toUpperCase() + drag.word.slice(1)}
+            kind={drag.over ? 'match' : 'normal'}
+            small
+          />
+        </div>
+      )}
 
       <ExitDialog open={showExit} onStay={() => setShowExit(false)} onLeave={onExit} />
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} />

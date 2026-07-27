@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { BuzzButton, PlayerAvatar } from '../../SynapseComponents';
 import PlayerSeat from './PlayerSeat';
 import TimerBar from './TimerBar';
@@ -6,17 +6,17 @@ import styles from './gameplay.module.css';
 
 const SEAT_POSITIONS = ['top', 'right-top', 'right-bot', 'left-top', 'left-bot'];
 
-function GameTable({
+const GameTable = forwardRef(function GameTable({
   otherPlayers, turnPlayerId, lastBuzzerId, totalScores, handCounts,
   ready, canBuzz, buzzed, buzzerLocked, onBuzz, timerPercent, urgency,
-  buzzWindowLeft, me, myScore, myCardCount, isMyTurn,
-}) {
+  buzzWindowLeft, me, myScore, myCardCount, isMyTurn, dropActive,
+}, ref) {
   const seatPositions = SEAT_POSITIONS.slice(0, otherPlayers.length);
   const statusLabel = buzzerLocked ? '🔒 Locked' : buzzed ? '✓ Buzzed' : canBuzz ? '🔓 Open' : '⏳ Waiting';
 
   return (
     <div className={styles.tableWrap}>
-      <div className={`table-oval ${styles.table}`}>
+      <div ref={ref} className={`table-oval ${styles.table}${dropActive ? ` ${styles.dropActive}` : ''}`}>
         <div className={styles.tableGrid} aria-hidden />
         <div className={styles.trackRing} aria-hidden />
 
@@ -29,6 +29,7 @@ function GameTable({
           {buzzWindowLeft > 0 && !buzzed && (
             <span className="chip chip-accent" style={{ fontSize: 10 }}>⚡ {buzzWindowLeft}s</span>
           )}
+          {dropActive && <span className="chip chip-accent" style={{ fontSize: 10 }}>↓ Release to pass</span>}
         </div>
 
         <TimerBar percent={buzzerLocked ? 100 : timerPercent} urgency={buzzerLocked ? 'normal' : urgency} />
@@ -65,6 +66,6 @@ function GameTable({
       </div>
     </div>
   );
-}
+});
 
 export default React.memo(GameTable);
