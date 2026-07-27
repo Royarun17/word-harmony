@@ -1,11 +1,5 @@
-import React, { useState } from 'react';
-
-const T = {
-  pageBg:'#F7F2EA', cardBg:'#FFFFFF', border:'#E8E0D0',
-  textPrimary:'#1A1A2E', textSecondary:'#9B8E7A', textMuted:'#C4B9A8',
-  gold:'#C8930C', goldBg:'#FEF3E2', teal:'#1A8C8C', tealBg:'#E8F4F4',
-  red:'#E94560', navy:'#1A1A2E', white:'#FFFFFF', tabBg:'#F0EDE8',
-};
+import React, { useState, useRef, useEffect } from 'react';
+import { WordCard, BuzzButton, ThemeSwitcher } from '../SynapseComponents';
 
 const STEPS = [
   {
@@ -30,21 +24,21 @@ const STEPS = [
     id: 'pass',
     emoji: '🔄',
     title: 'Step 3 — Pass a Card',
-    body: 'On your turn you hold 4 cards. Pick one to pass to the next player — try it below!',
+    body: 'On your turn, drag a card onto the table to pass it to the next player. The starter goes first, with an extra 4th card to kick things off — try it below!',
     interactive: 'pass',
   },
   {
     id: 'buzz',
     emoji: '⚡',
     title: 'Step 4 — Buzz In',
-    body: 'Once cards travel all the way around, the buzzer activates. Buzz on your turn if your 3 cards match — but watch the clock!',
+    body: "Once cards travel all the way around, the buzzer unlocks. On your own turn you can buzz any time. Right after you pass a card, you also get a short window to buzz immediately — try that scenario below.",
     interactive: 'buzz',
   },
   {
     id: 'score',
     emoji: '🏆',
     title: 'Step 5 — Scoring',
-    body: 'After everyone buzzes, the game checks who has 3 matching cards. Buzz order + correct match decides the points: 10, 7, 5, 3, 1.',
+    body: 'After everyone buzzes, the game checks who actually has 3 matching cards. Buzz order + a correct match decides the points: 10, 7, 5, 3, 1.',
   },
   {
     id: 'ready',
@@ -54,14 +48,16 @@ const STEPS = [
   },
 ];
 
+const BUZZ_WINDOW = 3;
+
 export default function TutorialPage({ onDone }) {
-  const [stepIndex, setStepIndex]     = useState(0);
-  const [demoHand, setDemoHand]       = useState(['Joyful', 'Elated', 'Content', 'Swift']);
+  const [stepIndex, setStepIndex]       = useState(0);
+  const [demoHand, setDemoHand]         = useState(['Joyful', 'Elated', 'Content', 'Swift']);
   const [demoSelected, setDemoSelected] = useState(null);
-  const [demoPassed, setDemoPassed]   = useState(false);
-  const [demoBuzzed, setDemoBuzzed]   = useState(false);
-  const [demoTime, setDemoTime]       = useState(3);
-  const timerRef = React.useRef(null);
+  const [demoPassed, setDemoPassed]     = useState(false);
+  const [demoBuzzed, setDemoBuzzed]     = useState(false);
+  const [demoTime, setDemoTime]         = useState(BUZZ_WINDOW);
+  const timerRef = useRef(null);
 
   const step    = STEPS[stepIndex];
   const isFirst = stepIndex === 0;
@@ -73,7 +69,7 @@ export default function TutorialPage({ onDone }) {
 
   function handleDemoCardClick(word) {
     if (demoPassed) return;
-    setDemoSelected(prev => prev === word ? null : word);
+    setDemoSelected(prev => (prev === word ? null : word));
   }
 
   function handleDemoPass() {
@@ -84,7 +80,7 @@ export default function TutorialPage({ onDone }) {
   }
 
   function startBuzzTimer() {
-    setDemoTime(3);
+    setDemoTime(BUZZ_WINDOW);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setDemoTime(t => {
@@ -99,74 +95,66 @@ export default function TutorialPage({ onDone }) {
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (step.interactive === 'buzz' && !demoBuzzed) startBuzzTimer();
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [stepIndex]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex]);
 
   return (
-    <div style={{ minHeight:'100vh', background:T.pageBg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:20 }}>
-      <style>{`@keyframes wh-pop{0%{transform:scale(0.95);opacity:0;}100%{transform:scale(1);opacity:1;}}.wh-pop{animation:wh-pop 0.25s cubic-bezier(.34,1.56,.64,1) forwards;}`}</style>
+    <div className="scene" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <ThemeSwitcher />
 
-      <div style={{ width:'100%', maxWidth:440 }}>
+      <div className="scene-content" style={{ width: '100%', maxWidth: 440 }}>
 
         {/* Progress dots */}
-        <div style={{ display:'flex', justifyContent:'center', gap:6, marginBottom:20 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
           {STEPS.map((s, i) => (
             <div key={s.id} style={{
-              width: i===stepIndex ? 24 : 8, height:8, borderRadius:4,
-              background: i===stepIndex ? T.gold : i<stepIndex ? 'rgba(200,147,12,0.4)' : T.border,
-              transition:'all 0.25s ease',
-            }}/>
+              width: i === stepIndex ? 24 : 8, height: 8, borderRadius: 4,
+              background: i === stepIndex ? 'var(--accent)' : i < stepIndex ? 'oklch(0.82 0.16 195 / 0.4)' : 'var(--border)',
+              transition: 'all 0.25s ease',
+            }} />
           ))}
         </div>
 
         {/* Card */}
-        <div className="wh-pop" style={{ background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:20, padding:24, boxShadow:'0 8px 32px rgba(26,26,46,0.1)' }}>
+        <div className="panel" style={{ padding: 24, animation: 'syn-pop 250ms cubic-bezier(.34,1.56,.64,1) both' }}>
 
           {/* Emoji + title */}
-          <div style={{ textAlign:'center', marginBottom:16 }}>
-            <div style={{ fontSize:44, marginBottom:8 }}>{step.emoji}</div>
-            <h2 style={{ fontSize:20, fontWeight:700, color:T.navy, fontFamily:'Georgia,serif', margin:0 }}>{step.title}</h2>
-            <p style={{ fontSize:13, color:T.textSecondary, marginTop:8, lineHeight:1.6 }}>{step.body}</p>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 44, marginBottom: 8 }}>{step.emoji}</div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>{step.title}</h2>
+            <p style={{ fontSize: 13, color: 'var(--ink-dim)', marginTop: 8, lineHeight: 1.6 }}>{step.body}</p>
           </div>
 
           {/* Interactive: Pass demo */}
           {step.interactive === 'pass' && (
-            <div style={{ marginBottom:8 }}>
-              <div style={{ display:'flex', justifyContent:'center', gap:8, flexWrap:'wrap', marginBottom:14 }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
                 {demoHand.map(word => (
-                  <div key={word} onClick={() => !demoPassed && handleDemoCardClick(word)}
-                    style={{ cursor:demoPassed?'default':'pointer', transform:demoSelected===word?'translateY(-8px) scale(1.05)':'none', transition:'transform 0.15s ease', filter:demoSelected===word?'drop-shadow(0 6px 14px rgba(200,147,12,0.5))':'drop-shadow(0 2px 6px rgba(26,26,46,0.15))' }}>
-                    <svg width="68" height="96" viewBox="0 0 76 108" fill="none">
-                      <rect x="1" y="1" width="74" height="104" rx="12"
-                        fill={demoSelected===word?'#FFF8E8':'#fff'}
-                        stroke={demoSelected===word?T.gold:demoPassed?T.border:T.navy}
-                        strokeWidth={demoSelected===word?2.5:1.5}/>
-                      <rect x="5" y="5" width="66" height="96" rx="9" fill="none" stroke={T.navy} strokeWidth="0.5" opacity="0.12"/>
-                      <text x="38" y="54" textAnchor="middle" fontFamily="Georgia,serif" fontSize="12" fontWeight="700"
-                        fill={demoSelected===word?T.gold:demoPassed?T.textMuted:T.navy}>{word}</text>
-                      <text x="38" y="68" textAnchor="middle" fontFamily="sans-serif" fontSize="8"
-                        fill={demoSelected===word?T.gold:T.textMuted}>
-                        {demoSelected===word?'selected':!demoPassed?'tap to select':''}
-                      </text>
-                    </svg>
-                  </div>
+                  <WordCard
+                    key={word}
+                    word={word}
+                    selected={demoSelected === word}
+                    hint={demoSelected === word ? 'selected' : !demoPassed ? 'tap to select' : ''}
+                    onClick={() => handleDemoCardClick(word)}
+                    small
+                  />
                 ))}
               </div>
               {!demoPassed ? (
-                <button onClick={handleDemoPass} disabled={!demoSelected} style={{
-                  width:'100%', padding:'12px', borderRadius:12, border:'none',
-                  background: demoSelected ? `linear-gradient(135deg,${T.gold},#A07010)` : T.tabBg,
-                  color: demoSelected ? T.navy : T.textMuted,
-                  fontSize:13, fontWeight:700, fontFamily:'Georgia,serif', cursor:demoSelected?'pointer':'not-allowed',
-                  boxShadow: demoSelected ? '0 4px 14px rgba(200,147,12,0.3)' : 'none',
-                }}>
+                <button
+                  onClick={handleDemoPass}
+                  disabled={!demoSelected}
+                  className={demoSelected ? 'btn-primary tap-target' : 'btn-ghost tap-target'}
+                  style={{ width: '100%', opacity: demoSelected ? 1 : 0.5 }}
+                >
                   {demoSelected ? `Pass "${demoSelected}" →` : 'Select a card first'}
                 </button>
               ) : (
-                <div style={{ textAlign:'center', padding:'12px', background:T.tealBg, borderRadius:10, border:`1px solid rgba(26,140,140,0.2)` }}>
-                  <span style={{ color:T.teal, fontWeight:600, fontSize:13 }}>✓ That card went to the next player — you now hold 3!</span>
+                <div style={{ textAlign: 'center', padding: 12, borderRadius: 12 }} className="chip chip-accent">
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>✓ That card went to the next player — you now hold 3! (In a real game, you'd drag it onto the table instead of tapping a button.)</span>
                 </div>
               )}
             </div>
@@ -174,40 +162,33 @@ export default function TutorialPage({ onDone }) {
 
           {/* Interactive: Buzz demo */}
           {step.interactive === 'buzz' && (
-            <div style={{ textAlign:'center', marginBottom:8 }}>
-              <div style={{ marginBottom:14 }}>
-                <button onClick={handleDemoBuzz} disabled={demoBuzzed || demoTime===0} style={{
-                  width:90, height:90, borderRadius:'50%', border:'none',
-                  background: demoBuzzed ? T.tabBg : demoTime>0 ? T.red : T.border,
-                  color:'#fff', fontSize:16, fontWeight:800, fontFamily:'Georgia,serif',
-                  cursor: demoBuzzed||demoTime===0 ? 'not-allowed' : 'pointer',
-                  boxShadow: !demoBuzzed&&demoTime>0 ? '0 4px 20px rgba(233,69,96,0.5)' : 'none',
-                  transition:'all 0.2s',
-                }}>BUZZ!</button>
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <p style={{ fontSize: 11, color: 'var(--ink-mute)', marginBottom: 12, lineHeight: 1.5 }}>
+                Scenario: you just passed a card. You get a short {BUZZ_WINDOW}-second window to buzz right away —
+                mandatory if you were holding 4 cards. On a normal turn (not right after passing) you'd have your
+                full turn to decide, not just {BUZZ_WINDOW} seconds.
+              </p>
+              <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
+                <BuzzButton onClick={handleDemoBuzz} disabled={demoBuzzed || demoTime === 0} ready={!demoBuzzed && demoTime > 0} />
               </div>
               {!demoBuzzed ? (
-                <p style={{ fontSize:13, color:demoTime<=1?T.red:T.textSecondary, fontWeight:600 }}>
-                  {demoTime > 0 ? `⏱ ${demoTime}s window — buzz now!` : 'Window closed — try next turn!'}
+                <p className="num" style={{ fontSize: 13, color: demoTime <= 1 ? 'var(--danger)' : 'var(--ink-dim)', fontWeight: 600 }}>
+                  {demoTime > 0 ? `⏱ ${demoTime}s window — buzz now!` : 'Window closed — you\'d catch it on your next turn instead.'}
                 </p>
               ) : (
-                <div style={{ padding:'10px', background:T.tealBg, borderRadius:10, border:`1px solid rgba(26,140,140,0.2)` }}>
-                  <span style={{ color:T.teal, fontWeight:600, fontSize:13 }}>✓ Buzzed! The game instantly checks your cards for a match.</span>
+                <div className="chip chip-accent" style={{ padding: 10, borderRadius: 10, display: 'inline-flex' }}>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>✓ Buzzed! The game instantly checks your cards for a match.</span>
                 </div>
               )}
             </div>
           )}
 
           {/* Navigation */}
-          <div style={{ display:'flex', gap:10, marginTop:20 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             {!isFirst && (
-              <button onClick={back} style={{ flex:1, padding:'12px', borderRadius:12, border:`1px solid ${T.border}`, background:'transparent', color:T.textSecondary, fontSize:13, fontWeight:600, cursor:'pointer' }}>← Back</button>
+              <button onClick={back} className="btn-ghost tap-target" style={{ flex: 1 }}>← Back</button>
             )}
-            <button onClick={next} style={{
-              flex:2, padding:'12px', borderRadius:12, border:'none',
-              background:`linear-gradient(135deg,${T.gold},#A07010)`,
-              color:T.navy, fontSize:13, fontWeight:800, fontFamily:'Georgia,serif',
-              cursor:'pointer', boxShadow:'0 4px 14px rgba(200,147,12,0.3)',
-            }}>
+            <button onClick={next} className="btn-primary tap-target" style={{ flex: 2 }}>
               {isLast ? "Let's Play! →" : 'Next →'}
             </button>
           </div>
@@ -215,8 +196,8 @@ export default function TutorialPage({ onDone }) {
 
         {/* Skip */}
         {!isLast && (
-          <div style={{ textAlign:'center', marginTop:14 }}>
-            <button onClick={skip} style={{ background:'none', border:'none', color:T.textMuted, fontSize:12, cursor:'pointer', textDecoration:'underline' }}>
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <button onClick={skip} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
               Skip tutorial
             </button>
           </div>
