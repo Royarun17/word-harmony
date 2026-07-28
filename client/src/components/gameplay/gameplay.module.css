@@ -166,11 +166,6 @@
 
 /* ---------- Player seats around the orbit ---------- */
 .seat { position: absolute; }
-.seatTop       { top: -14px; left: 50%; transform: translateX(-50%); }
-.seatRightTop  { top: 16%; right: -12px; }
-.seatRightBot  { bottom: 16%; right: -12px; }
-.seatLeftTop   { top: 16%; left: -12px; }
-.seatLeftBot   { bottom: 16%; left: -12px; }
 .seatYou       { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); }
 
 .seatInner { display: flex; flex-direction: column; align-items: center; gap: 4px; transition: opacity 300ms ease; }
@@ -399,6 +394,74 @@
   .promptText { font-size: 18px; }
   .buzzMain { font-size: 17px; min-height: 60px; }
   .actionBtnSm { min-height: 48px; font-size: 13px; }
+}
+
+/* =========================================================
+ * Phone landscape (rotate-to-play) — side-by-side instead of
+ * stacked: arena on the left, hand + actions as a right sidebar.
+ * .landscapeTop / .landscapeBody / .landscapeArena / .landscapeSidebar
+ * are plain wrapper divs with zero effect outside this query, so
+ * portrait/desktop layout above is completely unaffected.
+ * ========================================================= */
+@media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+  .screen { min-height: 100dvh; }
+
+  .landscapeTop { flex-shrink: 0; }
+  .headerWrap { padding: max(6px, env(safe-area-inset-top)) 10px 4px; }
+  .headerRow { margin-bottom: 4px; }
+  .iconBtn { width: 32px; height: 32px; min-width: 36px; min-height: 36px; font-size: 13px; }
+  .roomChip { padding: 5px 10px; min-height: 32px; font-size: 11px; }
+  .headerCenter { gap: 10px; }
+
+  .promptBanner { padding: 0 10px 6px; }
+  .promptPanel { padding: 6px 12px; }
+  .promptText { font-size: 12px; }
+  .promptLabel { display: none; } /* reclaim vertical space; word is still shown */
+
+  .landscapeBody {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-height: 0;
+    gap: 10px;
+    padding: 0 10px max(8px, env(safe-area-inset-bottom));
+  }
+
+  .landscapeArena {
+    flex: 1.4;
+    min-width: 0;
+    display: flex;
+  }
+  .tableWrap { margin: 0; min-height: 0; max-height: none; flex: 1; }
+  .orbit { inset: 4px; }
+
+  .landscapeSidebar {
+    flex: 1;
+    min-width: 230px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .handSection { padding: 0; flex-shrink: 1; min-height: 0; overflow: hidden; }
+  .handHeaderRow { margin-bottom: 2px; min-height: 16px; }
+  .handHeaderRow .chip { font-size: 9px; padding: 4px 8px; }
+  .handFan {
+    transform: scale(0.68);
+    transform-origin: bottom center;
+    margin-bottom: -30px;
+    padding: 0;
+  }
+
+  .actionBarWrap { padding: 0; gap: 6px; flex-shrink: 0; }
+  .actionBarTop { gap: 6px; }
+  .actionBtnSm { min-height: 34px; font-size: 10px; padding: 0 8px; }
+  .passHint { min-height: 34px; font-size: 9px; }
+  .buzzMain { min-height: 40px; font-size: 13px; max-width: none; }
+  .buzzCaption { font-size: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

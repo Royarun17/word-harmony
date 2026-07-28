@@ -17,7 +17,12 @@ function ModePopup({ mode, onContinue, onBack }) {
   const m = MODES[mode];
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px 16px' }}>
-      <div className="panel" style={{ width: '100%', maxWidth: 420, padding: 24, borderRadius: 28, animation: 'syn-pop 300ms cubic-bezier(.2,.8,.2,1)' }}>
+      <style>{`
+        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+          .mode-popup-panel { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 16px !important; }
+        }
+      `}</style>
+      <div className="panel mode-popup-panel" style={{ width: '100%', maxWidth: 420, padding: 24, borderRadius: 28, animation: 'syn-pop 300ms cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
           <div style={{ width: 52, height: 52, borderRadius: 14, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', fontSize: 26, boxShadow: m.accent ? 'var(--glow-accent)' : undefined }}>{m.icon}</div>
           <h2 style={{ fontSize: 24, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{m.name}</h2>
@@ -114,80 +119,93 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
             .mode-card:active {
               transform: scale(0.97) !important;
             }
+            @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+              .lobby-content { flex-direction: row !important; justify-content: flex-start !important; align-items: flex-start !important; gap: 24px; padding: 16px 24px !important; overflow: hidden !important; }
+              .lobby-left { flex: 0 0 220px; overflow: hidden; }
+              .lobby-hero h1 { font-size: 36px !important; }
+              .lobby-hero { margin-bottom: 0 !important; }
+              .lobby-hero p { display: none; }
+              .lobby-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); }
+              .lobby-section-gap { margin-bottom: 14px !important; }
+            }
           `}</style>
           <ThemeSwitcher />
-          <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto', justifyContent: 'center' }}>
+          <div className="scene-content lobby-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto', justifyContent: 'center' }}>
 
-            {/* Profile row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
-              <div onClick={() => onShowProfile && onShowProfile()} style={{ cursor: 'pointer' }}>
-                <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
-              </div>
-              <span className="chip chip-accent">
-                ⚡ LVL {profile?.level || 1}
-              </span>
-            </div>
-
-            {/* Hero */}
-            <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '50%', top: -16, transform: 'translateX(-50%)', width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent), transparent 60%)', opacity: 0.4, filter: 'blur(24px)', pointerEvents: 'none' }}/>
-              <div style={{ fontSize: 11, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>REAL-TIME WORD GAME</div>
-              <h1 style={{ fontSize: 64, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)', lineHeight: 1, letterSpacing: '-0.02em' }}>Synapse</h1>
-              <p style={{ fontSize: 14, color: 'var(--ink-dim)', marginTop: 12, maxWidth: 280, margin: '12px auto 0' }}>Submit a word. Collect a matching set. Buzz first.</p>
-            </div>
-
-            {/* Mode cards */}
-            <div style={{ marginBottom: 32 }}>
-              <SectionHeader eyebrow="Choose a mode" title="Play" />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {Object.entries(MODES).map(([key, m]) => (
-                  <button key={key} onClick={() => { setMode(key); setShowPopup(true); }} className="panel tap-target" type="button"
-                    style={{
-                      padding: 16, textAlign: 'left', cursor: 'pointer', border: 'none',
-                      outline: selectedMode === key ? '2px solid var(--accent)' : '2px solid transparent',
-                      boxShadow: selectedMode === key ? 'var(--glow-accent)' : 'none',
-                      transition: 'transform 140ms, box-shadow 200ms, outline 200ms',
-                      position: 'relative', overflow: 'hidden',
-                    }}
-                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                    <div style={{ width: 36, height: 36, borderRadius: 99, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', marginBottom: 12, fontSize: 18, boxShadow: m.accent ? 'var(--glow-accent)' : undefined, color: m.accent ? 'var(--accent-ink)' : 'var(--ink)' }}>{m.icon}</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>{m.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>{m.desc}</div>
-                    {m.accent && <span className="chip chip-accent" style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, padding: '2px 8px' }}>POPULAR</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick play */}
-            <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 4 }}>QUICK PLAY</div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jump into a lobby</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Medium · Syntax · 5 rounds</div>
+            <div className="lobby-left">
+              {/* Profile row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
+                <div onClick={() => onShowProfile && onShowProfile()} style={{ cursor: 'pointer' }}>
+                  <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
                 </div>
-                <button onClick={() => { setMode('syntax'); setShowPopup(true); }} className="btn-primary tap-target" style={{ whiteSpace: 'nowrap' }}>▶ PLAY</button>
+                <span className="chip chip-accent">
+                  ⚡ LVL {profile?.level || 1}
+                </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <button onClick={onShowTutorial} className="btn-ghost tap-target">📖 Tutorial</button>
-                <button onClick={() => { setMode('syntax'); setStep('play'); setTab('join'); }} className="btn-ghost tap-target">🔗 Join</button>
+
+              {/* Hero */}
+              <div className="lobby-hero" style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
+                <div style={{ position: 'absolute', left: '50%', top: -16, transform: 'translateX(-50%)', width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, var(--accent), transparent 60%)', opacity: 0.4, filter: 'blur(24px)', pointerEvents: 'none' }}/>
+                <div style={{ fontSize: 11, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>REAL-TIME WORD GAME</div>
+                <h1 style={{ fontSize: 64, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)', lineHeight: 1, letterSpacing: '-0.02em' }}>Synapse</h1>
+                <p style={{ fontSize: 14, color: 'var(--ink-dim)', marginTop: 12, maxWidth: 280, margin: '12px auto 0' }}>Submit a word. Collect a matching set. Buzz first.</p>
               </div>
             </div>
 
-            {/* Friends row */}
-            <div>
-              <SectionHeader eyebrow="Online" title="Friends" right={
-                <button style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>See all</button>
-              }/>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                {['Mika T.','Priya S.','Diego A.','Noor I.','Sam C.'].map(n => (
-                  <div key={n}>
-                    <PlayerAvatar name={n} seed={n} compact size="md" active={n === 'Mika T.'} />
+            <div className="lobby-right">
+              {/* Mode cards */}
+              <div className="lobby-section-gap" style={{ marginBottom: 32 }}>
+                <SectionHeader eyebrow="Choose a mode" title="Play" />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {Object.entries(MODES).map(([key, m]) => (
+                    <button key={key} onClick={() => { setMode(key); setShowPopup(true); }} className="panel tap-target" type="button"
+                      style={{
+                        padding: 16, textAlign: 'left', cursor: 'pointer', border: 'none',
+                        outline: selectedMode === key ? '2px solid var(--accent)' : '2px solid transparent',
+                        boxShadow: selectedMode === key ? 'var(--glow-accent)' : 'none',
+                        transition: 'transform 140ms, box-shadow 200ms, outline 200ms',
+                        position: 'relative', overflow: 'hidden',
+                      }}
+                      onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+                      onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                      <div style={{ width: 36, height: 36, borderRadius: 99, background: m.accent ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : 'var(--surface-3)', display: 'grid', placeItems: 'center', marginBottom: 12, fontSize: 18, boxShadow: m.accent ? 'var(--glow-accent)' : undefined, color: m.accent ? 'var(--accent-ink)' : 'var(--ink)' }}>{m.icon}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>{m.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>{m.desc}</div>
+                      {m.accent && <span className="chip chip-accent" style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, padding: '2px 8px' }}>POPULAR</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick play */}
+              <div className="panel lobby-section-gap" style={{ padding: 16, marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 4 }}>QUICK PLAY</div>
+                    <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jump into a lobby</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Medium · Syntax · 5 rounds</div>
                   </div>
-                ))}
+                  <button onClick={() => { setMode('syntax'); setShowPopup(true); }} className="btn-primary tap-target" style={{ whiteSpace: 'nowrap' }}>▶ PLAY</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button onClick={onShowTutorial} className="btn-ghost tap-target">📖 Tutorial</button>
+                  <button onClick={() => { setMode('syntax'); setStep('play'); setTab('join'); }} className="btn-ghost tap-target">🔗 Join</button>
+                </div>
+              </div>
+
+              {/* Friends row */}
+              <div>
+                <SectionHeader eyebrow="Online" title="Friends" right={
+                  <button style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer' }}>See all</button>
+                }/>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  {['Mika T.','Priya S.','Diego A.','Noor I.','Sam C.'].map(n => (
+                    <div key={n}>
+                      <PlayerAvatar name={n} seed={n} compact size="md" active={n === 'Mika T.'} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -195,7 +213,13 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
       )}
 
       {step === 'play' && selectedMode && (
-        <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div className="scene lobby-play-scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <style>{`
+            @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+              .lobby-play-scene { padding: 12px !important; }
+              .lobby-play-panel { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 14px !important; }
+            }
+          `}</style>
           <ThemeSwitcher />
           <div className="scene-content" style={{ width: '100%', maxWidth: 420 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
@@ -203,7 +227,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
               <div style={{ flex: 1 }}/>
               <span className="chip chip-accent">{MODES[selectedMode].icon} {MODES[selectedMode].name}</span>
             </div>
-            <div className="panel" style={{ padding: 24 }}>
+            <div className="panel lobby-play-panel" style={{ padding: 24 }}>
               <div style={{ display: 'flex', background: 'oklch(0.32 0.04 228 / 0.5)', borderRadius: 99, padding: 4, marginBottom: 24 }}>
                 {['create','join'].map(t => (
                   <button key={t} onClick={() => setTab(t)} className="tap-target" style={{ flex: 1, padding: '10px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-body)', background: tab === t ? 'oklch(0.27 0.035 230)' : 'transparent', color: tab === t ? 'var(--ink)' : 'var(--ink-mute)', transition: 'all 200ms' }}>{t === 'create' ? 'Create game' : 'Join game'}</button>
@@ -229,7 +253,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                   </div>
                   <div style={{ marginBottom: 18 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--ink-mute)', textTransform: 'uppercase', marginBottom: 10 }}>Players</div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{[3,4,5,6,7,8].map(n => <Pill key={n} label={`${n}`} active={maxPlayers===n} onClick={() => setPlayers(n)}/>)}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{[4,5,6,7,8].map(n => <Pill key={n} label={`${n}`} active={maxPlayers===n} onClick={() => setPlayers(n)}/>)}</div>
                   </div>
                   <div style={{ marginBottom: 32 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--ink-mute)', textTransform: 'uppercase', marginBottom: 10 }}>Rounds</div>

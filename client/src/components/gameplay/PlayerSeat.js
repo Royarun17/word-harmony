@@ -1,14 +1,6 @@
 import React from 'react';
 import styles from './gameplay.module.css';
 
-const SEAT_CLASS = {
-  'top': styles.seatTop,
-  'right-top': styles.seatRightTop,
-  'right-bot': styles.seatRightBot,
-  'left-top': styles.seatLeftTop,
-  'left-bot': styles.seatLeftBot,
-};
-
 // A stable per-player ring color, independent from the avatar's own gradient —
 // gives each seat around the orbit a recognizable "identity color" at a glance.
 function hashHue(s = '') {
@@ -17,20 +9,19 @@ function hashHue(s = '') {
   return Math.abs(h) % 360;
 }
 
-function PlayerSeat({ player, position, isActive, isBuzzing, score, cardCount, rank }) {
-  const large = position === 'top';
+function PlayerSeat({ player, seatStyle, isActive, isBuzzing, score, cardCount, rank }) {
   const connected = player.connected !== false;
   const hue = hashHue(player.name);
   const initials = player.name.split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 
   return (
-    <div className={`${styles.seat} ${SEAT_CLASS[position] || ''}`}>
+    <div className={styles.seat} style={{ ...seatStyle, transform: 'translate(-50%, -50%)' }}>
       <div className={`${styles.seatInner}${!connected ? ` ${styles.disconnected}` : ''}`}>
         <div className={styles.orbitAvatarWrap}>
           <div
             className={`${styles.orbitAvatar}${isActive ? ` ${styles.orbitAvatarActive}` : ''}`}
             style={{
-              width: large ? 52 : 44, height: large ? 52 : 44,
+              width: 44, height: 44,
               background: `linear-gradient(140deg, hsl(${hue} 70% 58%), hsl(${(hue + 40) % 360} 70% 42%))`,
               borderColor: `hsl(${hue} 80% 62%)`,
               animation: isBuzzing ? 'syn-pulse 0.7s ease-in-out infinite' : undefined,
@@ -51,7 +42,7 @@ function PlayerSeat({ player, position, isActive, isBuzzing, score, cardCount, r
               key={ci}
               className={`${styles.cardBack}${ci === cardCount - 1 && cardCount === 4 ? ` ${styles.overflow}` : ''}`}
               style={{
-                width: large ? 20 : 16, height: large ? 28 : 22,
+                width: 16, height: 22,
                 marginLeft: ci > 0 ? -8 : 0,
                 transform: `rotate(${(ci - 1) * 8}deg)`,
               }}

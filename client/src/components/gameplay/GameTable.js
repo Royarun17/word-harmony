@@ -4,14 +4,26 @@ import PlayerSeat from './PlayerSeat';
 import TimerBar from './TimerBar';
 import styles from './gameplay.module.css';
 
-const SEAT_POSITIONS = ['top', 'right-top', 'right-bot', 'left-top', 'left-bot'];
+// Computes evenly-spaced positions around the ellipse for however many
+// opponents are seated (up to 7 — 8 players total including you). YOU always
+// stays fixed at the bottom; opponents arc across the remaining ~300°, so
+// this scales smoothly instead of relying on a fixed number of named slots.
+function seatPercent(i, n) {
+  if (n <= 0) return { left: 50, top: 50 };
+  const startDeg = -240; // top-left, going clockwise over the top to top-right
+  const sweepDeg = 300;
+  const angle = n === 1 ? -90 : startDeg + (sweepDeg * i) / (n - 1);
+  const rad = (angle * Math.PI) / 180;
+  const left = 50 + 50 * Math.cos(rad);
+  const top = 50 + 46 * Math.sin(rad);
+  return { left, top };
+}
 
 const GameTable = forwardRef(function GameTable({
   otherPlayers, turnPlayerId, lastBuzzerId, totalScores, handCounts,
   ready, canBuzz, buzzed, buzzerLocked, onBuzz, timerPercent, urgency,
   buzzWindowLeft, me, myScore, myCardCount, isMyTurn, dropActive,
 }, ref) {
-  const seatPositions = SEAT_POSITIONS.slice(0, otherPlayers.length);
   const statusLabel = buzzerLocked ? '🔒 Locked' : buzzed ? '✓ Buzzed' : canBuzz ? '🔓 Open' : '⏳ Waiting';
 
   const ranks = useMemo(() => {
@@ -27,6 +39,7 @@ const GameTable = forwardRef(function GameTable({
       <div ref={ref} className={`${styles.orbit}${dropActive ? ` ${styles.dropActive}` : ''}`}>
         <div className={styles.orbitGrid} aria-hidden />
 
+        {/* Flowing direction ring — communicates "cards travel this way" */}
         <svg className={styles.flowRing} viewBox="0 0 300 220" aria-hidden>
           <ellipse cx="150" cy="110" rx="140" ry="100" className={styles.flowRingTrack} />
           <ellipse cx="150" cy="110" rx="140" ry="100" className={styles.flowRingDash} />
@@ -45,18 +58,21 @@ const GameTable = forwardRef(function GameTable({
           <TimerBar percent={buzzerLocked ? 100 : timerPercent} urgency={buzzerLocked ? 'normal' : urgency} />
         </div>
 
-        {otherPlayers.map((p, i) => (
-          <PlayerSeat
-            key={p.id}
-            player={p}
-            position={seatPositions[i]}
-            isActive={p.id === turnPlayerId}
-            isBuzzing={p.id === lastBuzzerId}
-            score={totalScores?.[p.id]}
-            cardCount={handCounts?.[p.id] ?? 0}
-            rank={ranks[p.id]}
-          />
-        ))}
+        {otherPlayers.map((p, i) => {
+          const { left, top } = seatPercent(i, otherPlayers.length);
+          return (
+            <PlayerSeat
+              key={p.id}
+              player={p}
+              seatStyle={{ left: `${left}%`, top: `${top}%` }}
+              isActive={p.id === turnPlayerId}
+              isBuzzing={p.id === lastBuzzerId}
+              score={totalScores?.[p.id]}
+              cardCount={handCounts?.[p.id] ?? 0}
+              rank={ranks[p.id]}
+            />
+          );
+        })}
 
         {me && (
           <div className={styles.seatYou}>

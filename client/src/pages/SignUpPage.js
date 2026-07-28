@@ -37,7 +37,7 @@ function AuthField({ label, type = 'text', placeholder, value, onChange, hint, e
             ? '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 24px oklch(0.82 0.16 195 / 0.25)'
             : 'inset 0 1px 0 oklch(1 0 0 / 0.03)',
         transition: 'box-shadow 200ms, border-color 200ms',
-      }}>
+      }} className="auth-field-wrap">
         {icon && (
           <span style={{ paddingLeft: 16, paddingRight: 4, color: focused ? 'var(--accent)' : 'var(--ink-mute)', display: 'flex', alignItems: 'center', fontSize: 18 }}>
             {icon}
@@ -47,6 +47,7 @@ function AuthField({ label, type = 'text', placeholder, value, onChange, hint, e
           type={effectiveType} value={value} onChange={onChange}
           placeholder={placeholder} autoComplete={autoComplete}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          className="auth-field-input"
           style={{ flex: 1, background: 'transparent', outline: 'none', padding: '16px', fontSize: 16, fontFamily: 'var(--font-body)', color: 'var(--ink)', minHeight: 56, border: 'none' }}
         />
         {isPass && reveal && (
@@ -114,81 +115,100 @@ export default function SignUpPage({ onNavigate }) {
   return (
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
-      <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
+      <style>{`
+        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+          .auth-content { flex-direction: row !important; align-items: flex-start !important; gap: 28px; padding: 16px 28px !important; overflow: hidden !important; }
+          .auth-left { flex: 0 0 240px; overflow: hidden; }
+          .auth-wordmark { margin-bottom: 10px !important; }
+          .auth-wordmark > div:last-child { font-size: 26px !important; }
+          .auth-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); padding-right: 4px; }
+          .auth-header-block { margin-bottom: 10px !important; }
+          .auth-header-block h1 { font-size: 20px !important; margin-bottom: 2px !important; }
+          .auth-header-block p { display: none; }
+          .auth-panel { padding: 12px !important; gap: 8px !important; }
+          .auth-field-wrap { border-radius: 14px !important; }
+          .auth-field-input { min-height: 38px !important; padding: 10px !important; font-size: 14px !important; }
+        }
+      `}</style>
+      <div className="scene-content auth-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
 
-        {/* Back button */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-          <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)' }}>
-            ‹
-          </button>
-        </div>
-
-        {/* Synapse wordmark */}
-        <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.6, pointerEvents: 'none' }}/>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
-            <span style={{ color: 'var(--ink)' }}>Syn</span>
-            <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
-          </div>
-        </div>
-
-        {/* Header */}
-        <div style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Join Synapse</div>
-          <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>Create account</h1>
-          <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Start playing in seconds.</p>
-        </div>
-
-        {/* Form */}
-        <div style={{ animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
-          {!online && <OfflineBanner />}
-
-          <div className="panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {genError && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
-                <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{genError}</div>
-              </div>
-            )}
-
-            <AuthField label="Full name" placeholder="Alex Reyes" autoComplete="name" icon="👤" value={name} onChange={e => setName(e.target.value)} error={touched ? errors.name : null} />
-            <AuthField label="Email" type="email" placeholder="you@synapse.gg" autoComplete="email" icon="✉" value={email} onChange={e => setEmail(e.target.value)} error={touched ? errors.email : null} />
-            <AuthField label="Password" type="password" reveal autoComplete="new-password" placeholder="At least 6 characters" icon="🔒" value={pw} onChange={e => setPw(e.target.value)} hint="At least 6 characters" error={touched ? errors.pw : null} />
-            <AuthField label="Confirm password" type="password" reveal autoComplete="new-password" placeholder="Repeat password" icon="🔒" value={confirm} onChange={e => setConfirm(e.target.value)} error={errors.confirm} />
-
-            {/* Terms checkbox */}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingTop: 4, cursor: 'pointer', userSelect: 'none' }}>
-              <span onClick={() => setAgree(a => !a)} style={{
-                position: 'relative', marginTop: 2, width: 24, height: 24, borderRadius: 8, flexShrink: 0,
-                display: 'grid', placeItems: 'center', cursor: 'pointer', transition: 'all 200ms',
-                background: agree ? 'linear-gradient(180deg, var(--accent), var(--accent-2))' : 'oklch(0.27 0.035 230 / 0.8)',
-                border: `1px solid ${agree ? 'var(--accent)' : 'var(--border)'}`,
-                boxShadow: agree ? '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 16px oklch(0.82 0.16 195 / 0.5)' : 'inset 0 1px 0 oklch(1 0 0 / 0.04)',
-              }}>
-                {agree && <span style={{ color: 'var(--accent-ink)', fontSize: 14, fontWeight: 700 }}>✓</span>}
-              </span>
-              <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--ink-dim)' }}>
-                I agree to the{' '}
-                <span style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>Terms of Service</span>
-                {' '}and{' '}
-                <span style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>Privacy Policy</span>
-              </span>
-            </label>
-
-            <button type="button" onClick={handleSubmit} disabled={(!canSubmit && !loading) || success}
-              className="btn-primary tap-target"
-              style={{ marginTop: 8, opacity: !canSubmit && !loading ? 0.55 : 1, cursor: !canSubmit ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {success ? '✓ Welcome to Synapse' : loading ? '⏳ Creating account…' : 'Create account →'}
+        <div className="auth-left">
+          {/* Back button */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+            <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)' }}>
+              ‹
             </button>
           </div>
+
+          {/* Synapse wordmark */}
+          <div className="auth-wordmark" style={{ textAlign: 'center', marginBottom: 32, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
+            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.6, pointerEvents: 'none' }}/>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
+              <span style={{ color: 'var(--ink)' }}>Syn</span>
+              <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
+            </div>
+          </div>
+
+          {/* Header */}
+          <div className="auth-header-block" style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Join Synapse</div>
+            <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>Create account</h1>
+            <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Start playing in seconds.</p>
+          </div>
         </div>
 
-        {/* Sign in link */}
-        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--ink-dim)' }}>
-          Already have an account?{' '}
-          <button onClick={() => onNavigate('signin')} style={{ color: 'var(--accent)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}>
-            Sign in
-          </button>
+        <div className="auth-right">
+          {/* Form */}
+          <div style={{ animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
+            {!online && <OfflineBanner />}
+
+            <div className="panel auth-panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {genError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
+                  <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{genError}</div>
+                </div>
+              )}
+
+              <AuthField label="Full name" placeholder="Alex Reyes" autoComplete="name" icon="👤" value={name} onChange={e => setName(e.target.value)} error={touched ? errors.name : null} />
+              <AuthField label="Email" type="email" placeholder="you@synapse.gg" autoComplete="email" icon="✉" value={email} onChange={e => setEmail(e.target.value)} error={touched ? errors.email : null} />
+              <AuthField label="Password" type="password" reveal autoComplete="new-password" placeholder="At least 6 characters" icon="🔒" value={pw} onChange={e => setPw(e.target.value)} hint="At least 6 characters" error={touched ? errors.pw : null} />
+              <AuthField label="Confirm password" type="password" reveal autoComplete="new-password" placeholder="Repeat password" icon="🔒" value={confirm} onChange={e => setConfirm(e.target.value)} error={errors.confirm} />
+
+              {/* Terms checkbox */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, paddingTop: 4, cursor: 'pointer', userSelect: 'none' }}>
+                <span onClick={() => setAgree(a => !a)} style={{
+                  position: 'relative', marginTop: 2, width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+                  display: 'grid', placeItems: 'center', cursor: 'pointer', transition: 'all 200ms',
+                  background: agree ? 'linear-gradient(180deg, var(--accent), var(--accent-2))' : 'oklch(0.27 0.035 230 / 0.8)',
+                  border: `1px solid ${agree ? 'var(--accent)' : 'var(--border)'}`,
+                  boxShadow: agree ? '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 16px oklch(0.82 0.16 195 / 0.5)' : 'inset 0 1px 0 oklch(1 0 0 / 0.04)',
+                }}>
+                  {agree && <span style={{ color: 'var(--accent-ink)', fontSize: 14, fontWeight: 700 }}>✓</span>}
+                </span>
+                <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--ink-dim)' }}>
+                  I agree to the{' '}
+                  <span style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>Terms of Service</span>
+                  {' '}and{' '}
+                  <span style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>Privacy Policy</span>
+                </span>
+              </label>
+
+              <button type="button" onClick={handleSubmit} disabled={(!canSubmit && !loading) || success}
+                className="btn-primary tap-target"
+                style={{ marginTop: 8, opacity: !canSubmit && !loading ? 0.55 : 1, cursor: !canSubmit ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {success ? '✓ Welcome to Synapse' : loading ? '⏳ Creating account…' : 'Create account →'}
+              </button>
+            </div>
+          </div>
+
+          {/* Sign in link */}
+          <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--ink-dim)' }}>
+            Already have an account?{' '}
+            <button onClick={() => onNavigate('signin')} style={{ color: 'var(--accent)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-body)' }}>
+              Sign in
+            </button>
+          </div>
         </div>
       </div>
     </div>

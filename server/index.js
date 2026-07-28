@@ -239,7 +239,8 @@ async function finishRound(sessionId) {
 
 // REST
 app.post('/session/create', (req, res) => {
-  const { playerName, rounds, gameMode, difficulty, maxPlayers } = req.body;
+  const { playerName, rounds, gameMode, difficulty } = req.body;
+  const maxPlayers = Math.min(8, Math.max(4, parseInt(req.body.maxPlayers, 10) || 4));
   const playerId = uuidv4();
   const s = createSession(playerId, playerName, rounds, gameMode, difficulty, maxPlayers);
   addPlayer(s, playerId, playerName);
@@ -880,7 +881,7 @@ const BOT_AVATARS = [
 // Bot IDs are prefixed so we can identify them easily
 function isBotPlayer(playerId) { return playerId.startsWith('bot_'); }
 
-// Add bots to fill up to minPlayers (3) when game starts
+// Add bots to fill remaining seats up to maxPlayers (4-8) when game starts
 function fillWithBots(session) {
   const targetPlayers = session.maxPlayers || 4;
   const needed = targetPlayers - session.players.length;

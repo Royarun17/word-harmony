@@ -168,70 +168,78 @@ export default function GamePlay({ session, playerId, onExit }) {
       {showConfetti && <Confetti count={60} />}
 
       <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header
-          round={session.currentRound}
-          rounds={session.rounds}
-          timeLeft={timeLeft}
-          urgency={urgency}
-          modeLabel={session.gameMode === 'education' ? 'Syntax' : 'Spark'}
-          onExit={() => setShowExit(true)}
-          onInfo={() => setShowInfo(true)}
-          roomCode={session.id}
-          playerCount={players.length}
-          maxPlayers={session.maxPlayers}
-        />
+        <div className={styles.landscapeTop}>
+          <Header
+            round={session.currentRound}
+            rounds={session.rounds}
+            timeLeft={timeLeft}
+            urgency={urgency}
+            modeLabel={session.gameMode === 'education' ? 'Syntax' : 'Spark'}
+            onExit={() => setShowExit(true)}
+            onInfo={() => setShowInfo(true)}
+            roomCode={session.id}
+            playerCount={players.length}
+            maxPlayers={session.maxPlayers}
+          />
 
-        <PromptBanner
-          topic={myHandTopic}
-          associationWord={session.gameMode === 'education' ? 'synonyms' : 'associations'}
-          handCount={myHand.length}
-          complete={hasCompleteSet}
-        />
+          <PromptBanner
+            topic={myHandTopic}
+            associationWord={session.gameMode === 'education' ? 'synonyms' : 'associations'}
+            handCount={myHand.length}
+            complete={hasCompleteSet}
+          />
+        </div>
 
-        <GameTable
-          ref={tableRef}
-          otherPlayers={otherPlayers}
-          turnPlayerId={turnPlayerId}
-          lastBuzzerId={lastBuzzerId}
-          totalScores={session.totalScores}
-          handCounts={session.handCounts}
-          ready={ready}
-          canBuzz={canBuzz}
-          buzzed={buzzed}
-          buzzerLocked={buzzerLocked}
-          onBuzz={handleBuzz}
-          timerPercent={timerPct}
-          urgency={urgency}
-          buzzWindowLeft={buzzWindowLeft}
-          me={myPlayer}
-          myScore={session.totalScores?.[playerId]}
-          myCardCount={myHand.length}
-          isMyTurn={isMyTurn}
-          dropActive={!!drag?.over}
-        />
+        <div className={styles.landscapeBody}>
+          <div className={styles.landscapeArena}>
+            <GameTable
+              ref={tableRef}
+              otherPlayers={otherPlayers}
+              turnPlayerId={turnPlayerId}
+              lastBuzzerId={lastBuzzerId}
+              totalScores={session.totalScores}
+              handCounts={session.handCounts}
+              ready={ready}
+              canBuzz={canBuzz}
+              buzzed={buzzed}
+              buzzerLocked={buzzerLocked}
+              onBuzz={handleBuzz}
+              timerPercent={timerPct}
+              urgency={urgency}
+              buzzWindowLeft={buzzWindowLeft}
+              me={myPlayer}
+              myScore={session.totalScores?.[playerId]}
+              myCardCount={myHand.length}
+              isMyTurn={isMyTurn}
+              dropActive={!!drag?.over}
+            />
+          </div>
 
-        <PlayerHand
-          hand={myHand}
-          selected={selected}
-          onSelect={setSelected}
-          hasCompleteSet={hasCompleteSet}
-          isMyTurn={isMyTurn}
-          onCardPointerDown={handleCardPointerDown}
-          draggingWord={drag?.word}
-        />
+          <div className={styles.landscapeSidebar}>
+            <PlayerHand
+              hand={myHand}
+              selected={selected}
+              onSelect={setSelected}
+              hasCompleteSet={hasCompleteSet}
+              isMyTurn={isMyTurn}
+              onCardPointerDown={handleCardPointerDown}
+              draggingWord={drag?.word}
+            />
 
-        <ActionBar
-          selected={selected}
-          isMyTurn={isMyTurn}
-          isDragging={!!drag}
-          onKeep={() => setSelected(null)}
-          onQuit={() => setShowExit(true)}
-          ready={ready}
-          canBuzz={canBuzz}
-          onBuzz={handleBuzz}
-          buzzed={buzzed}
-          showConfetti={showConfetti}
-        />
+            <ActionBar
+              selected={selected}
+              isMyTurn={isMyTurn}
+              isDragging={!!drag}
+              onKeep={() => setSelected(null)}
+              onQuit={() => setShowExit(true)}
+              ready={ready}
+              canBuzz={canBuzz}
+              onBuzz={handleBuzz}
+              buzzed={buzzed}
+              showConfetti={showConfetti}
+            />
+          </div>
+        </div>
       </div>
 
       {drag && (

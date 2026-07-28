@@ -214,147 +214,164 @@ export default function ProfileSetupPage({ onNavigate, user, prefillName }) {
   return (
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
-      <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
+      <style>{`
+        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+          .ps-content { flex-direction: row !important; align-items: flex-start !important; gap: 24px; padding: 16px 24px !important; overflow: hidden !important; }
+          .ps-left { flex: 0 0 220px; overflow: hidden; }
+          .ps-wordmark { margin-bottom: 8px !important; }
+          .ps-wordmark > div:last-child { font-size: 26px !important; }
+          .ps-header { margin-bottom: 10px !important; }
+          .ps-header h1 { font-size: 18px !important; margin-bottom: 2px !important; }
+          .ps-header p { display: none; }
+          .ps-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); }
+          .ps-right .panel { padding: 12px !important; }
+        }
+      `}</style>
+      <div className="scene-content ps-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
 
-        {/* Back */}
-        <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)', marginBottom: 24, flexShrink: 0 }}>‹</button>
+        <div className="ps-left">
+          {/* Back */}
+          <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)', marginBottom: 24, flexShrink: 0 }}>‹</button>
 
-        {/* Wordmark */}
-        <div style={{ textAlign: 'center', marginBottom: 24, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
-          <div aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.55, pointerEvents: 'none' }}/>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
-            <span style={{ color: 'var(--ink)' }}>Syn</span>
-            <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
-          </div>
-        </div>
-
-        {/* Header */}
-        <div style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Profile setup</div>
-          <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>👋 Welcome to Synapse</h1>
-          <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Let's create your profile.</p>
-        </div>
-
-        {error && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', marginBottom: 16, animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>{error}</div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
-
-          {/* AVATAR */}
-          <div className="panel" style={{ padding: 20 }}>
-            <SectionLabel>Your avatar</SectionLabel>
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={{
-                width: 88, height: 88, borderRadius: 99,
-                background: 'oklch(0.22 0.03 232 / 0.9)',
-                border: '1px solid oklch(0.82 0.16 195 / 0.5)',
-                boxShadow: '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 32px oklch(0.82 0.16 195 / 0.5)',
-                display: 'grid', placeItems: 'center',
-                fontSize: 44, lineHeight: 1,
-                animation: 'syn-pulse 2.4s ease-in-out infinite, syn-float 6s ease-in-out infinite',
-              }}>{avatar}</div>
-              <button type="button" onClick={() => setPickerOpen(v => !v)}
-                className="btn-ghost tap-target"
-                style={{ minHeight: 44, paddingInline: 18, borderRadius: 999, display: 'flex', alignItems: 'center', gap: 8 }}>
-                ✏ Change Avatar
-              </button>
+          {/* Wordmark */}
+          <div className="ps-wordmark" style={{ textAlign: 'center', marginBottom: 24, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
+            <div aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.55, pointerEvents: 'none' }}/>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
+              <span style={{ color: 'var(--ink)' }}>Syn</span>
+              <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
             </div>
-            {pickerOpen && (
-              <div style={{
-                marginTop: 20, borderRadius: 20, padding: 16,
-                background: 'oklch(0.27 0.035 230 / 0.9)', border: '1px solid var(--border)',
-                animation: 'syn-rise 220ms cubic-bezier(.2,.8,.2,1) both',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <SectionLabel>Choose your avatar</SectionLabel>
-                  <button type="button" onClick={() => setPickerOpen(false)} className="tap-target" style={{ width: 32, height: 32, borderRadius: 99, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink-mute)', display: 'grid', placeItems: 'center', fontSize: 16 }}>✕</button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                  {AVATARS.map(emo => {
-                    const active = emo === avatar;
-                    return (
-                      <button key={emo} type="button"
-                        onClick={() => { setAvatar(emo); setPickerOpen(false); }}
-                        className="tap-target"
-                        style={{
-                          width: 52, height: 52, margin: '0 auto', fontSize: 26,
-                          borderRadius: 99, display: 'grid', placeItems: 'center',
-                          background: active ? 'oklch(0.82 0.16 195 / 0.18)' : 'oklch(0.22 0.03 232 / 0.85)',
-                          border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                          boxShadow: active ? '0 0 0 3px oklch(0.82 0.16 195 / 0.22), 0 0 20px oklch(0.82 0.16 195 / 0.45)' : 'inset 0 1px 0 oklch(1 0 0 / 0.04)',
-                          cursor: 'pointer', transition: 'all 150ms',
-                        }}>{emo}</button>
-                    );
-                  })}
-                </div>
+          </div>
+
+          {/* Header */}
+          <div className="ps-header" style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Profile setup</div>
+            <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>👋 Welcome to Synapse</h1>
+            <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Let's create your profile.</p>
+          </div>
+        </div>
+
+        <div className="ps-right">
+          {error && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', marginBottom: 16, animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
+              <div style={{ fontSize: 12, fontWeight: 600 }}>{error}</div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
+
+            {/* AVATAR */}
+            <div className="panel" style={{ padding: 20 }}>
+              <SectionLabel>Your avatar</SectionLabel>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  width: 88, height: 88, borderRadius: 99,
+                  background: 'oklch(0.22 0.03 232 / 0.9)',
+                  border: '1px solid oklch(0.82 0.16 195 / 0.5)',
+                  boxShadow: '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 32px oklch(0.82 0.16 195 / 0.5)',
+                  display: 'grid', placeItems: 'center',
+                  fontSize: 44, lineHeight: 1,
+                  animation: 'syn-pulse 2.4s ease-in-out infinite, syn-float 6s ease-in-out infinite',
+                }}>{avatar}</div>
+                <button type="button" onClick={() => setPickerOpen(v => !v)}
+                  className="btn-ghost tap-target"
+                  style={{ minHeight: 44, paddingInline: 18, borderRadius: 999, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  ✏ Change Avatar
+                </button>
               </div>
-            )}
-          </div>
-
-          {/* USERNAME */}
-          <div className="panel" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <SectionLabel>Username</SectionLabel>
-              <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontVariantNumeric: 'tabular-nums' }}>{username.length} / 20</span>
+              {pickerOpen && (
+                <div style={{
+                  marginTop: 20, borderRadius: 20, padding: 16,
+                  background: 'oklch(0.27 0.035 230 / 0.9)', border: '1px solid var(--border)',
+                  animation: 'syn-rise 220ms cubic-bezier(.2,.8,.2,1) both',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                    <SectionLabel>Choose your avatar</SectionLabel>
+                    <button type="button" onClick={() => setPickerOpen(false)} className="tap-target" style={{ width: 32, height: 32, borderRadius: 99, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink-mute)', display: 'grid', placeItems: 'center', fontSize: 16 }}>✕</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                    {AVATARS.map(emo => {
+                      const active = emo === avatar;
+                      return (
+                        <button key={emo} type="button"
+                          onClick={() => { setAvatar(emo); setPickerOpen(false); }}
+                          className="tap-target"
+                          style={{
+                            width: 52, height: 52, margin: '0 auto', fontSize: 26,
+                            borderRadius: 99, display: 'grid', placeItems: 'center',
+                            background: active ? 'oklch(0.82 0.16 195 / 0.18)' : 'oklch(0.22 0.03 232 / 0.85)',
+                            border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                            boxShadow: active ? '0 0 0 3px oklch(0.82 0.16 195 / 0.22), 0 0 20px oklch(0.82 0.16 195 / 0.45)' : 'inset 0 1px 0 oklch(1 0 0 / 0.04)',
+                            cursor: 'pointer', transition: 'all 150ms',
+                          }}>{emo}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <UsernameInput value={username} onChange={setUsername} avail={avail} disabled={loading || done} />
-            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--ink-mute)' }}>Letters, numbers and underscores only</div>
-            <AvailabilityHint avail={avail} />
-          </div>
 
-          {/* COUNTRY */}
-          <div className="panel" style={{ padding: 20 }}>
-            <SectionLabel>Country</SectionLabel>
-            <button type="button" onClick={() => setCountryOpen(true)} disabled={loading || done}
-              className="tap-target"
-              style={{
-                marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '0 16px', minHeight: 56, borderRadius: 999,
-                background: 'oklch(0.22 0.03 232 / 0.85)',
-                border: `1px solid ${countryTouched && !country ? 'var(--danger)' : 'var(--border)'}`,
-                color: 'var(--ink)', cursor: 'pointer', transition: 'all 150ms',
-              }}>
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{country?.flag ?? '🌍'}</span>
-              <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 500, color: country ? 'var(--ink)' : 'var(--ink-mute)' }}>
-                {country?.name ?? 'Select your country'}
-              </span>
-              <span style={{ color: 'var(--ink-mute)', fontSize: 18 }}>›</span>
+            {/* USERNAME */}
+            <div className="panel" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <SectionLabel>Username</SectionLabel>
+                <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontVariantNumeric: 'tabular-nums' }}>{username.length} / 20</span>
+              </div>
+              <UsernameInput value={username} onChange={setUsername} avail={avail} disabled={loading || done} />
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--ink-mute)' }}>Letters, numbers and underscores only</div>
+              <AvailabilityHint avail={avail} />
+            </div>
+
+            {/* COUNTRY */}
+            <div className="panel" style={{ padding: 20 }}>
+              <SectionLabel>Country</SectionLabel>
+              <button type="button" onClick={() => setCountryOpen(true)} disabled={loading || done}
+                className="tap-target"
+                style={{
+                  marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '0 16px', minHeight: 56, borderRadius: 999,
+                  background: 'oklch(0.22 0.03 232 / 0.85)',
+                  border: `1px solid ${countryTouched && !country ? 'var(--danger)' : 'var(--border)'}`,
+                  color: 'var(--ink)', cursor: 'pointer', transition: 'all 150ms',
+                }}>
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{country?.flag ?? '🌍'}</span>
+                <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 500, color: country ? 'var(--ink)' : 'var(--ink-mute)' }}>
+                  {country?.name ?? 'Select your country'}
+                </span>
+                <span style={{ color: 'var(--ink-mute)', fontSize: 18 }}>›</span>
+              </button>
+              {countryTouched && !country && (
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--danger)' }}>Please choose your country</div>
+              )}
+            </div>
+
+            {/* THEME */}
+            <div className="panel" style={{ padding: 20 }}>
+              <SectionLabel>Theme</SectionLabel>
+              <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <ThemeCard active={theme === 'neural'} onClick={() => setTheme('neural')} icon="🧠" title="Neural Network" subtitle="Sci-fi · Teal" tone="cool" />
+                <ThemeCard active={theme === 'library'} onClick={() => setTheme('library')} icon="📚" title="Ancient Library" subtitle="Classic · Gold" tone="warm" />
+              </div>
+            </div>
+
+            {/* SUBMIT */}
+            <button type="submit" disabled={(!canSubmit && !loading && !done)}
+              className="btn-primary tap-target"
+              style={{ opacity: canSubmit || loading || done ? 1 : 0.55, cursor: canSubmit || loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              {done    ? '✓ Let\'s play!'
+               : loading ? '⏳ Saving…'
+               : 'Save & Continue →'}
             </button>
-            {countryTouched && !country && (
-              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--danger)' }}>Please choose your country</div>
-            )}
-          </div>
+          </form>
 
-          {/* THEME */}
-          <div className="panel" style={{ padding: 20 }}>
-            <SectionLabel>Theme</SectionLabel>
-            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <ThemeCard active={theme === 'neural'} onClick={() => setTheme('neural')} icon="🧠" title="Neural Network" subtitle="Sci-fi · Teal" tone="cool" />
-              <ThemeCard active={theme === 'library'} onClick={() => setTheme('library')} icon="📚" title="Ancient Library" subtitle="Classic · Gold" tone="warm" />
-            </div>
-          </div>
-
-          {/* SUBMIT */}
-          <button type="submit" disabled={(!canSubmit && !loading && !done)}
-            className="btn-primary tap-target"
-            style={{ opacity: canSubmit || loading || done ? 1 : 0.55, cursor: canSubmit || loading ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            {done    ? '✓ Let\'s play!'
-             : loading ? '⏳ Saving…'
-             : 'Save & Continue →'}
-          </button>
-        </form>
-
-        {countryOpen && (
-          <CountrySheet
-            selected={country?.code ?? null}
-            onSelect={c => { setCountry(c); setCountryTouched(true); setCountryOpen(false); }}
-            onClose={() => setCountryOpen(false)}
-          />
-        )}
+          {countryOpen && (
+            <CountrySheet
+              selected={country?.code ?? null}
+              onSelect={c => { setCountry(c); setCountryTouched(true); setCountryOpen(false); }}
+              onClose={() => setCountryOpen(false)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

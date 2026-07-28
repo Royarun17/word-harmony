@@ -37,7 +37,7 @@ function AuthField({ label, type = 'text', placeholder, value, onChange, error, 
             ? '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 24px oklch(0.82 0.16 195 / 0.25)'
             : 'inset 0 1px 0 oklch(1 0 0 / 0.03)',
         transition: 'box-shadow 200ms, border-color 200ms',
-      }}>
+      }} className="auth-field-wrap">
         <span style={{ paddingLeft: 16, paddingRight: 4, color: focused ? 'var(--accent)' : 'var(--ink-mute)', display: 'flex', alignItems: 'center', fontSize: 18 }}>
           {isPass ? '🔒' : '✉'}
         </span>
@@ -45,6 +45,7 @@ function AuthField({ label, type = 'text', placeholder, value, onChange, error, 
           type={effectiveType} value={value} onChange={onChange}
           placeholder={placeholder} autoComplete={autoComplete}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          className="auth-field-input"
           style={{ flex: 1, background: 'transparent', outline: 'none', padding: '16px', fontSize: 16, fontFamily: 'var(--font-body)', color: 'var(--ink)', minHeight: 56, border: 'none' }}
         />
         {isPass && reveal && (
@@ -89,87 +90,106 @@ export default function SignInPage({ onNavigate }) {
   return (
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
-      <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
+      <style>{`
+        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+          .auth-content { flex-direction: row !important; align-items: flex-start !important; gap: 28px; padding: 16px 28px !important; overflow: hidden !important; }
+          .auth-left { flex: 0 0 240px; overflow: hidden; }
+          .auth-wordmark { margin-bottom: 10px !important; }
+          .auth-wordmark > div:last-child { font-size: 26px !important; }
+          .auth-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); padding-right: 4px; }
+          .auth-header-block { margin-bottom: 10px !important; }
+          .auth-header-block h1 { font-size: 20px !important; margin-bottom: 2px !important; }
+          .auth-header-block p { display: none; }
+          .auth-panel { padding: 12px !important; gap: 8px !important; }
+          .auth-field-wrap { border-radius: 14px !important; }
+          .auth-field-input { min-height: 38px !important; padding: 10px !important; font-size: 14px !important; }
+        }
+      `}</style>
+      <div className="scene-content auth-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
 
-        {/* Back button */}
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-          <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)' }}>
-            ‹
-          </button>
-        </div>
+        <div className="auth-left">
+          {/* Back button */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+            <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)' }}>
+              ‹
+            </button>
+          </div>
 
-        {/* Synapse wordmark — floating with glow */}
-        <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
-          <div aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.6, pointerEvents: 'none' }}/>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
-            <span style={{ color: 'var(--ink)' }}>Syn</span>
-            <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
+          {/* Synapse wordmark — floating with glow */}
+          <div className="auth-wordmark" style={{ textAlign: 'center', marginBottom: 32, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
+            <div aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.6, pointerEvents: 'none' }}/>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
+              <span style={{ color: 'var(--ink)' }}>Syn</span>
+              <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
+            </div>
+          </div>
+
+          {/* Header */}
+          <div className="auth-header-block" style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Welcome back</div>
+            <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>Sign in</h1>
+            <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Good to see you again.</p>
           </div>
         </div>
 
-        {/* Header */}
-        <div style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Welcome back</div>
-          <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>Sign in</h1>
-          <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Good to see you again.</p>
-        </div>
-
-        {/* Form */}
-        <div style={{ animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
-          {!online && (
-            <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.82 0.16 75 / 0.12)', border: '1px solid oklch(0.82 0.16 75 / 0.45)', color: 'var(--warn)' }}>
-              <span style={{ fontSize: 16 }}>📶</span>
-              <div style={{ fontSize: 12, fontWeight: 600 }}>You're offline. Reconnect to sign in.</div>
-            </div>
-          )}
-
-          <div className="panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Error banner */}
-            {authError && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }} role="alert">
-                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
-                <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{authError}</div>
+        <div className="auth-right">
+          {/* Form */}
+          <div style={{ animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
+            {!online && (
+              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.82 0.16 75 / 0.12)', border: '1px solid oklch(0.82 0.16 75 / 0.45)', color: 'var(--warn)' }}>
+                <span style={{ fontSize: 16 }}>📶</span>
+                <div style={{ fontSize: 12, fontWeight: 600 }}>You're offline. Reconnect to sign in.</div>
               </div>
             )}
 
-            {/* Email */}
-            <AuthField label="Email" type="email" placeholder="you@synapse.gg" autoComplete="email"
-              value={email} onChange={e => { setEmail(e.target.value); if (authError) setAuthError(''); }}
-              error={authError ? ' ' : null} />
+            <div className="panel auth-panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Error banner */}
+              {authError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }} role="alert">
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
+                  <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{authError}</div>
+                </div>
+              )}
 
-            {/* Password + forgot */}
-            <div>
-              <AuthField label="Password" type="password" reveal autoComplete="current-password"
-                placeholder="Your password"
-                value={pw} onChange={e => { setPw(e.target.value); if (authError) setAuthError(''); }}
+              {/* Email */}
+              <AuthField label="Email" type="email" placeholder="you@synapse.gg" autoComplete="email"
+                value={email} onChange={e => { setEmail(e.target.value); if (authError) setAuthError(''); }}
                 error={authError ? ' ' : null} />
-              <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="button" style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                  Forgot password?
-                </button>
+
+              {/* Password + forgot */}
+              <div>
+                <AuthField label="Password" type="password" reveal autoComplete="current-password"
+                  placeholder="Your password"
+                  value={pw} onChange={e => { setPw(e.target.value); if (authError) setAuthError(''); }}
+                  error={authError ? ' ' : null} />
+                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="button" style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                    Forgot password?
+                  </button>
+                </div>
               </div>
+
+              {/* Submit */}
+              <button type="button" onClick={handleSubmit} disabled={(!canSubmit && !loading) || success}
+                className="btn-primary tap-target"
+                style={{ marginTop: 4, opacity: !canSubmit && !loading ? 0.55 : 1, cursor: !canSubmit ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {success ? '✓ Signed in' : loading ? '⏳ Signing in…' : 'Sign in →'}
+              </button>
+
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8 }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
+                <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, textTransform: 'uppercase', color: 'var(--ink-mute)' }}>No account yet?</div>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
+              </div>
+
+              {/* Create account */}
+              <button type="button" onClick={() => onNavigate('signup')}
+                className="btn-ghost tap-target"
+                style={{ borderColor: 'oklch(0.82 0.16 195 / 0.55)', color: 'var(--accent)' }}>
+                Create account
+              </button>
             </div>
-
-            {/* Submit */}
-            <button type="button" onClick={handleSubmit} disabled={(!canSubmit && !loading) || success}
-              className="btn-primary tap-target"
-              style={{ marginTop: 4, opacity: !canSubmit && !loading ? 0.55 : 1, cursor: !canSubmit ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {success ? '✓ Signed in' : loading ? '⏳ Signing in…' : 'Sign in →'}
-            </button>
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8 }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-              <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, textTransform: 'uppercase', color: 'var(--ink-mute)' }}>No account yet?</div>
-              <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-            </div>
-
-            {/* Create account */}
-            <button type="button" onClick={() => onNavigate('signup')}
-              className="btn-ghost tap-target"
-              style={{ borderColor: 'oklch(0.82 0.16 195 / 0.55)', color: 'var(--accent)' }}>
-              Create account
-            </button>
           </div>
         </div>
       </div>

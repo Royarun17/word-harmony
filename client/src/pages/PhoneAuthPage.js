@@ -62,16 +62,25 @@ export default function PhoneAuthPage({ onNavigate }) {
   const countryCodes = ['+91','+1','+44','+61','+971','+65','+81','+82','+55','+234'];
 
   return (
-    <div style={{ minHeight:'100vh', background:T.pageBg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 }}>
-      <style>{`@keyframes wh-pop{0%{transform:scale(0.95);opacity:0;}100%{transform:scale(1);opacity:1;}}.wh-pop{animation:wh-pop 0.25s cubic-bezier(.34,1.56,.64,1) forwards;}`}</style>
+    <div className="phone-auth-outer" style={{ minHeight:'100vh', background:T.pageBg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <style>{`
+        @keyframes wh-pop{0%{transform:scale(0.95);opacity:0;}100%{transform:scale(1);opacity:1;}}
+        .wh-pop{animation:wh-pop 0.25s cubic-bezier(.34,1.56,.64,1) forwards;}
+        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+          .phone-auth-outer { padding: 12px !important; }
+          .phone-auth-card { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 16px !important; }
+          .phone-auth-icon { font-size: 26px !important; margin-bottom: 2px !important; }
+          .phone-auth-title { font-size: 16px !important; }
+        }
+      `}</style>
       <div id="recaptcha-container"/>
 
-      <div className="wh-pop" style={{ background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:20, padding:28, width:'100%', maxWidth:400, boxShadow:'0 8px 32px rgba(26,26,46,0.1)' }}>
+      <div className="wh-pop phone-auth-card" style={{ background:T.cardBg, border:`1px solid ${T.border}`, borderRadius:20, padding:28, width:'100%', maxWidth:400, boxShadow:'0 8px 32px rgba(26,26,46,0.1)' }}>
         <button onClick={()=>onNavigate('welcome')} style={{ background:'none', border:'none', color:T.textSecondary, fontSize:13, cursor:'pointer', marginBottom:16, padding:0 }}>← Back</button>
 
         <div style={{ textAlign:'center', marginBottom:24 }}>
-          <div style={{ fontSize:44, marginBottom:8 }}>📱</div>
-          <h2 style={{ fontSize:20, fontWeight:700, color:T.navy, fontFamily:'Georgia,serif', margin:0 }}>
+          <div className="phone-auth-icon" style={{ fontSize:44, marginBottom:8 }}>📱</div>
+          <h2 className="phone-auth-title" style={{ fontSize:20, fontWeight:700, color:T.navy, fontFamily:'Georgia,serif', margin:0 }}>
             {step==='phone' ? 'Enter phone number' : 'Verify your phone'}
           </h2>
           <p style={{ fontSize:12, color:T.textSecondary, marginTop:4 }}>

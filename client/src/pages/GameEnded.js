@@ -32,65 +32,78 @@ export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
     <div className="scene" style={{ minHeight: '100dvh', position: 'relative' }}>
       <ThemeSwitcher />
       <Confetti count={80} />
-      <div className="scene-content" style={{ padding: '56px 20px 32px', overflowY: 'auto' }}>
+      <style>{`
+        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+          .ge-content { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 20px; padding: 16px 20px !important; overflow: hidden !important; }
+          .ge-left { flex: 0 0 220px; overflow: hidden; }
+          .ge-hero h1 { font-size: 26px !important; }
+          .ge-hero p { display: none; }
+          .ge-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); }
+        }
+      `}</style>
+      <div className="scene-content ge-content" style={{ padding: '56px 20px 32px', overflowY: 'auto' }}>
 
-        {/* Hero */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>MATCH OVER</div>
-          <h1 style={{ fontSize: 44, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1, color: 'var(--ink)', marginBottom: 8 }}>
-            {isWinner ? 'Victory' : `${sorted[0]?.playerName} wins!`}
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-dim)' }}>
-            {isWinner ? 'You collected the most sets this match.' : 'Great game everyone!'}
-          </p>
+        <div className="ge-left">
+          {/* Hero */}
+          <div className="ge-hero" style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={{ fontSize: 10, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>MATCH OVER</div>
+            <h1 style={{ fontSize: 44, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1, color: 'var(--ink)', marginBottom: 8 }}>
+              {isWinner ? 'Victory' : `${sorted[0]?.playerName} wins!`}
+            </h1>
+            <p style={{ fontSize: 13, color: 'var(--ink-dim)' }}>
+              {isWinner ? 'You collected the most sets this match.' : 'Great game everyone!'}
+            </p>
+          </div>
+
+          {/* Podium */}
+          {sorted.length >= 3 && (
+            <div style={{ position: 'relative', marginBottom: 32 }}>
+              <div style={{ position: 'absolute', inset: '0 32px', top: -24, height: 160, filter: 'blur(40px)', opacity: 0.6, background: 'radial-gradient(circle, var(--accent), transparent 60%)', pointerEvents: 'none' }}/>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12, position: 'relative' }}>
+                <Podium place={2} name={sorted[1]?.playerName?.split(' ')[0] || '?'} seed={sorted[1]?.playerName} score={sorted[1]?.totalScore} />
+                <Podium place={1} name={isWinner ? 'You' : sorted[0]?.playerName?.split(' ')[0] || '?'} seed={sorted[0]?.playerName} score={sorted[0]?.totalScore} winner />
+                <Podium place={3} name={sorted[2]?.playerName?.split(' ')[0] || '?'} seed={sorted[2]?.playerName} score={sorted[2]?.totalScore} />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Podium */}
-        {sorted.length >= 3 && (
-          <div style={{ position: 'relative', marginBottom: 32 }}>
-            <div style={{ position: 'absolute', inset: '0 32px', top: -24, height: 160, filter: 'blur(40px)', opacity: 0.6, background: 'radial-gradient(circle, var(--accent), transparent 60%)', pointerEvents: 'none' }}/>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12, position: 'relative' }}>
-              <Podium place={2} name={sorted[1]?.playerName?.split(' ')[0] || '?'} seed={sorted[1]?.playerName} score={sorted[1]?.totalScore} />
-              <Podium place={1} name={isWinner ? 'You' : sorted[0]?.playerName?.split(' ')[0] || '?'} seed={sorted[0]?.playerName} score={sorted[0]?.totalScore} winner />
-              <Podium place={3} name={sorted[2]?.playerName?.split(' ')[0] || '?'} seed={sorted[2]?.playerName} score={sorted[2]?.totalScore} />
+        <div className="ge-right">
+          {/* Rewards */}
+          <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
+            <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 12 }}>REWARDS</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+              {REWARDS.map((r, i) => (
+                <div key={r.label} style={{ borderRadius: 16, padding: 12, textAlign: 'center', background: 'linear-gradient(180deg, oklch(from var(--surface-3) l c h / .7), oklch(from var(--surface) l c h / .7))', border: '1px solid var(--border)', animation: `syn-pop 500ms ${i * 100}ms cubic-bezier(.2,.8,.2,1) both` }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 99, display: 'grid', placeItems: 'center', margin: '0 auto 4px', background: 'oklch(from var(--accent) l c h / .18)', color: 'var(--accent)', fontSize: 16 }}>{r.icon}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{r.label}</div>
+                  <div className="number-tab" style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>{r.value}</div>
+                </div>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Rewards */}
-        <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 12 }}>REWARDS</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
-            {REWARDS.map((r, i) => (
-              <div key={r.label} style={{ borderRadius: 16, padding: 12, textAlign: 'center', background: 'linear-gradient(180deg, oklch(from var(--surface-3) l c h / .7), oklch(from var(--surface) l c h / .7))', border: '1px solid var(--border)', animation: `syn-pop 500ms ${i * 100}ms cubic-bezier(.2,.8,.2,1) both` }}>
-                <div style={{ width: 32, height: 32, borderRadius: 99, display: 'grid', placeItems: 'center', margin: '0 auto 4px', background: 'oklch(from var(--accent) l c h / .18)', color: 'var(--accent)', fontSize: 16 }}>{r.icon}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{r.label}</div>
-                <div className="number-tab" style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>{r.value}</div>
-              </div>
-            ))}
+          {/* Season progress */}
+          <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>SEASON PROGRESS</div>
+              <span className="chip chip-accent">LVL {(finalScores?.find(p => p.playerId === playerId)?.totalScore || 0) > 1000 ? '15' : '14'} →</span>
+            </div>
+            <div style={{ height: 12, borderRadius: 99, overflow: 'hidden', background: 'oklch(from var(--surface-3) l c h / .6)', marginBottom: 8 }}>
+              <div style={{ height: '100%', width: '72%', background: 'linear-gradient(90deg, var(--accent), var(--accent-2))', boxShadow: '0 0 12px var(--accent)' }}/>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-mute)' }}>
+              <span className="number-tab">2,880 XP</span>
+              <span className="number-tab">4,000 XP</span>
+            </div>
           </div>
-        </div>
 
-        {/* Season progress */}
-        <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>SEASON PROGRESS</div>
-            <span className="chip chip-accent">LVL {(finalScores?.find(p => p.playerId === playerId)?.totalScore || 0) > 1000 ? '15' : '14'} →</span>
+          {/* Buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <button onClick={onPlayAgain} className="btn-ghost tap-target">🏠 Home</button>
+            <button className="btn-ghost tap-target">↗ Share</button>
+            <button onClick={onPlayAgain} className="btn-primary tap-target">↺ Rematch</button>
           </div>
-          <div style={{ height: 12, borderRadius: 99, overflow: 'hidden', background: 'oklch(from var(--surface-3) l c h / .6)', marginBottom: 8 }}>
-            <div style={{ height: '100%', width: '72%', background: 'linear-gradient(90deg, var(--accent), var(--accent-2))', boxShadow: '0 0 12px var(--accent)' }}/>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-mute)' }}>
-            <span className="number-tab">2,880 XP</span>
-            <span className="number-tab">4,000 XP</span>
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <button onClick={onPlayAgain} className="btn-ghost tap-target">🏠 Home</button>
-          <button className="btn-ghost tap-target">↗ Share</button>
-          <button onClick={onPlayAgain} className="btn-primary tap-target">↺ Rematch</button>
         </div>
       </div>
     </div>
