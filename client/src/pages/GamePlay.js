@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import socket from '../utils/socket';
 import { useSocketEvent } from '../hooks/useSocketEvent';
-import { Confetti, ThemeSwitcher, WordCard } from '../SynapseComponents';
+import { Confetti, WordCard } from '../SynapseComponents';
 import Header from '../components/gameplay/Header';
 import PromptBanner from '../components/gameplay/PromptBanner';
 import GameTable from '../components/gameplay/GameTable';
@@ -165,7 +165,6 @@ export default function GamePlay({ session, playerId, onExit }) {
 
   return (
     <div className={`scene ${styles.screen}`}>
-      <ThemeSwitcher />
       {showConfetti && <Confetti count={60} />}
 
       <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -177,6 +176,9 @@ export default function GamePlay({ session, playerId, onExit }) {
           modeLabel={session.gameMode === 'education' ? 'Syntax' : 'Spark'}
           onExit={() => setShowExit(true)}
           onInfo={() => setShowInfo(true)}
+          roomCode={session.id}
+          playerCount={players.length}
+          maxPlayers={session.maxPlayers}
         />
 
         <PromptBanner
