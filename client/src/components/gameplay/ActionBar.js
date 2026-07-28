@@ -9,48 +9,52 @@ function ActionBar({
   const selectedLabel = selected ? selected.charAt(0).toUpperCase() + selected.slice(1) : null;
 
   return (
-    <div className={styles.actionBar}>
-      <button onClick={onQuit} className={`btn-ghost tap-target ${styles.actionBtn}`}>🏳 Quit</button>
+    <div className={styles.actionBarWrap}>
+      <div className={styles.actionBarTop}>
+        <button onClick={onQuit} className={`btn-ghost tap-target ${styles.actionBtnSm}`}>🏳 Quit</button>
 
-      <div
-        className={`btn-ghost ${styles.actionBtn} ${styles.passHint}${isDragging ? ` ${styles.passHintActive}` : ''}`}
-        title="Drag a card onto the table to pass it"
-      >
-        {isDragging ? (
-          <>Drop on table <span aria-hidden>→</span></>
-        ) : selectedLabel ? (
-          <>Pass <span className={styles.passHintWord}>&quot;{selectedLabel}&quot;</span> <span aria-hidden>→</span></>
-        ) : isMyTurn ? (
-          'Drag a card to pass'
-        ) : (
-          'Pass'
-        )}
+        <div
+          className={`${styles.passHint}${isDragging ? ` ${styles.passHintActive}` : ''}`}
+          title="Drag a card onto the table to pass it"
+        >
+          {isDragging ? (
+            <>Drop on table <span aria-hidden>→</span></>
+          ) : selectedLabel ? (
+            <>Pass <span className={styles.passHintWord}>&quot;{selectedLabel}&quot;</span> <span aria-hidden>→</span></>
+          ) : isMyTurn ? (
+            'Drag a card to pass'
+          ) : (
+            'Pass'
+          )}
+        </div>
+
+        <button
+          onClick={onKeep}
+          disabled={!selected}
+          className={`btn-ghost tap-target ${styles.actionBtnSm}`}
+          style={{ opacity: selected ? 1 : 0.5 }}
+        >
+          <span aria-hidden>↻</span> Keep
+        </button>
       </div>
 
-      <div className={styles.buzzSlot}>
+      <div className={styles.buzzSlotBig}>
         <button
           onClick={onBuzz}
           disabled={!canBuzz}
-          className={`tap-target ${styles.actionBtn} ${styles.buzzPill}${ready ? ` ${styles.buzzPillReady}` : ''}`}
+          className={`tap-target ${styles.buzzMain}${ready ? ` ${styles.buzzMainReady}` : ''}`}
         >
-          <span aria-hidden>⚡</span> Buzz
+          <span aria-hidden>⚡</span> BUZZ
         </button>
-        {showConfetti && <Confetti count={50} />}
-        {buzzed && (
+        {showConfetti && <Confetti count={60} />}
+        {buzzed ? (
           <div className={styles.buzzToast}>
             <span className="chip chip-accent" style={{ fontSize: 11 }}>Buzzed in!</span>
           </div>
+        ) : (
+          <div className={styles.buzzCaption}>First correct match scores the most — up to 10 pts</div>
         )}
       </div>
-
-      <button
-        onClick={onKeep}
-        disabled={!selected}
-        className={`btn-ghost tap-target ${styles.actionBtn}`}
-        style={{ opacity: selected ? 1 : 0.5 }}
-      >
-        <span aria-hidden>↻</span> Keep
-      </button>
     </div>
   );
 }
