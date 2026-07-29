@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import socket from '../utils/socket';
 import { auth, signOut } from '../utils/firebase';
-import { ThemeSwitcher, SectionHeader, PlayerAvatar } from '../SynapseComponents';
+import { ThemeSwitcher, PlayerAvatar } from '../SynapseComponents';
 
 const MODES = {
   syntax: { icon: '🧠', name: 'Syntax', desc: 'Synonyms of your word', accent: true,
@@ -145,12 +145,11 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
             <div className="lobby-right">
               {/* Mode cards */}
               <div className="lobby-section-gap" style={{ marginBottom: 32 }}>
-                <SectionHeader eyebrow="Choose a mode" title="Play" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 280 }}>
                   {Object.entries(MODES).map(([key, m]) => (
                     <button key={key} onClick={() => { setMode(key); setShowPopup(true); }} className="panel tap-target mode-card" type="button"
                       style={{
-                        padding: 18, textAlign: 'left', cursor: 'pointer', border: 'none',
+                        padding: 14, textAlign: 'left', cursor: 'pointer', border: 'none',
                         outline: selectedMode === key ? '2px solid var(--accent)' : '2px solid transparent',
                         boxShadow: selectedMode === key ? 'var(--glow-accent)' : 'none',
                         background: 'linear-gradient(165deg, oklch(from var(--surface-2) calc(l + .02) c h), var(--surface))',
@@ -162,14 +161,14 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                       onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                       <span aria-hidden style={{ position: 'absolute', top: -30, right: -30, width: 90, height: 90, borderRadius: '50%', background: m.accent ? 'radial-gradient(circle, var(--accent), transparent 70%)' : 'radial-gradient(circle, var(--surface-3), transparent 70%)', opacity: 0.35, pointerEvents: 'none' }}/>
                       <div style={{
-                        width: 44, height: 44, borderRadius: 14, display: 'grid', placeItems: 'center', marginBottom: 14, fontSize: 20, position: 'relative',
+                        width: 36, height: 36, borderRadius: 12, display: 'grid', placeItems: 'center', marginBottom: 10, fontSize: 17, position: 'relative',
                         background: m.accent ? 'radial-gradient(circle at 30% 25%, oklch(from var(--accent) calc(l + .12) c h), var(--accent) 45%, var(--accent-2) 100%)' : 'linear-gradient(160deg, var(--surface-3), var(--surface-2))',
                         boxShadow: m.accent ? 'inset 0 2px 4px oklch(1 0 0 / .35), inset 0 -4px 8px oklch(0 0 0 / .25), var(--glow-accent)' : 'inset 0 1px 0 oklch(1 0 0 / .06)',
                         color: m.accent ? 'var(--accent-ink)' : 'var(--ink)',
                       }}>{m.icon}</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)', position: 'relative' }}>{m.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2, position: 'relative' }}>{m.desc}</div>
-                      {m.accent && <span className="chip chip-accent" style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, padding: '2px 8px' }}>POPULAR</span>}
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)', position: 'relative' }}>{m.name}</div>
+                      <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2, position: 'relative' }}>{m.desc}</div>
+                      {m.accent && <span className="chip chip-accent" style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, padding: '2px 6px' }}>POPULAR</span>}
                     </button>
                   ))}
                 </div>
