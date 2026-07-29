@@ -144,8 +144,8 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
 
             <div className="lobby-right">
               {/* Mode cards */}
-              <div className="lobby-section-gap" style={{ marginBottom: 32 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 280 }}>
+              <div className="lobby-section-gap" style={{ marginBottom: 32, display: 'flex', justifyContent: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 280, width: '100%' }}>
                   {Object.entries(MODES).map(([key, m]) => (
                     <button key={key} onClick={() => { setMode(key); setShowPopup(true); }} className="panel tap-target mode-card" type="button"
                       style={{
