@@ -2,12 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import RotateDeviceOverlay from './components/RotateDeviceOverlay';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <div className="landscape-lock-wrap">
-      <App />
-    </div>
+    <App />
+    <RotateDeviceOverlay />
   </React.StrictMode>
 );
