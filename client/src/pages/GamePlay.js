@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import socket from '../utils/socket';
 import { useSocketEvent } from '../hooks/useSocketEvent';
 import { Confetti, WordCard } from '../SynapseComponents';
+import ArenaBackground from '../components/gameplay/ArenaBackground';
 import Header from '../components/gameplay/Header';
 import PromptBanner from '../components/gameplay/PromptBanner';
 import GameTable from '../components/gameplay/GameTable';
@@ -164,7 +165,8 @@ export default function GamePlay({ session, playerId, onExit }) {
   }
 
   return (
-    <div className={`scene ${styles.screen}`}>
+    <div className={`scene ${styles.screen} ${styles.noSceneBg}`}>
+      <ArenaBackground />
       {showConfetti && <Confetti count={60} />}
 
       <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
