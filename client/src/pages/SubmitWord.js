@@ -118,7 +118,7 @@ export default function SubmitWord({ session, playerId }) {
               </div>
 
               <div style={{ marginTop: 'auto' }}>
-                <button onClick={handleSubmit} disabled={!valid || checking} className="btn-primary tap-target" style={{ width: '100%', opacity: valid && !checking ? 1 : 0.5 }}>
+                <button onClick={handleSubmit} disabled={!valid || checking} className="btn-cta tap-target" style={{ width: '100%', opacity: valid && !checking ? 1 : 0.5 }}>
                   ✦ {checking ? 'Locking in…' : 'SUBMIT WORD'}
                 </button>
                 <p style={{ marginTop: 12, textAlign: 'center', fontSize: 11, color: 'var(--ink-mute)' }}>
