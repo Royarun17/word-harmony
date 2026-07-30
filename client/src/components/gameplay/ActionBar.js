@@ -36,7 +36,8 @@ function ActionBar({
           className={`tap-target ${styles.keepMain}`}
           style={{ opacity: selected ? 1 : 0.6 }}
         >
-          <span aria-hidden>🔖</span> Keep
+          <span><span aria-hidden>🔖</span> Keep</span>
+          <span className={styles.keepMainCaption}>Cancel card selection</span>
         </button>
 
         <div className={styles.buzzSlotBig}>
