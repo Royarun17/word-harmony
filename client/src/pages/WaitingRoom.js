@@ -55,7 +55,7 @@ export default function WaitingRoom({ session, playerId, isHost, onBack }) {
           {/* Buttons */}
           <div style={{ display: 'flex', gap: 12 }}>
             {isHost ? (
-              <button onClick={handleStart} disabled={!canStart} className="btn-primary tap-target" style={{ flex: 1, opacity: canStart ? 1 : 0.5 }}>
+              <button onClick={handleStart} disabled={!canStart} className="btn-cta tap-target" style={{ flex: 1, opacity: canStart ? 1 : 0.5 }}>
                 ▶ START
               </button>
             ) : (
