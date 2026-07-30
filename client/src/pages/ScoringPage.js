@@ -122,7 +122,7 @@ export default function ScoringPage({ session, playerId, isHost, scoringData }) 
             {isHost ? (
               <>
                 <button onClick={() => {}} className="btn-ghost tap-target" style={{ flex: 1 }}>🏠 Lobby</button>
-                <button onClick={handleNext} className="btn-primary tap-target" style={{ flex: 2 }}>
+                <button onClick={handleNext} className="btn-cta tap-target" style={{ flex: 2 }}>
                   {isLastRound ? '🏆 Final Results' : '↺ Next Round'}
                 </button>
               </>
