@@ -332,4 +332,118 @@ input, select, textarea { font-size: 16px !important; }
 
 .card-hover:hover { transform: translateY(-4px) rotate(-0.5deg); box-shadow: var(--shadow-lift); }
 .card-hover:active { transform: translateY(-1px) scale(0.99); }
-.card-selected { transform: translateY(-14px) scale(1.03); box-shadow: var(--glow-card), var(--shadow-lift);
+.card-selected { transform: translateY(-14px) scale(1.03); box-shadow: var(--glow-card), var(--shadow-lift); z-index: 5; }
+.ring-match { outline: 2px solid var(--win); outline-offset: 0; }
+
+/* Avatar */
+.avatar-ring {
+  position: relative;
+  border-radius: 999px;
+  padding: 3px;
+  background: linear-gradient(140deg, oklch(0.82 0.16 195 / 0.35), oklch(0.72 0.19 205 / 0.1));
+}
+.avatar-ring::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent));
+  opacity: 0;
+  filter: blur(10px);
+  transition: opacity 220ms;
+}
+.avatar-active .avatar-ring::before { opacity: 0.9; animation: syn-pulse 1.6s ease-in-out infinite; }
+
+/* Table */
+.table-oval {
+  position: relative;
+  background: var(--table-felt);
+  border-radius: 46% / 50%;
+  box-shadow: inset 0 0 0 2px oklch(0.82 0.16 195 / 0.25), inset 0 0 60px oklch(0 0 0 / 0.45), 0 20px 40px oklch(0 0 0 / 0.5);
+  overflow: hidden;
+}
+[data-theme="neural"] .table-oval::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(110deg, transparent 0 14px, oklch(0.82 0.16 195 / 0.08) 14px 15px), radial-gradient(circle at 50% 50%, oklch(0.82 0.16 195 / 0.14), transparent 65%);
+  animation: syn-flow 6s linear infinite;
+  pointer-events: none;
+}
+[data-theme="library"] .table-oval { border-radius: 44% / 48%; box-shadow: inset 0 0 0 6px oklch(0.78 0.12 85 / 0.5), inset 0 0 80px oklch(0 0 0 / 0.55), 0 20px 40px oklch(0 0 0 / 0.6); }
+
+/* Timer ring */
+.timer-ring {
+  --p: 100;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: conic-gradient(var(--ring-color, var(--accent)) calc(var(--p) * 1%), oklch(0.32 0.04 228 / 0.6) 0);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 20px oklch(from var(--ring-color, var(--accent)) l c h / 0.4);
+  position: relative;
+  transition: box-shadow 300ms ease;
+}
+.timer-ring::after {
+  content: '';
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+/* Utilities */
+.number-tab { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
+.stack-cards > * + * { margin-left: -28px; }
+.tap-target { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+:where(button, a, [role="button"]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
+
+@media (min-width: 768px) {
+  :root { --syn-frame-h: 860px; }
+}
+
+/* =========================================================
+ * CONTENT WIDTH — invisible guides, content constrained
+ * All content stays within max-width centered container
+ * ========================================================= */
+
+/* Root constrains all content — invisible on mobile */
+#root {
+  max-width: 420px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Wider on desktop */
+@media (min-width: 768px) {
+  #root {
+    max-width: 860px;
+    box-shadow: -1px 0 0 oklch(0.82 0.16 195 / 0.06),
+                 1px 0 0 oklch(0.82 0.16 195 / 0.06);
+  }
+}
+
+/* =========================================================
+ * Auto-landscape — visually rotates the app 90deg on phones
+ * held in portrait, so the game always displays landscape with
+ * no prompt or user action. A physical device's orientation
+ * can't be controlled by a webpage, so this rotates the content
+ * instead. Applied to a dedicated wrapper div (not html/body
+ * directly — that approach is unreliable across mobile browsers).
+ * ========================================================= */
+@media screen and (max-width: 900px) and (orientation: portrait) {
+  html, body { overflow: hidden; height: 100%; }
+  .landscape-lock-wrap {
+    position: fixed;
+    top: 0;
+    left: 100%;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: 0 0;
+    transform: rotate(90deg);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
