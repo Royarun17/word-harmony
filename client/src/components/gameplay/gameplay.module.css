@@ -500,4 +500,23 @@
 
   .handSection { padding: 0; flex-shrink: 1; min-height: 0; overflow: hidden; }
   .handHeaderRow { margin-bottom: 2px; min-height: 16px; }
-  .handHeaderRow .chip { font-size: 9px; padding: 4px
+  .handHeaderRow .chip { font-size: 9px; padding: 4px 8px; }
+  .handFan {
+    transform: scale(0.68);
+    transform-origin: bottom center;
+    margin-bottom: -30px;
+    padding: 0;
+  }
+
+  .actionBarWrap { padding: 0; gap: 6px; flex-shrink: 0; }
+  .actionBarTop { gap: 6px; }
+  .actionBtnSm { min-height: 34px; font-size: 10px; padding: 0 8px; }
+  .passHint { min-height: 34px; font-size: 9px; }
+  .keepMain { min-height: 40px; font-size: 12px; }
+  .buzzMain { min-height: 40px; font-size: 13px; max-width: none; }
+  .buzzCaption { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardSlot, .promptChip.complete, .buzzToast, .flowRingDash, .orbitGrid { animation: none !important; }
+}
