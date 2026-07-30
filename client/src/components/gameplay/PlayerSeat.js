@@ -13,6 +13,7 @@ function PlayerSeat({ player, seatStyle, isActive, isBuzzing, score, cardCount, 
   const connected = player.connected !== false;
   const hue = hashHue(player.name);
   const initials = player.name.split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  const fanCount = Math.min(cardCount, 5);
 
   return (
     <div className={styles.seat} style={{ ...seatStyle, transform: 'translate(-50%, -50%)' }}>
@@ -21,9 +22,11 @@ function PlayerSeat({ player, seatStyle, isActive, isBuzzing, score, cardCount, 
           <div
             className={`${styles.orbitAvatar}${isActive ? ` ${styles.orbitAvatarActive}` : ''}`}
             style={{
-              width: 44, height: 44,
+              width: 64, height: 64,
+              borderWidth: 2.5,
               background: `linear-gradient(140deg, hsl(${hue} 70% 58%), hsl(${(hue + 40) % 360} 70% 42%))`,
-              borderColor: `hsl(${hue} 80% 62%)`,
+              borderColor: `hsl(${hue} 70% 58%)`,
+              boxShadow: `0 0 16px -2px hsl(${hue} 70% 58%), inset 0 0 12px oklch(0.05 0.02 265 / 0.6)`,
               animation: isBuzzing ? 'syn-pulse 0.7s ease-in-out infinite' : undefined,
             }}
           >
@@ -39,14 +42,14 @@ function PlayerSeat({ player, seatStyle, isActive, isBuzzing, score, cardCount, 
           {!connected && <span className={styles.reconnectIcon} title="Reconnecting…">🔄</span>}
         </div>
         <div className={styles.cardStack}>
-          {Array.from({ length: Math.min(cardCount, 4) }).map((_, ci) => (
+          {Array.from({ length: fanCount }).map((_, ci) => (
             <div
               key={ci}
               className={`${styles.cardBack}${ci === cardCount - 1 && cardCount === 4 ? ` ${styles.overflow}` : ''}`}
               style={{
-                width: 16, height: 22,
-                marginLeft: ci > 0 ? -8 : 0,
-                transform: `rotate(${(ci - 1) * 8}deg)`,
+                width: 27.2, height: 38.4,
+                marginLeft: ci > 0 ? -7.2 : 0,
+                transform: `rotate(${(ci - (fanCount - 1) / 2) * 4}deg)`,
               }}
             />
           ))}
