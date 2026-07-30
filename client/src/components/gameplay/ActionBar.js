@@ -27,33 +27,35 @@ function ActionBar({
             'Pass'
           )}
         </div>
+      </div>
 
+      <div className={styles.actionBarBottom}>
         <button
           onClick={onKeep}
           disabled={!selected}
-          className={`btn-ghost tap-target ${styles.actionBtnSm}`}
-          style={{ opacity: selected ? 1 : 0.5 }}
+          className={`tap-target ${styles.keepMain}`}
+          style={{ opacity: selected ? 1 : 0.6 }}
         >
-          <span aria-hidden>↻</span> Keep
+          <span aria-hidden>🔖</span> Keep
         </button>
-      </div>
 
-      <div className={styles.buzzSlotBig}>
-        <button
-          onClick={onBuzz}
-          disabled={!canBuzz}
-          className={`tap-target ${styles.buzzMain}${ready ? ` ${styles.buzzMainReady}` : ''}`}
-        >
-          <span aria-hidden>⚡</span> BUZZ
-        </button>
-        {showConfetti && <Confetti count={60} />}
-        {buzzed ? (
-          <div className={styles.buzzToast}>
-            <span className="chip chip-accent" style={{ fontSize: 11 }}>Buzzed in!</span>
-          </div>
-        ) : (
-          <div className={styles.buzzCaption}>First correct match scores the most — up to 10 pts</div>
-        )}
+        <div className={styles.buzzSlotBig}>
+          <button
+            onClick={onBuzz}
+            disabled={!canBuzz}
+            className={`tap-target ${styles.buzzMain}${ready ? ` ${styles.buzzMainReady} sheen-sweep` : ''}`}
+          >
+            <span aria-hidden>⚡</span> BUZZ
+          </button>
+          {showConfetti && <Confetti count={60} />}
+          {buzzed ? (
+            <div className={styles.buzzToast}>
+              <span className="chip chip-accent" style={{ fontSize: 11 }}>Buzzed in!</span>
+            </div>
+          ) : (
+            <div className={styles.buzzCaption}>First correct match scores the most — up to 10 pts</div>
+          )}
+        </div>
       </div>
     </div>
   );
