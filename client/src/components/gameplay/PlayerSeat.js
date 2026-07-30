@@ -31,8 +31,10 @@ function PlayerSeat({ player, seatStyle, isActive, isBuzzing, score, cardCount, 
           </div>
           <span className={styles.rankBadge} style={{ background: `hsl(${hue} 70% 45%)` }}>{rank}</span>
           {isActive && <span className={styles.pfTurnTag}>TURN</span>}
+          {connected && <span className={styles.onlineDot} title="Online" />}
         </div>
         <div className={styles.seatName}>
+          {rank === 1 && <span aria-hidden title="Leader">👑</span>}
           <span>{player.name.split(' ')[0]} · <span className="num">{(score || 0).toLocaleString()}</span></span>
           {!connected && <span className={styles.reconnectIcon} title="Reconnecting…">🔄</span>}
         </div>
