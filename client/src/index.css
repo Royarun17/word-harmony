@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Chakra+Petch:wght@400;600;700&display=swap');
 
 /* =========================================================
  * SYNAPSE — Dual-theme design system (Neural + Library)
@@ -9,6 +9,7 @@
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-numeric: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-game-display: 'Chakra Petch', 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
 
   --bg-deep: oklch(0.13 0.02 235);
   --bg: oklch(0.17 0.025 235);
@@ -29,6 +30,13 @@
   --cta-ink: oklch(0.16 0.03 40);
   --glow-cta: 0 0 24px oklch(0.8 0.16 75 / 0.55), 0 0 60px oklch(0.7 0.19 55 / 0.35);
 
+  /* Gameplay-redesign accents */
+  --violet: oklch(0.62 0.19 300);
+  --violet-2: oklch(0.42 0.18 295);
+  --glow-violet: 0 0 26px oklch(0.62 0.19 300 / 0.4);
+  --silver: oklch(0.78 0.015 250);
+  --critical: oklch(0.63 0.23 25);
+
   --warn: oklch(0.82 0.16 75);
   --danger: oklch(0.68 0.22 22);
   --win: oklch(0.85 0.18 145);
@@ -39,6 +47,14 @@
 
   --border: oklch(0.35 0.04 225);
   --border-strong: oklch(0.5 0.06 220);
+
+  /* Materials — frosted glass / brushed metal, for the gameplay HUD */
+  --glass: linear-gradient(160deg, oklch(0.35 0.06 258 / 0.55), oklch(0.18 0.04 265 / 0.85));
+  --glass-hi: linear-gradient(160deg, oklch(0.45 0.07 250 / 0.5), oklch(0.2 0.045 265 / 0.9));
+  --metal: linear-gradient(180deg, oklch(0.42 0.05 250 / 0.9), oklch(0.24 0.04 262 / 0.95));
+  --hud-border: oklch(0.62 0.08 235 / 0.35);
+  --shadow-hud: 0 1px 0 0 oklch(1 0 0 / 0.08) inset, 0 10px 24px -12px oklch(0.05 0.02 265 / 0.9);
+  --shadow-raise: 0 1px 0 0 oklch(1 0 0 / 0.16) inset, 0 12px 26px -10px oklch(0.05 0.02 265 / 0.95);
 
   --glow-accent: 0 0 24px oklch(0.82 0.16 195 / 0.55), 0 0 60px oklch(0.72 0.19 205 / 0.35);
   --glow-card: 0 0 0 1px oklch(0.82 0.16 195 / 0.35), 0 0 24px oklch(0.82 0.16 195 / 0.35);
@@ -55,6 +71,7 @@
   --font-display: 'Cormorant Garamond', ui-serif, Georgia, serif;
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-numeric: 'Cormorant Garamond', ui-serif, Georgia, serif;
+  --font-game-display: 'Cormorant Garamond', ui-serif, Georgia, serif;
 
   --bg-deep: oklch(0.14 0.025 40);
   --bg: oklch(0.19 0.035 42);
@@ -74,6 +91,19 @@
   --cta-2: oklch(0.52 0.2 20);
   --cta-ink: oklch(0.97 0.02 80);
   --glow-cta: 0 0 24px oklch(0.62 0.19 30 / 0.5), 0 0 60px oklch(0.52 0.2 20 / 0.3);
+
+  --violet: oklch(0.55 0.16 300);
+  --violet-2: oklch(0.4 0.15 295);
+  --glow-violet: 0 0 24px oklch(0.55 0.16 300 / 0.35);
+  --silver: oklch(0.7 0.02 70);
+  --critical: oklch(0.5 0.18 25);
+
+  --glass: linear-gradient(160deg, oklch(0.4 0.07 50 / 0.55), oklch(0.2 0.04 42 / 0.85));
+  --glass-hi: linear-gradient(160deg, oklch(0.48 0.08 55 / 0.5), oklch(0.22 0.045 42 / 0.9));
+  --metal: linear-gradient(180deg, oklch(0.45 0.06 50 / 0.9), oklch(0.26 0.04 45 / 0.95));
+  --hud-border: oklch(0.6 0.09 65 / 0.35);
+  --shadow-hud: 0 1px 0 0 oklch(1 0 0 / 0.06) inset, 0 10px 24px -12px oklch(0.05 0.02 40 / 0.9);
+  --shadow-raise: 0 1px 0 0 oklch(1 0 0 / 0.12) inset, 0 12px 26px -10px oklch(0.05 0.02 40 / 0.95);
 
   --warn: oklch(0.78 0.14 65);
   --danger: oklch(0.5 0.16 25);
@@ -127,6 +157,15 @@ input, select, textarea { font-size: 16px !important; }
 @keyframes syn-confetti { 0%{ transform:translate(0,-20px) rotate(0); opacity:1; } 100%{ transform:translate(var(--cx,40px),80vh) rotate(720deg); opacity:0; } }
 @keyframes syn-count { from{ transform:translateY(-6px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
 @keyframes syn-flow { 0%{ background-position:0 0; } 100%{ background-position:200px 0; } }
+@keyframes syn-sheen { 0%{ transform:translateX(-140%) skewX(-18deg); } 60%,100%{ transform:translateX(240%) skewX(-18deg); } }
+.sheen-sweep { position: relative; overflow: hidden; }
+.sheen-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.22), transparent);
+  animation: syn-sheen 4.5s ease-in-out infinite;
+}
 
 /* Scene */
 .scene {
@@ -293,116 +332,4 @@ input, select, textarea { font-size: 16px !important; }
 
 .card-hover:hover { transform: translateY(-4px) rotate(-0.5deg); box-shadow: var(--shadow-lift); }
 .card-hover:active { transform: translateY(-1px) scale(0.99); }
-.card-selected { transform: translateY(-14px) scale(1.03); box-shadow: var(--glow-card), var(--shadow-lift); z-index: 5; }
-.ring-match { outline: 2px solid var(--win); outline-offset: 0; }
-
-/* Avatar */
-.avatar-ring {
-  position: relative;
-  border-radius: 999px;
-  padding: 3px;
-  background: linear-gradient(140deg, oklch(0.82 0.16 195 / 0.35), oklch(0.72 0.19 205 / 0.1));
-}
-.avatar-ring::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 999px;
-  background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent));
-  opacity: 0;
-  filter: blur(10px);
-  transition: opacity 220ms;
-}
-.avatar-active .avatar-ring::before { opacity: 0.9; animation: syn-pulse 1.6s ease-in-out infinite; }
-
-/* Table */
-.table-oval {
-  position: relative;
-  background: var(--table-felt);
-  border-radius: 46% / 50%;
-  box-shadow: inset 0 0 0 2px oklch(0.82 0.16 195 / 0.25), inset 0 0 60px oklch(0 0 0 / 0.45), 0 20px 40px oklch(0 0 0 / 0.5);
-  overflow: hidden;
-}
-[data-theme="neural"] .table-oval::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(110deg, transparent 0 14px, oklch(0.82 0.16 195 / 0.08) 14px 15px), radial-gradient(circle at 50% 50%, oklch(0.82 0.16 195 / 0.14), transparent 65%);
-  animation: syn-flow 6s linear infinite;
-  pointer-events: none;
-}
-[data-theme="library"] .table-oval { border-radius: 44% / 48%; box-shadow: inset 0 0 0 6px oklch(0.78 0.12 85 / 0.5), inset 0 0 80px oklch(0 0 0 / 0.55), 0 20px 40px oklch(0 0 0 / 0.6); }
-
-/* Timer ring */
-.timer-ring {
-  --p: 100;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  background: conic-gradient(var(--ring-color, var(--accent)) calc(var(--p) * 1%), oklch(0.32 0.04 228 / 0.6) 0);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 0 20px oklch(from var(--ring-color, var(--accent)) l c h / 0.4);
-  position: relative;
-  transition: box-shadow 300ms ease;
-}
-.timer-ring::after {
-  content: '';
-  position: absolute;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: var(--surface);
-}
-
-/* Utilities */
-.number-tab { font-family: var(--font-numeric); font-variant-numeric: tabular-nums; }
-.stack-cards > * + * { margin-left: -28px; }
-.tap-target { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-:where(button, a, [role="button"]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
-
-@media (min-width: 768px) {
-  :root { --syn-frame-h: 860px; }
-}
-
-/* =========================================================
- * CONTENT WIDTH — invisible guides, content constrained
- * All content stays within max-width centered container
- * ========================================================= */
-
-/* Root constrains all content — invisible on mobile */
-#root {
-  max-width: 420px;
-  margin: 0 auto;
-  position: relative;
-}
-
-/* Wider on desktop */
-@media (min-width: 768px) {
-  #root {
-    max-width: 860px;
-    box-shadow: -1px 0 0 oklch(0.82 0.16 195 / 0.06),
-                 1px 0 0 oklch(0.82 0.16 195 / 0.06);
-  }
-}
-
-/* =========================================================
- * Auto-landscape — visually rotates the page 90deg on phones
- * held in portrait, so the game always displays landscape with
- * no prompt or user action. A physical device's orientation
- * can't be controlled by a webpage, so this rotates the content
- * instead, which is the standard technique for landscape-only
- * mobile web games/apps.
- * ========================================================= */
-@media screen and (max-width: 900px) and (orientation: portrait) {
-  html {
-    width: 100vh;
-    height: 100vw;
-    overflow-x: hidden;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    transform: rotate(-90deg);
-    transform-origin: left top;
-  }
-}
+.card-selected { transform: translateY(-14px) scale(1.03); box-shadow: var(--glow-card), var(--shadow-lift);
