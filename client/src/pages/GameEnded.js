@@ -102,7 +102,7 @@ export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
             <button onClick={onPlayAgain} className="btn-ghost tap-target">🏠 Home</button>
             <button className="btn-ghost tap-target">↗ Share</button>
-            <button onClick={onPlayAgain} className="btn-primary tap-target">↺ Rematch</button>
+            <button onClick={onPlayAgain} className="btn-cta tap-target">↺ Rematch</button>
           </div>
         </div>
       </div>
