@@ -33,9 +33,12 @@ function GameHeader({ round, rounds, timeLeft, urgency, modeLabel, onExit, onInf
       </div>
 
       <div className={styles.headerCenter}>
-        <div className={styles.headerStat}>
-          <div className={styles.eyebrow}>ROUND</div>
-          <div className={`num ${styles.statValue}`}>{round}/{rounds}</div>
+        <div className={`${styles.roundPill} sheen-sweep`}>
+          <div className={styles.headerStat}>
+            <div className={styles.eyebrow}>ROUND</div>
+            <div className={`num ${styles.statValue}`}>{round}/{rounds}</div>
+          </div>
+          <span className={styles.roundPillUnderline} aria-hidden />
         </div>
         <TimerRing progress={(timeLeft / 30) * 100} seconds={timeLeft} tone={urgency} />
         <div className={styles.headerStat}>
