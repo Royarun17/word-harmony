@@ -11,7 +11,6 @@ export default function WelcomePage({ onNavigate }) {
           .welcome-content { max-width: 720px !important; flex-direction: row !important; align-items: center !important; gap: 36px; }
           .welcome-logo-block { flex: 1; margin-bottom: 0 !important; text-align: left !important; }
           .welcome-logo-block h1 { font-size: 48px !important; }
-          .welcome-logo-block p { margin: 0 !important; }
           .welcome-cta-col { flex: 1; display: flex; flex-direction: column; gap: 12px; width: 100%; }
           .welcome-panel { margin-bottom: 0 !important; padding: 16px !important; }
         }
@@ -27,9 +26,6 @@ export default function WelcomePage({ onNavigate }) {
             background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)',
             filter: 'blur(28px)', opacity: 0.55, pointerEvents: 'none',
           }}/>
-          <div style={{ fontSize: 11, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 10, position: 'relative' }}>
-            Real-time word game
-          </div>
           <h1 style={{
             fontSize: 72, fontWeight: 700, lineHeight: 1,
             letterSpacing: '-0.02em', fontFamily: 'var(--font-display)',
@@ -38,9 +34,6 @@ export default function WelcomePage({ onNavigate }) {
             <span style={{ color: 'var(--ink)' }}>Syn</span>
             <span style={{ color: 'var(--accent)', textShadow: '0 0 30px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
           </h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-dim)', maxWidth: 280, margin: '0 auto', lineHeight: 1.5, position: 'relative' }}>
-            Submit a word. Collect a matching set. Buzz first.
-          </p>
         </div>
 
         <div className="welcome-cta-col">
@@ -69,13 +62,6 @@ export default function WelcomePage({ onNavigate }) {
               style={{ width: '100%' }}>
               Sign in
             </button>
-          </div>
-
-          {/* Feature chips */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span className="chip">🎮 3–8 players</span>
-            <span className="chip">🤖 Bot opponents</span>
-            <span className="chip">⚡ Real-time</span>
           </div>
         </div>
 
