@@ -179,7 +179,7 @@ export default function ProfileSetupPage({ onNavigate, user, prefillName }) {
     timer.current = setTimeout(async () => {
       if (TAKEN.has(u.toLowerCase())) { setAvail({ kind: 'err', msg: 'Already taken' }); return; }
       try {
-        const { data } = await axios.get(`/profile/check-username?username=${encodeURIComponent(u)}`);
+        const { data } = await axios.get(`/auth/check-username?username=${encodeURIComponent(u)}`);
         setAvail(data.available ? { kind: 'ok' } : { kind: 'err', msg: 'Already taken' });
       } catch { setAvail({ kind: 'ok' }); }
     }, 650);
@@ -195,8 +195,10 @@ export default function ProfileSetupPage({ onNavigate, user, prefillName }) {
     setLoading(true); setError('');
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      await axios.post('/profile/save', {
-        uid: user?.uid || auth.currentUser?.uid,
+      await axios.post('/auth/profile', {
+        firebaseUid: user?.uid || auth.currentUser?.uid,
+        email: user?.email || auth.currentUser?.email,
+        displayName: username.trim(),
         username: username.trim(),
         avatar, country: country.code,
         countryName: country.name,
