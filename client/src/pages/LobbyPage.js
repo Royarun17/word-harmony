@@ -81,8 +81,6 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
   const [error, setError] = useState('');
 
   const { toggle: toggleTheme } = useTheme() || {};
-  const [comingSoon, setComingSoon] = useState(null); // 'friends' | 'chat' | null
-
   const playerName = profile?.username || prefillName || 'Player';
 
   // Real, deterministic ID derived from the player's actual username — not
@@ -143,7 +141,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 18px 8px 8px', borderRadius: 16, background: '#1A1642', border: '2px solid #7D3CFF', cursor: 'pointer', textAlign: 'left' }}
               >
                 <div style={{ position: 'relative' }}>
-                  <PlayerAvatar name={playerName} seed={playerName} score={profile?.totalPoints} size="md" />
+                  <PlayerAvatar name={playerName} seed={playerName} score={profile?.totalPoints} size="md" compact />
                   <span style={{
                     position: 'absolute', top: -6, left: -6, minWidth: 22, height: 22, padding: '0 4px',
                     borderRadius: 99, background: '#7D3CFF',
@@ -181,19 +179,19 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                 <span style={{ fontSize: 18, color: '#FFFFFF' }}>📖</span>
                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#FFFFFF' }}>TUTORIAL</span>
               </button>
-              <button onClick={() => setComingSoon('friends')} className="tap-target lobby-nav-btn" style={{ width: 84, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 8px', borderRadius: 14, background: '#15803D', border: '2px solid #22C55E', cursor: 'pointer', position: 'relative' }}>
+              <div className="lobby-nav-btn" style={{ width: 84, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 8px', borderRadius: 14, background: '#15803D', border: '2px solid #22C55E', position: 'relative' }}>
                 <span style={{ fontSize: 18, color: '#FFFFFF' }}>🧑‍🤝‍🧑</span>
                 <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#FFFFFF' }}>FRIENDS</span>
                 <span style={{ position: 'absolute', top: 4, right: 4, fontSize: 7, fontWeight: 700, padding: '2px 5px', borderRadius: 99, background: 'rgba(0,0,0,.4)', color: '#FFFFFF' }}>SOON</span>
-              </button>
+              </div>
             </div>
 
-            {/* Chat, bottom-right, matching reference position */}
-            <button onClick={() => setComingSoon('chat')} className="tap-target lobby-nav-btn" style={{ position: 'absolute', right: 20, bottom: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 16px', borderRadius: 14, background: '#1E3A8A', border: '2px solid #3B82F6', cursor: 'pointer' }}>
+            {/* Chat, bottom-right, matching reference position — visual only, no functionality */}
+            <div className="lobby-nav-btn" style={{ position: 'absolute', right: 20, bottom: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 16px', borderRadius: 14, background: '#1E3A8A', border: '2px solid #3B82F6' }}>
               <span style={{ fontSize: 18, color: '#FFFFFF' }}>💬</span>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF' }}>CHAT</span>
               <span style={{ position: 'absolute', top: 4, right: 4, fontSize: 7, fontWeight: 700, padding: '2px 5px', borderRadius: 99, background: 'rgba(0,0,0,.4)', color: '#FFFFFF' }}>SOON</span>
-            </button>
+            </div>
 
             {/* Mode cards, anchored toward the bottom like the reference's temple steps */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 14, paddingBottom: 8 }}>
@@ -213,7 +211,7 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                       color: '#0B1024',
                     }}>{m.icon}</div>
                     <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginBottom: 4, color: '#FFFFFF' }}>{m.name.toUpperCase()}</div>
-                    <div style={{ fontSize: 11, color: '#B8C0E8', marginBottom: 14 }}>{m.desc}</div>
+                    <div style={{ marginBottom: 14 }} />
                     <button
                       onClick={() => { setMode(key); setShowPopup(true); }}
                       className="tap-target mode-card-play"
@@ -234,24 +232,6 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
               </button>
             </div>
           </div>
-
-          {/* Coming soon dialog for Friends/Chat — honest, not pretending they work */}
-          {comingSoon && (
-            <div onClick={() => setComingSoon(null)} style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
-              <div onClick={e => e.stopPropagation()} className="panel" style={{ padding: 28, maxWidth: 320, textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>{comingSoon === 'friends' ? '🧑‍🤝‍🧑' : '💬'}</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 8 }}>
-                  {comingSoon === 'friends' ? 'Friends coming soon' : 'Chat coming soon'}
-                </h3>
-                <p style={{ fontSize: 13, color: 'var(--ink-dim)', marginBottom: 20 }}>
-                  {comingSoon === 'friends'
-                    ? "We're building a real friends system — add by username or by your player code."
-                    : 'Real lobby chat and direct messages are on the way.'}
-                </p>
-                <button onClick={() => setComingSoon(null)} className="btn-primary tap-target" style={{ width: '100%' }}>Got it</button>
-              </div>
-            </div>
-          )}
         </div>
       )}
       {step === 'play' && selectedMode && (
