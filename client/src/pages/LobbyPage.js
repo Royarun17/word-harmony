@@ -156,7 +156,6 @@ function ModeCard({ mode, onPlay }) {
             <rect x="24" y="24" width="472" height="652" rx="42" fill="url(#synRim)" filter="url(#synGlow)"/>
             <rect x="38" y="38" width="444" height="624" rx="34" fill="url(#synPanel)" stroke="#D9F5FF" strokeWidth="4"/>
             <path d="M62 70c118-24 262-18 392 14-116 2-236 24-338 66-25 10-44 20-60 31z" fill="#FFFFFF" opacity=".08"/>
-            <circle cx="260" cy="186" r="86" fill="#0A1B50" stroke="#36C8FF" strokeWidth="8"/>
             <g fill="none" stroke="url(#synBrain)" strokeWidth="16" strokeLinecap="round" strokeLinejoin="round">
               <path d="M260 126c-28-28-77-13-74 25-28 1-39 38-18 55-18 30 8 66 39 59 8 31 49 38 64 11"/>
               <path d="M260 126c28-28 77-13 74 25 28 1 39 38 18 55 18 30-8 66-39 59-8 31-49 38-64 11"/>
@@ -164,9 +163,6 @@ function ModeCard({ mode, onPlay }) {
               <path d="M212 158c22 8 28 24 27 45M308 158c-22 8-28 24-27 45M205 232c22-2 36 9 43 26M315 232c-22-2-36 9-43 26"/>
             </g>
             <text x="260" y="385" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="58" fontWeight="700" fill="#FFFFFF">SYNTAX</text>
-            <rect x="76" y="500" width="368" height="110" rx="34" fill="url(#synButton)" stroke="#8EEBFF" strokeWidth="5"/>
-            <path d="M100 517h320" stroke="#FFFFFF" strokeOpacity=".35" strokeWidth="10" strokeLinecap="round"/>
-            <text x="260" y="573" textAnchor="middle" fontFamily="Arial, sans-serif" fontSize="54" fontWeight="700" fill="#FFFFFF">PLAY</text>
           </g>
         </svg>
       ) : (
