@@ -246,6 +246,16 @@ app.post('/session/create', (req, res) => {
   addPlayer(s, playerId, playerName);
   res.json({ sessionId: s.id, playerId, gameMode: s.gameMode, difficulty: s.difficulty });
 });
+app.post('/session/join', (req, res) => {
+  const { sessionId, playerName } = req.body;
+  const s = getSession((sessionId || '').toUpperCase());
+  if (!s) return res.status(404).json({ error: 'Session not found. Check the code.' });
+  if (s.phase !== 'lobby') return res.status(400).json({ error: 'This game has already started.' });
+  if (s.players.length >= s.maxPlayers) return res.status(400).json({ error: 'This room is full.' });
+  const playerId = uuidv4();
+  addPlayer(s, playerId, playerName);
+  res.json({ sessionId: s.id, playerId, gameMode: s.gameMode, difficulty: s.difficulty });
+});
 app.get('/session/:id', (req, res) => {
   const s = getSession(req.params.id);
   if (!s) return res.status(404).json({ error: 'Not found' });
