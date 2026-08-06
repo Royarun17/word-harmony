@@ -3,7 +3,7 @@ import axios from 'axios';
 import socket from '../utils/socket';
 import { auth, signOut } from '../utils/firebase';
 import { ThemeSwitcher, PlayerAvatar, useTheme } from '../SynapseComponents';
-import lobbyBg from '../assets/lobby-bg.jpg';
+import lobbyBg from '../assets/lobbyBgData.js';
 
 const MODES = {
   syntax: { icon: '🧠', name: 'Syntax', desc: 'Synonyms of your word', accent: true,
@@ -254,7 +254,6 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
           )}
         </div>
       )}
-
       {step === 'play' && selectedMode && (
         <div className="scene lobby-play-scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
           <style>{`
