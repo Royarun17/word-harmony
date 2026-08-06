@@ -135,10 +135,16 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
                 <div onClick={() => onShowProfile && onShowProfile()} style={{ cursor: 'pointer' }}>
                   <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
                 </div>
-                <span className="chip chip-accent" style={{ paddingLeft: 6 }}>
-                  <span style={{ width: 18, height: 18, borderRadius: 99, background: 'linear-gradient(140deg, var(--accent), var(--accent-2))', display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--accent-ink)' }}>⚡</span>
-                  LVL {profile?.level || 1}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                  <span className="chip chip-accent" style={{ paddingLeft: 6 }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 99, background: 'linear-gradient(140deg, var(--accent), var(--accent-2))', display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--accent-ink)' }}>⚡</span>
+                    LVL {profile?.level || 1}
+                  </span>
+                  <span className="chip" style={{ paddingLeft: 6 }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 99, background: 'linear-gradient(140deg, var(--cta), var(--cta-2))', display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--cta-ink)' }}>⭐</span>
+                    <span className="num">{(profile?.coins ?? 1000).toLocaleString()}</span>
+                  </span>
+                </div>
               </div>
             </div>
 
