@@ -34,6 +34,7 @@ const profileSchema = new mongoose.Schema({
   wins:         { type: Number, default: 0 },
   totalPoints:  { type: Number, default: 0 },
   level:        { type: Number, default: 1 },
+  coins:        { type: Number, default: 1000 },
   joinedDate:   { type: String, default: () => new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) },
 }, { timestamps: true });
 
