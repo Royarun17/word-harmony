@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import socket from '../utils/socket';
 import { auth, signOut } from '../utils/firebase';
-import { ThemeSwitcher, PlayerAvatar } from '../SynapseComponents';
+import { ThemeSwitcher, PlayerAvatar, useTheme } from '../SynapseComponents';
+import lobbyBg from '../assets/lobby-bg.svg';
 
 const MODES = {
   syntax: { icon: '🧠', name: 'Syntax', desc: 'Synonyms of your word', accent: true,
@@ -79,7 +80,19 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const { toggle: toggleTheme } = useTheme() || {};
+  const [comingSoon, setComingSoon] = useState(null); // 'friends' | 'chat' | null
+
   const playerName = profile?.username || prefillName || 'Player';
+
+  // Real, deterministic ID derived from the player's actual username — not
+  // random or fake, just a stable short code so it reads like Player ID UI.
+  const playerIdCode = React.useMemo(() => {
+    const s = playerName || 'PLAYER';
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return String(Math.abs(h) % 100000).padStart(5, '0');
+  }, [playerName]);
   const gameMode = selectedMode === 'syntax' ? 'education' : 'fun';
 
   async function handleCreate(e) {
@@ -110,93 +123,135 @@ export default function LobbyPage({ onJoined, onShowTutorial, prefillName = '', 
   return (
     <>
       {step === 'mode' && (
-        <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+        <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+          <div aria-hidden style={{
+            position: 'absolute', inset: 0, zIndex: 0,
+            backgroundImage: `url(${lobbyBg})`, backgroundSize: 'cover', backgroundPosition: 'center',
+          }}/>
           <style>{`
-            .mode-card:hover {
-              outline: 2px solid var(--accent) !important;
-              box-shadow: 0 0 0 4px oklch(0.82 0.16 195 / 0.2), 0 0 28px oklch(0.82 0.16 195 / 0.45) !important;
-            }
-            .mode-card:active {
-              transform: scale(0.97) !important;
-            }
-            @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
-              .lobby-content { flex-direction: row !important; justify-content: flex-start !important; align-items: flex-start !important; gap: 24px; padding: 16px 24px !important; overflow: hidden !important; }
-              .lobby-left { flex: 0 0 220px; overflow: hidden; }
-              .lobby-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); }
-              .lobby-section-gap { margin-bottom: 14px !important; }
-            }
+            .mode-card-play:hover { filter: brightness(1.12); }
+            .mode-card-play:active { transform: scale(0.97); }
+            .lobby-nav-btn:hover { filter: brightness(1.2); }
           `}</style>
-          <ThemeSwitcher />
-          <div className="scene-content lobby-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto', justifyContent: 'center' }}>
+          <div className="scene-content" style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', padding: 20 }}>
 
-            <div className="lobby-left">
-              {/* Profile row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
-                <div onClick={() => onShowProfile && onShowProfile()} style={{ cursor: 'pointer' }}>
-                  <PlayerAvatar name={profile?.username || 'Player'} seed={profile?.username} score={profile?.totalPoints} size="md" />
+            {/* Top row: profile card left, settings right */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => onShowProfile && onShowProfile()}
+                className="tap-target"
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 18px 8px 8px', borderRadius: 16, background: '#1A1642', border: '2px solid #7D3CFF', cursor: 'pointer', textAlign: 'left' }}
+              >
+                <div style={{ position: 'relative' }}>
+                  <PlayerAvatar name={playerName} seed={playerName} score={profile?.totalPoints} size="md" />
+                  <span style={{
+                    position: 'absolute', top: -6, left: -6, minWidth: 22, height: 22, padding: '0 4px',
+                    borderRadius: 99, background: '#7D3CFF',
+                    color: '#FFFFFF', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center',
+                    border: '2px solid #1A1642',
+                  }}>{profile?.level || 1}</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                  <span className="chip chip-accent" style={{ paddingLeft: 6 }}>
-                    <span style={{ width: 18, height: 18, borderRadius: 99, background: 'linear-gradient(140deg, var(--accent), var(--accent-2))', display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--accent-ink)' }}>⚡</span>
-                    LVL {profile?.level || 1}
-                  </span>
-                  <span className="chip" style={{ paddingLeft: 6 }}>
-                    <span style={{ width: 18, height: 18, borderRadius: 99, background: 'linear-gradient(140deg, var(--cta), var(--cta-2))', display: 'grid', placeItems: 'center', fontSize: 10, color: 'var(--cta-ink)' }}>⭐</span>
-                    <span className="num">{(profile?.coins ?? 1000).toLocaleString()}</span>
-                  </span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#FFFFFF', fontFamily: 'var(--font-display)' }}>{playerName}</div>
+                  <div className="num" style={{ fontSize: 10, color: '#C4B8FF', letterSpacing: '0.06em' }}>ID: SYN{playerIdCode}</div>
                 </div>
+              </button>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px 6px 6px', borderRadius: 999, background: '#1A1642', border: '2px solid #7D3CFF' }}>
+                  <span style={{ width: 18, height: 18, borderRadius: 99, background: '#FFD21F', display: 'grid', placeItems: 'center', fontSize: 10 }}>⭐</span>
+                  <span className="num" style={{ color: '#FFD21F', fontWeight: 700, fontSize: 13 }}>{(profile?.coins ?? 1000).toLocaleString()}</span>
+                </span>
+                {toggleTheme && (
+                  <button onClick={toggleTheme} className="tap-target lobby-nav-btn" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 16px', borderRadius: 14, background: '#0F1D5D', border: '2px solid #1E404F', cursor: 'pointer' }}>
+                    <span style={{ fontSize: 18, color: '#FFFFFF' }}>⚙</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF' }}>SETTINGS</span>
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="lobby-right">
-              {/* Mode cards */}
-              <div className="lobby-section-gap" style={{ marginBottom: 32, display: 'flex', justifyContent: 'center' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 280, width: '100%' }}>
-                  {Object.entries(MODES).map(([key, m]) => (
-                    <button key={key} onClick={() => { setMode(key); setShowPopup(true); }} className="panel tap-target mode-card" type="button"
+            {/* Left nav column: Profile / Tutorial / Friends */}
+            <div style={{ position: 'absolute', left: 20, top: 96, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => onShowProfile && onShowProfile()} className="tap-target lobby-nav-btn" style={{ width: 84, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 8px', borderRadius: 14, background: '#1E3A8A', border: '2px solid #3B82F6', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18, color: '#FFFFFF' }}>👤</span>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#FFFFFF' }}>PROFILE</span>
+              </button>
+              <button onClick={onShowTutorial} className="tap-target lobby-nav-btn" style={{ width: 84, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 8px', borderRadius: 14, background: '#6B21A8', border: '2px solid #A855F7', cursor: 'pointer' }}>
+                <span style={{ fontSize: 18, color: '#FFFFFF' }}>📖</span>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#FFFFFF' }}>TUTORIAL</span>
+              </button>
+              <button onClick={() => setComingSoon('friends')} className="tap-target lobby-nav-btn" style={{ width: 84, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 8px', borderRadius: 14, background: '#15803D', border: '2px solid #22C55E', cursor: 'pointer', position: 'relative' }}>
+                <span style={{ fontSize: 18, color: '#FFFFFF' }}>🧑‍🤝‍🧑</span>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: '#FFFFFF' }}>FRIENDS</span>
+                <span style={{ position: 'absolute', top: 4, right: 4, fontSize: 7, fontWeight: 700, padding: '2px 5px', borderRadius: 99, background: 'rgba(0,0,0,.4)', color: '#FFFFFF' }}>SOON</span>
+              </button>
+            </div>
+
+            {/* Chat, bottom-right, matching reference position */}
+            <button onClick={() => setComingSoon('chat')} className="tap-target lobby-nav-btn" style={{ position: 'absolute', right: 20, bottom: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '12px 16px', borderRadius: 14, background: '#1E3A8A', border: '2px solid #3B82F6', cursor: 'pointer' }}>
+              <span style={{ fontSize: 18, color: '#FFFFFF' }}>💬</span>
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: '#FFFFFF' }}>CHAT</span>
+              <span style={{ position: 'absolute', top: 4, right: 4, fontSize: 7, fontWeight: 700, padding: '2px 5px', borderRadius: 99, background: 'rgba(0,0,0,.4)', color: '#FFFFFF' }}>SOON</span>
+            </button>
+
+            {/* Mode cards, anchored toward the bottom like the reference's temple steps */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', gap: 14, paddingBottom: 8 }}>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {Object.entries(MODES).map(([key, m]) => (
+                  <div key={key} style={{
+                    width: 200, padding: 18, textAlign: 'center', position: 'relative', overflow: 'hidden',
+                    borderRadius: 18, background: '#1A1F4D',
+                    border: `2px solid ${m.accent ? '#00C2FF' : '#FF9D21'}`,
+                    boxShadow: m.accent ? '0 0 24px rgba(0,194,255,.45)' : '0 0 24px rgba(255,157,33,.45)',
+                  }}>
+                    {m.accent && <span style={{ position: 'absolute', top: 10, right: 10, fontSize: 8, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: 'rgba(0,194,255,.18)', color: '#00C2FF', border: '1px solid rgba(0,194,255,.4)' }}>POPULAR</span>}
+                    <div style={{
+                      width: 52, height: 52, margin: '0 auto 10px', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 22,
+                      background: m.accent ? 'radial-gradient(circle at 30% 25%, #6FE3FF, #00C2FF 45%, #0089B8 100%)' : 'radial-gradient(circle at 30% 25%, #FFC46B, #FF9D21 45%, #C96F00 100%)',
+                      boxShadow: 'inset 0 2px 4px rgba(255,255,255,.35), inset 0 -4px 8px rgba(0,0,0,.25)',
+                      color: '#0B1024',
+                    }}>{m.icon}</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginBottom: 4, color: '#FFFFFF' }}>{m.name.toUpperCase()}</div>
+                    <div style={{ fontSize: 11, color: '#B8C0E8', marginBottom: 14 }}>{m.desc}</div>
+                    <button
+                      onClick={() => { setMode(key); setShowPopup(true); }}
+                      className="tap-target mode-card-play"
                       style={{
-                        padding: 14, textAlign: 'left', cursor: 'pointer', border: 'none',
-                        outline: selectedMode === key ? '2px solid var(--accent)' : '2px solid transparent',
-                        boxShadow: selectedMode === key ? 'var(--glow-accent)' : 'none',
-                        background: 'linear-gradient(165deg, oklch(from var(--surface-2) calc(l + .02) c h), var(--surface))',
-                        transition: 'transform 140ms, box-shadow 200ms, outline 200ms',
-                        position: 'relative', overflow: 'hidden',
+                        width: '100%', minHeight: 44, borderRadius: 999, border: 'none', cursor: 'pointer',
+                        fontWeight: 700, fontSize: 14, color: '#FFFFFF',
+                        background: m.accent ? 'linear-gradient(180deg, #2E9EFF, #0066CC)' : 'linear-gradient(180deg, #FFAB3D, #E07800)',
                       }}
-                      onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-                      onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                      <span aria-hidden style={{ position: 'absolute', top: -30, right: -30, width: 90, height: 90, borderRadius: '50%', background: m.accent ? 'radial-gradient(circle, var(--accent), transparent 70%)' : 'radial-gradient(circle, var(--surface-3), transparent 70%)', opacity: 0.35, pointerEvents: 'none' }}/>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 12, display: 'grid', placeItems: 'center', marginBottom: 10, fontSize: 17, position: 'relative',
-                        background: m.accent ? 'radial-gradient(circle at 30% 25%, oklch(from var(--accent) calc(l + .12) c h), var(--accent) 45%, var(--accent-2) 100%)' : 'linear-gradient(160deg, var(--surface-3), var(--surface-2))',
-                        boxShadow: m.accent ? 'inset 0 2px 4px oklch(1 0 0 / .35), inset 0 -4px 8px oklch(0 0 0 / .25), var(--glow-accent)' : 'inset 0 1px 0 oklch(1 0 0 / .06)',
-                        color: m.accent ? 'var(--accent-ink)' : 'var(--ink)',
-                      }}>{m.icon}</div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-display)', position: 'relative' }}>{m.name}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 2, position: 'relative' }}>{m.desc}</div>
-                      {m.accent && <span className="chip chip-accent" style={{ position: 'absolute', top: 8, right: 8, fontSize: 8, padding: '2px 6px' }}>POPULAR</span>}
+                    >
+                      ▶ PLAY
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
 
-              {/* Quick play */}
-              <div className="panel lobby-section-gap" style={{ padding: 16, marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 4 }}>QUICK PLAY</div>
-                    <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>Jump into a lobby</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Medium · Syntax · 5 rounds</div>
-                  </div>
-                  <button onClick={() => { setMode('syntax'); setShowPopup(true); }} className="btn-cta tap-target" style={{ whiteSpace: 'nowrap' }}>▶ PLAY</button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <button onClick={onShowTutorial} className="btn-ghost tap-target">📖 Tutorial</button>
-                  <button onClick={() => { setMode('syntax'); setStep('play'); setTab('join'); }} className="btn-ghost tap-target">🔗 Join</button>
-                </div>
-              </div>
+              <button onClick={() => { setMode('syntax'); setStep('play'); setTab('join'); }} className="btn-ghost tap-target">
+                🔗 Join with code
+              </button>
             </div>
           </div>
+
+          {/* Coming soon dialog for Friends/Chat — honest, not pretending they work */}
+          {comingSoon && (
+            <div onClick={() => setComingSoon(null)} style={{ position: 'fixed', inset: 0, background: 'oklch(0 0 0 / 0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+              <div onClick={e => e.stopPropagation()} className="panel" style={{ padding: 28, maxWidth: 320, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>{comingSoon === 'friends' ? '🧑‍🤝‍🧑' : '💬'}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', marginBottom: 8 }}>
+                  {comingSoon === 'friends' ? 'Friends coming soon' : 'Chat coming soon'}
+                </h3>
+                <p style={{ fontSize: 13, color: 'var(--ink-dim)', marginBottom: 20 }}>
+                  {comingSoon === 'friends'
+                    ? "We're building a real friends system — add by username or by your player code."
+                    : 'Real lobby chat and direct messages are on the way.'}
+                </p>
+                <button onClick={() => setComingSoon(null)} className="btn-primary tap-target" style={{ width: '100%' }}>Got it</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
