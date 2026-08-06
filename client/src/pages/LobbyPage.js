@@ -3,7 +3,7 @@ import axios from 'axios';
 import socket from '../utils/socket';
 import { auth, signOut } from '../utils/firebase';
 import { ThemeSwitcher, PlayerAvatar, useTheme } from '../SynapseComponents';
-import lobbyBg from '../assets/lobby-bg.svg';
+import lobbyBg from '../assets/lobby-bg.jpg';
 
 const MODES = {
   syntax: { icon: '🧠', name: 'Syntax', desc: 'Synonyms of your word', accent: true,
