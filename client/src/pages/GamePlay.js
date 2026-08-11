@@ -4,7 +4,6 @@ import { useSocketEvent } from '../hooks/useSocketEvent';
 import { Confetti, WordCard } from '../SynapseComponents';
 import ArenaBackground from '../components/gameplay/ArenaBackground';
 import Header from '../components/gameplay/Header';
-import PromptBanner from '../components/gameplay/PromptBanner';
 import GameTable from '../components/gameplay/GameTable';
 import PlayerHand from '../components/gameplay/PlayerHand';
 import ActionBar from '../components/gameplay/ActionBar';
@@ -103,11 +102,6 @@ export default function GamePlay({ session, playerId, onExit }) {
   const canBuzz = !buzzed && (raceStarted || preRaceEligible);
   const ready   = hasCompleteSet && canBuzz;
 
-  const myHandTopic = useMemo(() => {
-    if (!session.wordSubmissions) return myPlayer?.name || 'Word';
-    return session.wordSubmissions[playerId] || 'Word';
-  }, [session.wordSubmissions, playerId, myPlayer]);
-
   const otherPlayers = useMemo(() => players.filter(p => p.id !== playerId), [players, playerId]);
   const turnPlayerId = session.turnOrder?.[session.currentTurnIndex];
   const lastBuzzerId = session.buzzerLog?.[session.buzzerLog.length - 1]?.playerId;
@@ -182,13 +176,6 @@ export default function GamePlay({ session, playerId, onExit }) {
             roomCode={session.id}
             playerCount={players.length}
             maxPlayers={session.maxPlayers}
-          />
-
-          <PromptBanner
-            topic={myHandTopic}
-            associationWord={session.gameMode === 'education' ? 'synonyms' : 'associations'}
-            handCount={myHand.length}
-            complete={hasCompleteSet}
           />
         </div>
 
