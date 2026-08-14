@@ -11,19 +11,12 @@
 
 .wh-welcome__stage {
   position: relative;
-  width: min(100vw, calc(100dvh * 2.16178));
-  aspect-ratio: 1844 / 853;
-}
-
-.wh-welcome__reference {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
+  width: min(100vw, calc(100dvh * 1844 / 853));
+  height: min(100dvh, calc(100vw * 853 / 1844));
+  flex: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
 }
 
 .wh-welcome__hotspot {
@@ -68,7 +61,7 @@
   height: 7.2%;
 }
 
-@media (orientation: portrait) {
+@media (max-width: 900px) and (orientation: portrait) {
   .wh-welcome::after {
     content: 'Rotate your phone for the best Word Harmony experience ↻';
     position: fixed;

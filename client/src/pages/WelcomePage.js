@@ -5,12 +5,12 @@ import './WelcomePage.css';
 export default function WelcomePage({ onNavigate }) {
   return (
     <main className="wh-welcome" aria-label="Word Harmony welcome page">
-      <div className="wh-welcome__stage">
-        <img
-          className="wh-welcome__reference"
-          src={welcomeReference}
-          alt="Word Harmony tabletop with four friends and Think, Link, Win cards"
-        />
+      <div
+        className="wh-welcome__stage"
+        role="img"
+        aria-label="Word Harmony tabletop with four friends and Think, Link, Win cards"
+        style={{ backgroundImage: `url(${welcomeReference})` }}
+      >
 
         <button
           type="button"
