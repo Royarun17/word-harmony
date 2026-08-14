@@ -1,5 +1,5 @@
 import React from 'react';
-import welcomeReference from '../assets/welcome-reference.png';
+import welcomeReference from '../assets/welcome-reference.webp';
 import './WelcomePage.css';
 
 export default function WelcomePage({ onNavigate }) {
