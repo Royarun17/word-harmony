@@ -34,7 +34,7 @@ const steps = [
   {
     word: 'WIN',
     tone: 'gold',
-    description: 'Outsmart and win',
+    description: 'Outsmart and victory',
     symbol: (
       <svg viewBox="0 0 64 64" aria-hidden="true">
         <path d="M20 10h24v12c0 10-5 17-12 17s-12-7-12-17V10Z" />
@@ -85,7 +85,14 @@ export default function WelcomePage({ onNavigate }) {
                 <small>{step.description}</small>
                 <span className="wh-step-card__shine" aria-hidden="true" />
               </article>
-              {index < steps.length - 1 && <span className="wh-step-arrow" aria-hidden="true">➜</span>}
+              {index < steps.length - 1 && (
+                <span
+                  className={`wh-step-arrow wh-step-arrow--${index === 0 ? 'blue' : 'coral'}`}
+                  aria-hidden="true"
+                >
+                  ➜
+                </span>
+              )}
             </React.Fragment>
           ))}
         </div>
