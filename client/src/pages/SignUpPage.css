@@ -443,6 +443,195 @@
   .wh-signup-signin { font-size: 17px; }
 }
 
+/* Phone landscape: keep the complete illustrated screen inside one viewport. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .wh-signup {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .wh-signup__scene,
+  .wh-signup__props {
+    position: fixed;
+    inset: 0;
+  }
+
+  .wh-signup__back {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    width: 46px;
+    border-width: 2px;
+    box-shadow: 0 4px 0 #a53213, 0 6px 9px rgb(88 40 8 / 24%), inset 0 2px 0 rgb(255 255 255 / 34%);
+  }
+
+  .wh-signup__back::before {
+    font-size: 42px;
+    transform: translate(-1px, -1px);
+  }
+
+  .wh-signup__ribbon {
+    top: max(11.5%, calc(env(safe-area-inset-top) + 42px));
+    left: 15.3%;
+    width: 24.5%;
+    height: 42px;
+    border-width: 1px;
+    border-radius: 7px 7px 3px 3px;
+    box-shadow: 0 4px 0 #074b88, 0 6px 9px rgb(43 55 58 / 20%), inset 0 1px 0 rgb(255 255 255 / 22%);
+    font-size: clamp(16px, 2.25vw, 23px);
+    text-shadow: 0 2px 1px rgb(0 48 98 / 44%);
+  }
+
+  .wh-signup__mascot {
+    position: absolute;
+    top: 18%;
+    left: 12.7%;
+    width: 30.5%;
+    height: 56%;
+    margin: 0;
+  }
+
+  .wh-signup-card {
+    position: absolute;
+    top: max(6px, env(safe-area-inset-top));
+    left: 44.05%;
+    width: 44.35%;
+    height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(6px, env(safe-area-inset-bottom)));
+    min-height: 0;
+    padding: 9px 18px 10px;
+    overflow: hidden;
+    margin: 0;
+    border-radius: 24px;
+    box-shadow: 0 5px 0 rgb(127 85 35 / 13%), 0 9px 18px rgb(88 49 15 / 20%), inset 0 1px 0 rgb(255 255 255 / 96%);
+  }
+
+  .wh-signup-card__header {
+    min-height: 35px;
+    margin: 0 3% 7px;
+    border-bottom-width: 3px;
+  }
+
+  .wh-signup-card__header h1 {
+    font-size: clamp(22px, 2.7vw, 31px);
+  }
+
+  .wh-signup-card__spark {
+    width: 22px;
+    height: 22px;
+  }
+
+  .wh-signup-card__spark::before,
+  .wh-signup-card__spark::after {
+    height: 4px;
+  }
+
+  .wh-signup-card__spark--left { right: calc(100% + 4px); }
+  .wh-signup-card__spark--right { left: calc(100% + 4px); }
+
+  .wh-signup-alert {
+    margin: -3px 0 5px;
+    padding: 4px 8px;
+    border-width: 1px;
+    border-radius: 7px;
+    font-size: 10px;
+  }
+
+  .wh-signup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+  }
+
+  .wh-signup-field > span {
+    margin-bottom: 3px;
+    font-size: clamp(9px, 1.05vw, 12px);
+  }
+
+  .wh-signup-field input {
+    height: 39px;
+    padding: 0 12px;
+    border-width: 1.5px;
+    border-radius: 11px;
+    font-size: clamp(13px, 1.45vw, 17px);
+  }
+
+  .wh-signup-field input:focus {
+    box-shadow: 0 0 0 2px rgb(23 115 209 / 17%), inset 0 2px 4px rgb(91 54 17 / 10%);
+  }
+
+  .wh-signup-field small {
+    margin-top: 1px;
+    font-size: 8px;
+  }
+
+  .wh-signup-terms {
+    gap: 7px;
+    margin: 7px 0 5px;
+  }
+
+  .wh-signup-terms > span {
+    width: 23px;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+
+  .wh-signup-terms strong {
+    font-size: clamp(9px, 1.1vw, 12px);
+  }
+
+  .wh-signup-button {
+    height: 42px;
+    gap: 9px;
+    padding: 0 14px;
+    border-width: 1px;
+    font-size: clamp(14px, 1.7vw, 19px);
+    text-shadow: 0 1px 1px rgb(37 35 45 / 22%);
+  }
+
+  .wh-signup-button--primary {
+    box-shadow: 0 5px 0 #a93309, 0 7px 10px rgb(93 42 7 / 24%), inset 0 1px 0 rgb(255 255 255 / 31%);
+  }
+
+  .wh-signup-divider {
+    gap: 10px;
+    margin: 8px 0 6px;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .wh-signup-divider::before,
+  .wh-signup-divider::after {
+    height: 1px;
+  }
+
+  .wh-signup-button--google {
+    box-shadow: 0 5px 0 #084a9f, 0 7px 10px rgb(17 62 120 / 22%), inset 0 1px 0 rgb(255 255 255 / 29%);
+  }
+
+  .wh-google-mark {
+    width: 28px;
+  }
+
+  .wh-google-mark::before {
+    font-size: 20px;
+  }
+
+  .wh-signup-signin {
+    margin: 8px 0 0;
+    font-size: clamp(11px, 1.25vw, 14px);
+  }
+
+  .wh-signup-signin button {
+    min-height: 28px;
+    margin: -5px -4px;
+    padding: 5px 4px;
+  }
+
+  .wh-signup-prop--plant-left { top: -5%; }
+  .wh-signup-prop--plant-right { top: -8%; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wh-signup *, .wh-signup *::before, .wh-signup *::after { transition: none !important; }
 }
