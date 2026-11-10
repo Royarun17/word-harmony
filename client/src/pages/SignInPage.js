@@ -1,198 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import { auth, signInWithEmailAndPassword } from '../utils/firebase';
-import { ThemeSwitcher } from '../SynapseComponents';
+import React, { useState } from 'react';
+import {
+  auth,
+  firebaseConfigured,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from '../utils/firebase';
+import {
+  AuthScene, AuthPanel, AuthField, Alert, GoldButton, LinkButton, authStyles as styles,
+} from '../components/auth/AuthKit';
+import { MailIcon, LockIcon, SignInIcon } from '../components/auth/AuthIcons';
+import { useOnline, EMAIL_RE } from './SignUpPage';
+import background from '../assets/auth/bg-signin.webp';
+import mascot from '../assets/auth/signin-mascot.webp';
+import cardFan from '../assets/auth/fan-signin.webp';
 
-function useOnline() {
-  const [online, setOnline] = useState(true);
-  useEffect(() => {
-    setOnline(navigator.onLine);
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
-  }, []);
-  return online;
-}
+// Figures at their painted positions in the 1672x941 reference.
+const FIGURES = [
+  { src: mascot, x: 120, y: 160, w: 595 },
+  { src: cardFan, x: 45, y: 630, w: 635 },
+];
 
-function AuthField({ label, type = 'text', placeholder, value, onChange, error, reveal, autoComplete }) {
-  const [focused, setFocused] = useState(false);
-  const [show, setShow] = useState(false);
-  const isPass = type === 'password';
-  const effectiveType = isPass && reveal && show ? 'text' : type;
-  const invalid = Boolean(error && error.trim());
+const NOT_CONFIGURED = 'Sign-in isn’t available in this build yet (Firebase isn’t configured).';
 
-  return (
-    <div style={{ width: '100%' }}>
-      <label style={{ display: 'block', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 8, color: invalid ? 'var(--danger)' : 'var(--ink-dim)' }}>
-        {label}
-      </label>
-      <div style={{
-        position: 'relative', display: 'flex', alignItems: 'center', borderRadius: 24,
-        background: 'oklch(0.22 0.03 232 / 0.85)',
-        border: `1px solid ${invalid ? 'var(--danger)' : focused ? 'var(--accent)' : 'var(--border)'}`,
-        boxShadow: invalid
-          ? '0 0 0 4px oklch(0.68 0.22 22 / 0.18)'
-          : focused
-            ? '0 0 0 4px oklch(0.82 0.16 195 / 0.18), 0 0 24px oklch(0.82 0.16 195 / 0.25)'
-            : 'inset 0 1px 0 oklch(1 0 0 / 0.03)',
-        transition: 'box-shadow 200ms, border-color 200ms',
-      }} className="auth-field-wrap">
-        <span style={{ paddingLeft: 16, paddingRight: 4, color: focused ? 'var(--accent)' : 'var(--ink-mute)', display: 'flex', alignItems: 'center', fontSize: 18 }}>
-          {isPass ? '🔒' : '✉'}
-        </span>
-        <input
-          type={effectiveType} value={value} onChange={onChange}
-          placeholder={placeholder} autoComplete={autoComplete}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          className="auth-field-input"
-          style={{ flex: 1, background: 'transparent', outline: 'none', padding: '16px', fontSize: 16, fontFamily: 'var(--font-body)', color: 'var(--ink)', minHeight: 56, border: 'none' }}
-        />
-        {isPass && reveal && (
-          <button type="button" onClick={() => setShow(s => !s)}
-            style={{ paddingRight: 16, paddingLeft: 8, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: 18 }}>
-            {show ? '🙈' : '👁'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
+function signInError(code) {
+  switch (code) {
+    case 'auth/user-not-found': return 'No account with this email. Check it, or create an account.';
+    case 'auth/wrong-password': return 'Wrong password. Try again.';
+    case 'auth/invalid-credential': return 'Incorrect email or password.';
+    case 'auth/invalid-email': return 'That email address doesn’t look right.';
+    case 'auth/user-disabled': return 'This account has been disabled.';
+    case 'auth/too-many-requests': return 'Too many attempts. Wait a moment, or reset your password.';
+    case 'auth/network-request-failed': return 'Network problem. Check your connection and try again.';
+    default: return 'Sign in failed. Try again.';
+  }
 }
 
 export default function SignInPage({ onNavigate }) {
-  const [email, setEmail]       = useState('');
-  const [pw, setPw]             = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [success, setSuccess]   = useState(false);
+  const [mode, setMode] = useState('signin'); // signin | reset
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [resetSent, setResetSent] = useState('');
   const online = useOnline();
 
-  const emailValid = /^\S+@\S+\.\S+$/.test(email);
-  const canSubmit = emailValid && pw.length >= 1 && online;
+  const emailError = !email.trim() ? 'Enter your email.' : !EMAIL_RE.test(email.trim()) ? 'Enter a valid email, like you@example.com.' : '';
+  const pwError = !pw ? 'Enter your password.' : '';
+  const change = setter => e => { setter(e.target.value); if (authError) setAuthError(''); };
+
+  function switchMode(next) {
+    setMode(next); setSubmitted(false); setAuthError(''); setResetSent(''); setLoading(false);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!canSubmit || loading) return;
+    setSubmitted(true);
+    if (loading || success) return;
+    if (emailError) { document.getElementById('signin-email')?.focus(); return; }
+    if (pwError) { document.getElementById('signin-password')?.focus(); return; }
+    if (!firebaseConfigured) { setAuthError(NOT_CONFIGURED); return; }
+    if (!online) { setAuthError('You’re offline. Reconnect to sign in.'); return; }
     setAuthError(''); setLoading(true);
     try {
-      const result = await signInWithEmailAndPassword(auth, email, pw);
+      const result = await signInWithEmailAndPassword(auth, email.trim(), pw);
       setSuccess(true);
       setTimeout(() => onNavigate('checkProfile', { user: result.user }), 650);
     } catch (err) {
-      if (err.code === 'auth/user-not-found')       setAuthError('No account with this email.');
-      else if (err.code === 'auth/wrong-password')  setAuthError('Wrong password. Try again.');
-      else if (err.code === 'auth/invalid-credential') setAuthError('Incorrect email or password.');
-      else setAuthError('Sign in failed. Try again.');
+      setAuthError(signInError(err.code));
     }
     setLoading(false);
   }
 
-  return (
-    <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <ThemeSwitcher />
-      <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
-          .auth-content { flex-direction: row !important; align-items: flex-start !important; gap: 28px; padding: 16px 28px !important; overflow: hidden !important; }
-          .auth-left { flex: 0 0 240px; overflow: hidden; }
-          .auth-wordmark { margin-bottom: 10px !important; }
-          .auth-wordmark > div:last-child { font-size: 26px !important; }
-          .auth-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); padding-right: 4px; }
-          .auth-header-block { margin-bottom: 10px !important; }
-          .auth-header-block h1 { font-size: 20px !important; margin-bottom: 2px !important; }
-          .auth-header-block p { display: none; }
-          .auth-panel { padding: 12px !important; gap: 8px !important; }
-          .auth-field-wrap { border-radius: 14px !important; }
-          .auth-field-input { min-height: 38px !important; padding: 10px !important; font-size: 14px !important; }
-        }
-      `}</style>
-      <div className="scene-content auth-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 32px', overflowY: 'auto' }}>
+  async function handleReset(e) {
+    e.preventDefault();
+    setSubmitted(true);
+    if (loading) return;
+    if (emailError) { document.getElementById('reset-email')?.focus(); return; }
+    if (!firebaseConfigured) { setAuthError(NOT_CONFIGURED); return; }
+    if (!online) { setAuthError('You’re offline. Reconnect to reset your password.'); return; }
+    setAuthError(''); setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setResetSent(email.trim());
+    } catch (err) {
+      // Don't reveal whether an account exists for this email.
+      if (err.code === 'auth/user-not-found') setResetSent(email.trim());
+      else setAuthError(err.code === 'auth/invalid-email' ? 'That email address doesn’t look right.' : signInError(err.code));
+    }
+    setLoading(false);
+  }
 
-        <div className="auth-left">
-          {/* Back button */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-            <button onClick={() => onNavigate('welcome')} className="tap-target" style={{ width: 44, height: 44, borderRadius: 99, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', color: 'var(--ink)', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: 18, backdropFilter: 'blur(8px)' }}>
-              ‹
-            </button>
-          </div>
-
-          {/* Synapse wordmark — floating with glow */}
-          <div className="auth-wordmark" style={{ textAlign: 'center', marginBottom: 32, position: 'relative', animation: 'syn-float 6s ease-in-out infinite' }}>
-            <div aria-hidden style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 160, height: 80, background: 'radial-gradient(ellipse 70% 60% at 50% 50%, var(--accent), transparent 70%)', filter: 'blur(24px)', opacity: 0.6, pointerEvents: 'none' }}/>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: '-0.02em', position: 'relative' }}>
-              <span style={{ color: 'var(--ink)' }}>Syn</span>
-              <span style={{ color: 'var(--accent)', textShadow: '0 0 22px oklch(0.82 0.16 195 / 0.7)' }}>apse</span>
-            </div>
-          </div>
-
-          {/* Header */}
-          <div className="auth-header-block" style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Welcome back</div>
-            <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>Sign in</h1>
-            <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Good to see you again.</p>
-          </div>
-        </div>
-
-        <div className="auth-right">
-          {/* Form */}
-          <div style={{ animation: 'syn-rise 600ms 80ms cubic-bezier(.2,.8,.2,1) both' }}>
-            {!online && (
-              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.82 0.16 75 / 0.12)', border: '1px solid oklch(0.82 0.16 75 / 0.45)', color: 'var(--warn)' }}>
-                <span style={{ fontSize: 16 }}>📶</span>
-                <div style={{ fontSize: 12, fontWeight: 600 }}>You're offline. Reconnect to sign in.</div>
-              </div>
-            )}
-
-            <div className="panel auth-panel" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Error banner */}
-              {authError && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, padding: 12, background: 'oklch(0.68 0.22 22 / 0.12)', border: '1px solid oklch(0.68 0.22 22 / 0.5)', color: 'var(--danger)', animation: 'syn-pop 260ms cubic-bezier(.2,.8,.2,1) both' }} role="alert">
-                  <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
-                  <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4 }}>{authError}</div>
-                </div>
-              )}
-
-              {/* Email */}
-              <AuthField label="Email" type="email" placeholder="you@synapse.gg" autoComplete="email"
-                value={email} onChange={e => { setEmail(e.target.value); if (authError) setAuthError(''); }}
-                error={authError ? ' ' : null} />
-
-              {/* Password + forgot */}
-              <div>
-                <AuthField label="Password" type="password" reveal autoComplete="current-password"
-                  placeholder="Your password"
-                  value={pw} onChange={e => { setPw(e.target.value); if (authError) setAuthError(''); }}
-                  error={authError ? ' ' : null} />
-                <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
-                  <button type="button" style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                    Forgot password?
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit */}
-              <button type="button" onClick={handleSubmit} disabled={(!canSubmit && !loading) || success}
-                className="btn-primary tap-target"
-                style={{ marginTop: 4, opacity: !canSubmit && !loading ? 0.55 : 1, cursor: !canSubmit ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                {success ? '✓ Signed in' : loading ? '⏳ Signing in…' : 'Sign in →'}
-              </button>
-
-              {/* Divider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 8 }}>
-                <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-                <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, textTransform: 'uppercase', color: 'var(--ink-mute)' }}>No account yet?</div>
-                <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-              </div>
-
-              {/* Create account */}
-              <button type="button" onClick={() => onNavigate('signup')}
-                className="btn-ghost tap-target"
-                style={{ borderColor: 'oklch(0.82 0.16 195 / 0.55)', color: 'var(--accent)' }}>
-                Create account
-              </button>
-            </div>
-          </div>
-        </div>
+  const signInFooter = (
+    <>
+      <GoldButton type="submit" form="signin-form" className={styles.submit} icon={<SignInIcon />} busy={loading} disabled={success}>
+        {success ? 'Signed In!' : loading ? 'Signing In…' : 'Sign In'}
+      </GoldButton>
+      <div className={styles.footRow}>
+        <p>New here? <LinkButton onClick={() => onNavigate('signup')}>Create Account</LinkButton></p>
       </div>
-    </div>
+    </>
+  );
+  const resetFooter = (
+    <>
+      <GoldButton type="submit" form="reset-form" className={styles.submit} icon={<MailIcon />} busy={loading}>
+        {loading ? 'Sending…' : resetSent ? 'Send Again' : 'Send Reset Link'}
+      </GoldButton>
+      <div className={styles.footRow}>
+        <p>Remembered it? <LinkButton onClick={() => switchMode('signin')}>Back to Sign In</LinkButton></p>
+      </div>
+    </>
+  );
+
+  return (
+    <AuthScene
+      background={background}
+      figures={FIGURES}
+      onBack={() => (mode === 'reset' ? switchMode('signin') : onNavigate('welcome'))}
+    >
+      {mode === 'signin' ? (
+        <AuthPanel title="Welcome Back" variant="signin" footer={signInFooter}>
+          <form id="signin-form" className={styles.form} onSubmit={handleSubmit} noValidate>
+            {!online && <Alert tone="info">You’re offline. Reconnect to sign in.</Alert>}
+            {authError && <Alert>{authError}</Alert>}
+            {success && <Alert tone="success">Signed in! Loading your profile…</Alert>}
+
+            <AuthField id="signin-email" icon={<MailIcon />} label="Email" type="email" inputMode="email" autoComplete="email" enterKeyHint="next"
+              value={email} onChange={change(setEmail)} error={submitted ? emailError : ''} />
+            <AuthField id="signin-password" icon={<LockIcon />} label="Password" type="password" revealable autoComplete="current-password" enterKeyHint="go"
+              value={pw} onChange={change(setPw)} error={submitted ? pwError : ''} />
+
+            <div className={styles.forgot}>
+              <LinkButton onClick={() => switchMode('reset')}>Forgot Password?</LinkButton>
+            </div>
+          </form>
+        </AuthPanel>
+      ) : (
+        <AuthPanel title="Reset Password" variant="signin" footer={resetFooter}>
+          <form id="reset-form" className={styles.form} onSubmit={handleReset} noValidate>
+            {authError && <Alert>{authError}</Alert>}
+            {resetSent ? (
+              <Alert tone="success">
+                If an account exists for {resetSent}, a reset link is on its way. Check your inbox and spam folder.
+              </Alert>
+            ) : (
+              <p className={styles.lead}>Enter your email and we’ll send you a link to choose a new password.</p>
+            )}
+            <AuthField id="reset-email" icon={<MailIcon />} label="Email" type="email" inputMode="email" autoComplete="email" enterKeyHint="send"
+              value={email} onChange={change(setEmail)} error={submitted ? emailError : ''} autoFocus />
+          </form>
+        </AuthPanel>
+      )}
+    </AuthScene>
   );
 }

@@ -1,12 +1,21 @@
 import React, { useEffect, useState, useCallback, forwardRef } from 'react';
 
 // ── Utility: hash-based gradient for avatars ───────────────────────────────
-export function hashGradient(s = '') {
+// Eight hues spread around the wheel at a fixed lightness, so every player
+// gets a distinct colour that suits the theme and keeps white initials
+// readable. Chroma comes from --avatar-c (lower in the Library theme).
+const AVATAR_HUES = [195, 230, 265, 300, 340, 20, 65, 150];
+export function avatarHue(s = '') {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  const h1 = Math.abs(h) % 360;
-  const h2 = (h1 + 55) % 360;
-  return `linear-gradient(140deg, hsl(${h1} 70% 55%), hsl(${h2} 70% 40%))`;
+  return AVATAR_HUES[Math.abs(h) % AVATAR_HUES.length];
+}
+export function avatarColor(hue, lightness = 0.62) {
+  return `oklch(${lightness} var(--avatar-c, 0.15) ${hue})`;
+}
+export function hashGradient(s = '') {
+  const hue = avatarHue(s);
+  return `linear-gradient(140deg, ${avatarColor(hue)}, ${avatarColor(hue + 20, 0.46)})`;
 }
 
 // ── ThemeProvider ──────────────────────────────────────────────────────────
@@ -67,7 +76,7 @@ export function PlayerAvatar({ name = '', seed, score, active, buzzing, size = '
           {active && (
             <span className="chip chip-accent" style={{
               position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)',
-              letterSpacing: '0.14em', padding: '2px 8px', fontSize: 9, whiteSpace: 'nowrap',
+              letterSpacing: '0.14em', padding: '2px 8px', fontSize: 'var(--text-xs)', whiteSpace: 'nowrap',
             }}>TURN</span>
           )}
         </div>
@@ -88,20 +97,24 @@ export function PlayerAvatar({ name = '', seed, score, active, buzzing, size = '
 export const WordCard = forwardRef(function WordCard({ word, kind = 'normal', selected, dim, small, hint, onClick, style, className }, ref) {
   const w = small ? 92 : 128;
   const h = small ? 130 : 180;
+  const base = small ? 20 : 26;
+  // Shrink long words to fit the card width (cqi = the card, which is a size
+  // container); very long words wrap once they hit the --card-font-min floor.
+  const fit = (1.45 / Math.max(5, String(word || '').length)).toFixed(3);
   return (
     <button ref={ref} type="button" onClick={onClick}
       className={`card-surface card-hover tap-target${selected ? ' card-selected' : ''}${kind === 'match' ? ' ring-match' : ''}${className ? ' ' + className : ''}`}
-      style={{ ...style, width: w, height: h, flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 12, opacity: dim ? 0.6 : 1, cursor: 'pointer', border: 'none', textAlign: 'left', position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, opacity: 0.7, color: 'var(--card-ink)' }}>
+      style={{ ...style, width: `var(--card-w, ${w}px)`, height: `var(--card-h, ${h}px)`, containerType: 'size', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--card-pad, 12px)', opacity: dim ? 0.6 : 1, cursor: 'pointer', border: 'none', textAlign: 'left', position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', fontSize: 'var(--text-xs)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, opacity: 0.7, color: 'var(--card-ink)' }}>
         <span>{hint || 'SYN'}</span>
         <span style={{ width: 8, height: 8, borderRadius: 99, background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)', display: 'inline-block', flexShrink: 0 }}/>
       </div>
       <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: '0 4px' }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: small ? 20 : 26, fontWeight: 700, textAlign: 'center', lineHeight: 1, wordBreak: 'break-words', color: 'var(--card-ink)' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: `clamp(var(--card-font-min, 13px), calc(100cqi * ${fit}), ${base}px)`, fontWeight: 700, textAlign: 'center', lineHeight: 1.05, overflowWrap: 'anywhere', hyphens: 'auto', color: 'var(--card-ink)' }}>
           {word}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, opacity: 0.7, transform: 'rotate(180deg)', color: 'var(--card-ink)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', fontSize: 'var(--text-xs)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, opacity: 0.7, transform: 'rotate(180deg)', color: 'var(--card-ink)' }}>
         <span>{hint || 'SYN'}</span>
         <span style={{ width: 8, height: 8, borderRadius: 99, background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)', display: 'inline-block' }}/>
       </div>
@@ -174,11 +187,11 @@ export function Dialog({ open, onClose, title, children, footer, tone = 'default
         )}
         {title && (
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.28em', fontWeight: 600, color: toneColor, textTransform: 'uppercase' }}>SYNAPSE</div>
-            <h2 style={{ marginTop: 4, fontSize: 24, fontFamily: 'var(--font-display)', fontWeight: 700, lineHeight: 1.2 }}>{title}</h2>
+            <div className="eyebrow eyebrow-wide" style={{ color: toneColor }}>SYNAPSE</div>
+            <h2 style={{ marginTop: 4, fontSize: 'var(--text-xl)', fontFamily: 'var(--font-display)', fontWeight: 700, lineHeight: 1.2 }}>{title}</h2>
           </div>
         )}
-        <div style={{ fontSize: 14, color: 'var(--ink-dim)' }}>{children}</div>
+        <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.5, color: 'var(--ink-dim)' }}>{children}</div>
         {footer && <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>{footer}</div>}
       </div>
     </div>
@@ -217,8 +230,8 @@ export function SectionHeader({ eyebrow, title, right }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
       <div>
-        {eyebrow && <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4, color: 'var(--accent)' }}>{eyebrow}</div>}
-        <h2 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.05, fontFamily: 'var(--font-display)' }}>{title}</h2>
+        {eyebrow && <div className="eyebrow eyebrow-accent" style={{ marginBottom: 4 }}>{eyebrow}</div>}
+        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 700, lineHeight: 1.05, fontFamily: 'var(--font-display)' }}>{title}</h2>
       </div>
       {right}
     </div>
@@ -230,9 +243,9 @@ function StateFrame({ icon, tone, eyebrow, title, body, actions }) {
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px 24px' }}>
       <div style={{ width: 64, height: 64, borderRadius: 99, display: 'grid', placeItems: 'center', marginBottom: 16, background: `oklch(from ${tone} l c h / .18)`, border: `1px solid oklch(from ${tone} l c h / .5)`, boxShadow: `0 0 30px oklch(from ${tone} l c h / .35)`, color: tone, fontSize: 24 }}>{icon}</div>
-      <div style={{ fontSize: 10, letterSpacing: '0.32em', fontWeight: 600, color: tone, textTransform: 'uppercase' }}>{eyebrow}</div>
-      <h3 style={{ marginTop: 4, fontSize: 22, fontFamily: 'var(--font-display)', fontWeight: 700 }}>{title}</h3>
-      {body && <p style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-dim)', maxWidth: 280 }}>{body}</p>}
+      <div className="eyebrow eyebrow-wide" style={{ color: tone }}>{eyebrow}</div>
+      <h3 style={{ marginTop: 4, fontSize: 'var(--text-xl)', fontFamily: 'var(--font-display)', fontWeight: 700 }}>{title}</h3>
+      {body && <p style={{ marginTop: 8, fontSize: 'var(--text-sm)', lineHeight: 1.5, color: 'var(--ink-dim)', maxWidth: 280 }}>{body}</p>}
       {actions && <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>{actions}</div>}
     </div>
   );

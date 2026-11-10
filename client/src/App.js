@@ -8,6 +8,7 @@ import axios from 'axios';
 
 import TutorialPage      from './pages/TutorialPage';
 import CardLoader        from './components/CardLoader';
+import RotateDeviceOverlay from './components/RotateDeviceOverlay';
 import WelcomePage       from './pages/WelcomePage';
 import SignUpPage        from './pages/SignUpPage';
 import SignInPage        from './pages/SignInPage';
@@ -47,6 +48,7 @@ export default function App() {
 
   // ── Firebase auth listener ─────────────────────────────────────────────────
   useEffect(() => {
+    if (!auth) { setAuthScreen('welcome'); return undefined; }
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setAuthUser(user);
@@ -269,7 +271,7 @@ export default function App() {
       <CardLoader message="Rejoining your game…"/>
       <div style={{ position:'absolute', bottom:40, left:0, right:0, textAlign:'center' }}>
         <button onClick={() => { setRejoining(false); clearSession(); setGameState('lobby'); }}
-          style={{ background:'none', border:'none', color:'rgba(255,255,255,0.5)', fontSize:13, cursor:'pointer', textDecoration:'underline' }}>
+          style={{ background:'none', border:'none', color:'var(--ink-dim)', fontSize:'var(--text-sm)', minHeight:44, padding:'0 12px', cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3 }}>
           Go to Lobby instead
         </button>
       </div>
@@ -298,6 +300,7 @@ export default function App() {
       {gameState === 'playing' && session && myInfo && <GamePlay    session={session} playerId={myInfo.playerId} onExit={handlePlayAgain}/>}
       {gameState === 'scoring' && session && myInfo && <ScoringPage session={session} playerId={myInfo.playerId} isHost={myInfo.isHost} scoringData={scoringData}/>}
       {gameState === 'ended'   && finalScores && myInfo && <GameEnded finalScores={finalScores} playerId={myInfo.playerId} onPlayAgain={handlePlayAgain}/>}
+      {gameState !== 'lobby' && <RotateDeviceOverlay/>}
       <ToastContainer toasts={toasts}/>
     </>
     </ThemeProvider>

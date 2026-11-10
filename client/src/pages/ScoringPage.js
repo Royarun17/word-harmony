@@ -45,7 +45,7 @@ export default function ScoringPage({ session, playerId, isHost, scoringData }) 
       <ThemeSwitcher />
       {isLastRound && <Confetti count={70} />}
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .sc-content { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 20px; padding: 16px 20px !important; overflow: hidden !important; }
           .sc-left { flex: 0 0 220px; overflow: hidden; }
           .sc-header h1 { font-size: 20px !important; }
@@ -58,7 +58,7 @@ export default function ScoringPage({ session, playerId, isHost, scoringData }) 
         <div className="sc-left">
           {/* Header */}
           <div className="sc-header" style={{ textAlign: 'center', marginBottom: 24, animation: 'syn-pop 600ms cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.32em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 6 }}>
+            <div className="eyebrow eyebrow-wide eyebrow-accent" style={{ marginBottom: 6 }}>
               ROUND {session.currentRound} · RESULTS
             </div>
             <h1 style={{ fontSize: 32, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.1, color: 'var(--ink)' }}>
@@ -80,7 +80,7 @@ export default function ScoringPage({ session, playerId, isHost, scoringData }) 
           {/* Word of round */}
           {Object.keys(synonymClusters).length > 0 && (
             <div className="panel" style={{ padding: 16, textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 6 }}>WORD OF THE ROUND</div>
+              <div className="eyebrow eyebrow-accent" style={{ marginBottom: 6 }}>WORD OF THE ROUND</div>
               <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--ink)', marginBottom: 6 }}>{Object.keys(synonymClusters)[0]}</div>
               <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>{(synonymClusters[Object.keys(synonymClusters)[0]] || []).join(' · ')}</div>
             </div>
@@ -107,7 +107,7 @@ export default function ScoringPage({ session, playerId, isHost, scoringData }) 
                   <div style={{ textAlign: 'right' }}>
                     <div className="number-tab" style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{(session.totalScores?.[p.id] || 0).toLocaleString()}</div>
                     {(roundScores.find(s => s.playerId === p.id)?.points || 0) > 0 && (
-                      <div className="number-tab" style={{ fontSize: 10, fontWeight: 600, color: 'var(--win)', animation: 'syn-count 500ms both' }}>
+                      <div className="number-tab" style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--win)', animation: 'syn-count 500ms both' }}>
                         +{roundScores.find(s => s.playerId === p.id)?.points}
                       </div>
                     )}

@@ -1,0 +1,85 @@
+/* =========================================================================
+   Word Harmony "tabletop" system: shared by Welcome, Sign Up and Gameplay.
+   Warm room, wooden table, paper cards, one sunflower-yellow action colour.
+
+   Phone landscape is the primary target. Every screen uses the same query
+   for it, so the breakpoints never drift apart:
+     @media (orientation: landscape) and (max-height: 500px)
+   ========================================================================= */
+
+:root {
+  /* Surfaces */
+  --wh-room: #f8e6bf;
+  --wh-paper: #fffaf0;
+  --wh-paper-2: #fbf1dc;
+  --wh-wood: #b8773a;
+  --wh-wood-dark: #7a4618;
+  --wh-line: rgb(110 70 25 / 14%);
+
+  /* Ink (all >= 4.5:1 on --wh-paper) */
+  --wh-ink: #2a1d10;
+  --wh-ink-2: #5c4630;
+  --wh-ink-3: #75593d;
+
+  /* Action + states */
+  --wh-sun: #ffca25;
+  --wh-sun-2: #ffbd17;
+  --wh-sun-lip: #d4910a;
+  --wh-sun-edge: #fff0a0;
+  --wh-sky: #0879c9;
+  --wh-sky-ink: #075b98;
+  --wh-leaf: #23864a;
+  --wh-leaf-soft: #e1f3e2;
+  --wh-ember: #d9472b;
+  --wh-ember-soft: #fde5dc;
+  --wh-amber: #b86a00;
+
+  /* Type */
+  --wh-font: 'Nunito', 'Trebuchet MS', system-ui, sans-serif;
+
+  /* Depth: warm, low-contrast shadows that sit on wood */
+  --wh-shadow-1: 0 1px 1px rgb(86 45 11 / 12%), 0 4px 10px rgb(86 45 11 / 14%);
+  --wh-shadow-2: 0 2px 4px rgb(86 45 11 / 12%), 0 12px 28px rgb(86 45 11 / 22%);
+  --wh-shadow-lift: 0 6px 12px rgb(86 45 11 / 18%), 0 22px 40px rgb(86 45 11 / 28%);
+
+  /* Motion (game-feel tiers: small = select, medium = pass, large = buzz) */
+  --wh-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --wh-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Touch + safe area */
+  --wh-tap: 44px;
+  --wh-safe-t: max(8px, env(safe-area-inset-top));
+  --wh-safe-r: max(12px, env(safe-area-inset-right));
+  --wh-safe-b: max(8px, env(safe-area-inset-bottom));
+  --wh-safe-l: max(12px, env(safe-area-inset-left));
+}
+
+/* The yellow pill used for the main action on every tabletop screen. */
+.wh-btn-sun {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--wh-tap);
+  padding: 0 22px;
+  color: var(--wh-ink);
+  border: 3px solid var(--wh-sun-edge);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--wh-sun) 0%, var(--wh-sun-2) 100%);
+  box-shadow: 0 3px 0 var(--wh-sun-lip), 0 7px 13px rgb(108 64 7 / 22%), inset 0 2px 1px rgb(255 255 255 / 38%);
+  font: 900 16px / 1 var(--wh-font);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 200ms;
+}
+.wh-btn-sun:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.03); }
+.wh-btn-sun:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--wh-sun-lip), 0 3px 6px rgb(108 64 7 / 20%), inset 0 2px 1px rgb(255 255 255 / 32%); }
+.wh-btn-sun:focus-visible { outline: 3px solid var(--wh-sky-ink); outline-offset: 4px; }
+.wh-btn-sun:disabled { cursor: not-allowed; filter: grayscale(0.85); opacity: 0.55; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wh-btn-sun { transition: none; }
+}

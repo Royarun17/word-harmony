@@ -1,18 +1,27 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import socket from '../utils/socket';
 import { useSocketEvent } from '../hooks/useSocketEvent';
-import { Confetti, WordCard } from '../SynapseComponents';
-import ArenaBackground from '../components/gameplay/ArenaBackground';
+import { Confetti } from '../SynapseComponents';
 import Header from '../components/gameplay/Header';
 import GameTable from '../components/gameplay/GameTable';
-import PlayerHand from '../components/gameplay/PlayerHand';
-import ActionBar from '../components/gameplay/ActionBar';
+import PlayerHand, { HandCard, capitalise } from '../components/gameplay/PlayerHand';
 import ExitDialog from '../components/gameplay/ExitDialog';
 import InfoDialog from '../components/gameplay/InfoDialog';
 import styles from '../components/gameplay/gameplay.module.css';
+import roomArt from '../assets/welcome/light/room.webp';
+import tableArt from '../assets/welcome/light/tabletop.webp';
 
 const TURN_TIME_LIMIT = 30;
 const BUZZER_WINDOW = 3;
+
+// Keyboard bindings, as data: gameplay below only ever sees the action name.
+// Touch uses tap/drag and the on-screen Pass and BUZZ buttons for the same actions.
+const KEY_ACTIONS = {
+  '1': 'pick', '2': 'pick', '3': 'pick', '4': 'pick',
+  Enter: 'pass',
+  b: 'buzz', B: 'buzz',
+  Escape: 'deselect',
+};
 
 export default function GamePlay({ session, playerId, onExit }) {
   // ── State ──────────────────────────────────────────────────────────────
@@ -26,9 +35,23 @@ export default function GamePlay({ session, playerId, onExit }) {
   const [hasCompleteSet, setHasCompleteSet] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME_LIMIT);
   const [buzzWindowLeft, setBuzzWindowLeft] = useState(0);
-  const [drag, setDrag] = useState(null); // { word, x, y, over }
+  const [drag, setDrag] = useState(null); // { word, sx, sy, x, y, active, over }
+  const [toast, setToast] = useState(null); // { text, key }
+  const [took, setTook] = useState(false);   // word card "receives" a passed card
+  const [shaking, setShaking] = useState(false); // buzz impact
   const lastRoundRef = useRef(session.currentRound);
   const tableRef = useRef(null);
+  const justDraggedRef = useRef(false);
+  const dragRef = useRef(null);
+
+  function showToast(text) {
+    setToast({ text, key: Date.now() });
+  }
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 2200);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   // ── Hand updates from server ──────────────────────────────────────────
   // The server never sends synonymClusters during play (that would spoil the
@@ -75,6 +98,9 @@ export default function GamePlay({ session, playerId, onExit }) {
   useSocketEvent('buzzer_window_closed', ({ playerId: pid }) => {
     if (pid === playerId) setBuzzWindowLeft(0);
   });
+  useSocketEvent('auto_passed', ({ playerId: pid, card }) => {
+    if (pid === playerId && card) showToast(`Time's up · passed “${capitalise(card)}”`);
+  });
   useEffect(() => {
     if (buzzWindowLeft <= 0) return;
     const id = setInterval(() => setBuzzWindowLeft(t => Math.max(0, t - 1)), 1000);
@@ -105,21 +131,53 @@ export default function GamePlay({ session, playerId, onExit }) {
   const otherPlayers = useMemo(() => players.filter(p => p.id !== playerId), [players, playerId]);
   const turnPlayerId = session.turnOrder?.[session.currentTurnIndex];
   const lastBuzzerId = session.buzzerLog?.[session.buzzerLog.length - 1]?.playerId;
+  const turnPlayerName = players.find(p => p.id === turnPlayerId)?.name.split(' ')[0];
+  const nextPlayerName = useMemo(() => {
+    const order = session.turnOrder || [];
+    const nextId = order[(order.indexOf(playerId) + 1) % (order.length || 1)];
+    return players.find(p => p.id === nextId)?.name.split(' ')[0];
+  }, [session.turnOrder, players, playerId]);
+
+  const scores = session.totalScores || {};
+  const myRank = 1 + players.filter(p => p.id !== playerId && (scores[p.id] || 0) > (scores[playerId] || 0)).length;
+  const leaderId = useMemo(() => {
+    let best = null;
+    players.forEach(p => { if ((scores[p.id] || 0) > 0 && (!best || scores[p.id] > scores[best])) best = p.id; });
+    return best;
+  }, [players, scores]);
+
+  const submissions = session.wordSubmissions || {};
+  const myWord = submissions[playerId] ? capitalise(submissions[playerId]) : null;
+  const otherWords = useMemo(() => [...new Set(
+    Object.entries(session.wordSubmissions || {})
+      .filter(([pid, w]) => pid !== playerId && w)
+      .map(([, w]) => capitalise(w))
+  )].filter(w => w !== myWord), [session.wordSubmissions, playerId, myWord]);
 
   // ── Handlers ─────────────────────────────────────────────────────────
   function passCard(word) {
     if (!word || !isMyTurn) return;
     socket.emit('pass_card', { sessionId: session.id, playerId, cardToPass: word });
     setSelected(null);
+    setTook(true);
+    setTimeout(() => setTook(false), 420);
+    showToast(nextPlayerName ? `Passed “${capitalise(word)}” to ${nextPlayerName}` : `Passed “${capitalise(word)}”`);
   }
 
-  // Drag-to-pass: pointer-down on a hand card starts tracking; a plain tap
-  // (no movement into the table) just selects the card, matching the GDD's
-  // "tap to select, then drag to centre to pass."
+  // Tap toggles selection; the click that ends a drag is swallowed so a pass
+  // attempt doesn't also flip the selection.
+  function handleSelect(word) {
+    if (justDraggedRef.current) return;
+    setSelected(s => (s === word ? null : word));
+  }
+
+  // Drag-to-pass: pointer-down on a hand card starts tracking; the drag only
+  // becomes real after 8px of movement, and dropping it on the word card passes it.
   function handleCardPointerDown(word, e) {
-    setSelected(word);
     if (!isMyTurn) return;
-    setDrag({ word, x: e.clientX, y: e.clientY, over: false });
+    justDraggedRef.current = false;
+    dragRef.current = { word, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, active: false, over: false };
+    setDrag(dragRef.current);
   }
 
   useEffect(() => {
@@ -132,13 +190,22 @@ export default function GamePlay({ session, playerId, onExit }) {
       const { x, y } = point(e);
       const rect = tableRef.current?.getBoundingClientRect();
       const over = !!rect && x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-      setDrag(d => (d ? { ...d, x, y, over } : d));
+      const d = dragRef.current;
+      if (!d) return;
+      const active = d.active || Math.hypot(x - d.sx, y - d.sy) > 8;
+      dragRef.current = { ...d, x, y, active, over: active && over };
+      setDrag(dragRef.current);
     }
+    // Side effects live here, not in a setState updater, so StrictMode can't
+    // double-pass and the click that follows pointerup already sees the flag.
     function onUp() {
-      setDrag(d => {
-        if (d && d.over) passCard(d.word);
-        return null;
-      });
+      const d = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (!d || !d.active) return;
+      justDraggedRef.current = true;
+      setTimeout(() => { justDraggedRef.current = false; }, 0);
+      if (d.over) passCard(d.word);
     }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -154,95 +221,133 @@ export default function GamePlay({ session, playerId, onExit }) {
     if (!canBuzz || buzzed) return;
     setBuzzed(true);
     setShowConfetti(true);
+    setShaking(true);
+    try { navigator.vibrate && navigator.vibrate(60); } catch {}
     socket.emit('press_buzzer', { sessionId: session.id, playerId });
     setTimeout(() => setShowConfetti(false), 3000);
+    setTimeout(() => setShaking(false), 460);
   }
 
+  // ── Keyboard: map keys to the same actions the touch controls use ──────
+  const runAction = useRef(null);
+  runAction.current = (action, key) => {
+    if (action === 'pick') {
+      const word = myHand[Number(key) - 1];
+      if (word) setSelected(s => (s === word ? null : word));
+    } else if (action === 'pass') {
+      if (selected) passCard(selected);
+    } else if (action === 'buzz') {
+      handleBuzz();
+    } else if (action === 'deselect') {
+      setSelected(null);
+    }
+  };
+  const dialogOpen = showExit || showInfo;
+  useEffect(() => {
+    if (dialogOpen) return undefined;
+    function onKey(e) {
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey) return;
+      const tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      // Enter on a focused button should press that button, not pass.
+      if (e.key === 'Enter' && tag === 'BUTTON') return;
+      const action = KEY_ACTIONS[e.key];
+      if (!action) return;
+      e.preventDefault();
+      runAction.current(action, e.key);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dialogOpen]);
+
+  const dragging = !!drag?.active;
+
+  // Starting a real drag also selects the card being dragged.
+  useEffect(() => {
+    if (dragging) setSelected(drag.word);
+  }, [dragging, drag?.word]);
+
   return (
-    <div className={`scene ${styles.screen} ${styles.noSceneBg}`}>
-      <ArenaBackground />
+    <div className={`${styles.screen}${dragging ? ` ${styles.dragging}` : ''}${shaking ? ` ${styles.shake}` : ''}`}>
+      <div className={styles.backdrop} aria-hidden>
+        <img className={styles.roomArt} src={roomArt} alt="" />
+        <img className={styles.tableArt} src={tableArt} alt="" />
+      </div>
       {showConfetti && <Confetti count={60} />}
 
-      <div className="scene-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div className={styles.landscapeTop}>
-          <Header
-            round={session.currentRound}
-            rounds={session.rounds}
-            timeLeft={timeLeft}
-            urgency={urgency}
-            modeLabel={session.gameMode === 'education' ? 'Syntax' : 'Spark'}
-            onExit={() => setShowExit(true)}
-            onInfo={() => setShowInfo(true)}
-            roomCode={session.id}
-            playerCount={players.length}
-            maxPlayers={session.maxPlayers}
-          />
+      <Header
+        round={session.currentRound}
+        rounds={session.rounds}
+        onExit={() => setShowExit(true)}
+        onInfo={() => setShowInfo(true)}
+        onCopied={() => showToast('Room code copied')}
+        roomCode={session.id}
+        otherPlayers={otherPlayers}
+        turnPlayerId={turnPlayerId}
+        lastBuzzerId={lastBuzzerId}
+        totalScores={session.totalScores}
+        handCounts={session.handCounts}
+        leaderId={leaderId}
+      />
+
+      <GameTable
+        ref={tableRef}
+        myWord={myWord}
+        otherWords={otherWords}
+        modeNoun={session.gameMode === 'education' ? 'synonyms' : 'associations'}
+        timeLeft={timeLeft}
+        timerPercent={timerPct}
+        urgency={urgency}
+        myScore={scores[playerId]}
+        myRank={myRank}
+        playerCount={players.length}
+        hasCompleteSet={hasCompleteSet}
+        isMyTurn={isMyTurn}
+        turnPlayerName={turnPlayerName}
+        ready={ready}
+        canBuzz={canBuzz}
+        buzzed={buzzed}
+        buzzerLocked={buzzerLocked}
+        buzzWindowLeft={buzzWindowLeft}
+        onBuzz={handleBuzz}
+        dropActive={!!drag?.over}
+        took={took}
+      />
+
+      <footer className={styles.handRow}>
+        <PlayerHand
+          hand={myHand}
+          selected={selected}
+          onSelect={handleSelect}
+          hasCompleteSet={hasCompleteSet}
+          isMyTurn={isMyTurn}
+          onCardPointerDown={handleCardPointerDown}
+          draggingWord={dragging ? drag.word : null}
+        />
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={`wh-btn-sun ${styles.pass}`}
+            onClick={() => passCard(selected)}
+            disabled={!isMyTurn || !selected}
+            aria-keyshortcuts="Enter"
+          >
+            {!isMyTurn ? 'Not your turn' : !selected ? 'Pick a card' : nextPlayerName ? `Pass to ${nextPlayerName}` : 'Pass'}
+          </button>
         </div>
+      </footer>
 
-        <div className={styles.landscapeBody}>
-          <div className={styles.landscapeArena}>
-            <GameTable
-              ref={tableRef}
-              otherPlayers={otherPlayers}
-              turnPlayerId={turnPlayerId}
-              lastBuzzerId={lastBuzzerId}
-              totalScores={session.totalScores}
-              handCounts={session.handCounts}
-              ready={ready}
-              canBuzz={canBuzz}
-              buzzed={buzzed}
-              buzzerLocked={buzzerLocked}
-              onBuzz={handleBuzz}
-              timerPercent={timerPct}
-              urgency={urgency}
-              buzzWindowLeft={buzzWindowLeft}
-              me={myPlayer}
-              myScore={session.totalScores?.[playerId]}
-              myCardCount={myHand.length}
-              isMyTurn={isMyTurn}
-              dropActive={!!drag?.over}
-            />
-          </div>
-
-          <div className={styles.landscapeSidebar}>
-            <PlayerHand
-              hand={myHand}
-              selected={selected}
-              onSelect={setSelected}
-              hasCompleteSet={hasCompleteSet}
-              isMyTurn={isMyTurn}
-              onCardPointerDown={handleCardPointerDown}
-              draggingWord={drag?.word}
-            />
-
-            <ActionBar
-              selected={selected}
-              isMyTurn={isMyTurn}
-              isDragging={!!drag}
-              onKeep={() => setSelected(null)}
-              onQuit={() => setShowExit(true)}
-              ready={ready}
-              canBuzz={canBuzz}
-              onBuzz={handleBuzz}
-              buzzed={buzzed}
-              showConfetti={showConfetti}
-            />
-          </div>
-        </div>
-      </div>
-
-      {drag && (
-        <div
+      {dragging && (
+        <HandCard
+          word={drag.word}
           className={styles.dragGhost}
-          style={{ left: drag.x, top: drag.y }}
-        >
-          <WordCard
-            word={drag.word.charAt(0).toUpperCase() + drag.word.slice(1)}
-            kind={drag.over ? 'match' : 'normal'}
-            small
-          />
-        </div>
+          style={{ left: drag.x, top: drag.y, '--len': drag.word.length }}
+          tabIndex={-1}
+          aria-hidden
+        />
       )}
+
+      {toast && <div key={toast.key} className={styles.toast} role="status">{toast.text}</div>}
 
       <ExitDialog open={showExit} onStay={() => setShowExit(false)} onLeave={onExit} />
       <InfoDialog open={showInfo} onClose={() => setShowInfo(false)} />

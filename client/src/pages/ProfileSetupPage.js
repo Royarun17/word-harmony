@@ -22,7 +22,7 @@ const COUNTRIES = [
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.24em', color: 'var(--ink-dim)' }}>
+    <div className="eyebrow" style={{ color: 'var(--ink-dim)' }}>
       {children}
     </div>
   );
@@ -217,7 +217,7 @@ export default function ProfileSetupPage({ onNavigate, user, prefillName }) {
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .ps-content { flex-direction: row !important; align-items: flex-start !important; gap: 24px; padding: 16px 24px !important; overflow: hidden !important; }
           .ps-left { flex: 0 0 220px; overflow: hidden; }
           .ps-wordmark { margin-bottom: 8px !important; }
@@ -246,7 +246,7 @@ export default function ProfileSetupPage({ onNavigate, user, prefillName }) {
 
           {/* Header */}
           <div className="ps-header" style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Profile setup</div>
+            <div className="eyebrow eyebrow-wide eyebrow-accent" style={{ marginBottom: 8 }}>Profile setup</div>
             <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>👋 Welcome to Synapse</h1>
             <p style={{ fontSize: 14, color: 'var(--ink-dim)' }}>Let's create your profile.</p>
           </div>

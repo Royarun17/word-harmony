@@ -1,60 +1,42 @@
 import React from 'react';
+import { avatarHue } from '../../SynapseComponents';
 import styles from './gameplay.module.css';
 
-// A stable per-player ring color, independent from the avatar's own gradient —
-// gives each seat around the orbit a recognizable "identity color" at a glance.
-function hashHue(s = '') {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h) % 360;
+// Fixed lightness/chroma so player colours read the same on the light gameplay ground
+// whichever app theme is active; the hue matches the player's avatar elsewhere.
+export function playerColor(name = '') {
+  return `oklch(0.62 0.16 ${avatarHue(name)})`;
 }
 
-function PlayerSeat({ player, seatStyle, isActive, isBuzzing, score, cardCount, rank }) {
+// One opponent in the top bar: avatar, card count, name and score.
+function PlayerSeat({ player, isActive, isBuzzing, score, cardCount, isLeader, delay = 0 }) {
   const connected = player.connected !== false;
-  const hue = hashHue(player.name);
   const initials = player.name.split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-  const fanCount = Math.min(cardCount, 5);
+  const pts = (score || 0).toLocaleString();
+  const cls = [
+    styles.player,
+    isActive && styles.turn,
+    isBuzzing && styles.buzzing,
+    !connected && styles.offline,
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className={styles.seat} style={{ ...seatStyle, transform: 'translate(-50%, -50%)' }}>
-      <div className={`${styles.seatInner}${!connected ? ` ${styles.disconnected}` : ''}`}>
-        <div className={styles.orbitAvatarWrap}>
-          <div
-            className={`${styles.orbitAvatar}${isActive ? ` ${styles.orbitAvatarActive}` : ''}`}
-            style={{
-              width: 64, height: 64,
-              borderWidth: 2.5,
-              background: `linear-gradient(140deg, hsl(${hue} 70% 58%), hsl(${(hue + 40) % 360} 70% 42%))`,
-              borderColor: `hsl(${hue} 70% 58%)`,
-              boxShadow: `0 0 16px -2px hsl(${hue} 70% 58%), inset 0 0 12px oklch(0.05 0.02 265 / 0.6)`,
-              animation: isBuzzing ? 'syn-pulse 0.7s ease-in-out infinite' : undefined,
-            }}
-          >
-            {initials}
-          </div>
-          <span className={styles.rankBadge} style={{ background: `hsl(${hue} 70% 45%)` }}>{rank}</span>
-          {isActive && <span className={styles.pfTurnTag}>TURN</span>}
-          {connected && <span className={styles.onlineDot} title="Online" />}
-        </div>
-        <div className={styles.seatName}>
-          {rank === 1 && <span aria-hidden title="Leader">👑</span>}
-          <span>{player.name.split(' ')[0]} · <span className="num">{(score || 0).toLocaleString()}</span></span>
-          {!connected && <span className={styles.reconnectIcon} title="Reconnecting…">🔄</span>}
-        </div>
-        <div className={styles.cardStack}>
-          {Array.from({ length: fanCount }).map((_, ci) => (
-            <div
-              key={ci}
-              className={`${styles.cardBack}${ci === cardCount - 1 && cardCount === 4 ? ` ${styles.overflow}` : ''}`}
-              style={{
-                width: 27.2, height: 38.4,
-                marginLeft: ci > 0 ? -7.2 : 0,
-                transform: `rotate(${(ci - (fanCount - 1) / 2) * 4}deg)`,
-              }}
-            />
-          ))}
-          <span className={styles.cardCountChip}>{cardCount}</span>
-        </div>
+    <div
+      className={cls}
+      style={{ '--c': playerColor(player.name), animationDelay: `${delay}ms` }}
+      title={`${player.name} · ${pts} pts · ${cardCount} cards${connected ? '' : ' · reconnecting'}`}
+    >
+      <div className={styles.avatar}>
+        {initials}
+        <span className={styles.count} aria-label={`${cardCount} cards`}>{cardCount}</span>
+        {isActive && <span className={styles.turnTag}>TURN</span>}
+      </div>
+      <div className={styles.meta}>
+        <span className={styles.name}>
+          {player.name.split(' ')[0]}
+          {isLeader && <span className={styles.crown} aria-label="Leader">👑</span>}
+        </span>
+        <span className={styles.score}>{connected ? pts : 'Reconnecting…'}</span>
       </div>
     </div>
   );

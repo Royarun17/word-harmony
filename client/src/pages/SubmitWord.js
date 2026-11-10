@@ -52,7 +52,7 @@ export default function SubmitWord({ session, playerId }) {
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .sw-content { flex-direction: row !important; align-items: flex-start !important; gap: 24px; padding: 16px 24px !important; overflow: hidden !important; }
           .sw-left { flex: 0 0 220px; overflow: hidden; }
           .sw-hero { margin-bottom: 0 !important; }
@@ -69,7 +69,7 @@ export default function SubmitWord({ session, playerId }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 }}>
             <div style={{ width: 40, height: 40, borderRadius: 99, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: 'var(--ink)', fontSize: 18 }}>←</div>
             <div style={{ textAlign: 'center' }}>
-              <div className="number-tab" style={{ fontSize: 10, letterSpacing: '0.32em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase' }}>ROUND {session.currentRound} · YOUR TURN</div>
+              <div className="number-tab eyebrow eyebrow-wide eyebrow-accent">ROUND {session.currentRound} · YOUR TURN</div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>Submit a seed word</div>
             </div>
             <div style={{ width: 40 }}/>
@@ -106,7 +106,7 @@ export default function SubmitWord({ session, playerId }) {
 
               {/* Suggestions */}
               <div className="sw-suggestions" style={{ marginBottom: 32 }}>
-                <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', marginBottom: 10 }}>SUGGESTIONS</div>
+                <div className="eyebrow" style={{ marginBottom: 10 }}>SUGGESTIONS</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {SUGGESTIONS.slice(0, 6).map(s => (
                     <button key={s} onClick={() => setWord(s)} className="chip tap-target" style={{ cursor: 'pointer', background: word === s ? 'linear-gradient(140deg, var(--accent), var(--accent-2))' : undefined, color: word === s ? 'var(--accent-ink)' : undefined, border: word === s ? 'none' : undefined }}>

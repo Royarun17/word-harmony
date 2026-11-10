@@ -33,7 +33,7 @@ export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
       <ThemeSwitcher />
       <Confetti count={80} />
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .ge-content { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 20px; padding: 16px 20px !important; overflow: hidden !important; }
           .ge-left { flex: 0 0 220px; overflow: hidden; }
           .ge-hero h1 { font-size: 26px !important; }
@@ -46,7 +46,7 @@ export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
         <div className="ge-left">
           {/* Hero */}
           <div className="ge-hero" style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.4em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>MATCH OVER</div>
+            <div className="eyebrow eyebrow-wide eyebrow-accent" style={{ marginBottom: 8 }}>MATCH OVER</div>
             <h1 style={{ fontSize: 44, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1, color: 'var(--ink)', marginBottom: 8 }}>
               {isWinner ? 'Victory' : `${sorted[0]?.playerName} wins!`}
             </h1>
@@ -71,7 +71,7 @@ export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
         <div className="ge-right">
           {/* Rewards */}
           <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 12 }}>REWARDS</div>
+            <div className="eyebrow eyebrow-accent" style={{ marginBottom: 12 }}>REWARDS</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
               {REWARDS.map((r, i) => (
                 <div key={r.label} style={{ borderRadius: 16, padding: 12, textAlign: 'center', background: 'linear-gradient(180deg, oklch(from var(--surface-3) l c h / .7), oklch(from var(--surface) l c h / .7))', border: '1px solid var(--border)', animation: `syn-pop 500ms ${i * 100}ms cubic-bezier(.2,.8,.2,1) both` }}>
@@ -86,7 +86,7 @@ export default function GameEnded({ finalScores, playerId, onPlayAgain }) {
           {/* Season progress */}
           <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>SEASON PROGRESS</div>
+              <div className="eyebrow">SEASON PROGRESS</div>
               <span className="chip chip-accent">LVL {(finalScores?.find(p => p.playerId === playerId)?.totalScore || 0) > 1000 ? '15' : '14'} →</span>
             </div>
             <div style={{ height: 12, borderRadius: 99, overflow: 'hidden', background: 'oklch(from var(--surface-3) l c h / .6)', marginBottom: 8 }}>

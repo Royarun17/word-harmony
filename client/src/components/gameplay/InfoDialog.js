@@ -2,7 +2,7 @@ import React from 'react';
 import { Dialog } from '../../SynapseComponents';
 import styles from './gameplay.module.css';
 
-const RULES = [
+export const RULES = [
   'You start with 3 cards, each themed around one player\'s word.',
   'On your turn, pass one card to the next player.',
   'Collect 3 cards that all match the same theme.',
@@ -20,6 +20,9 @@ function InfoDialog({ open, onClose }) {
           </div>
         ))}
       </div>
+      <p className={styles.keys}>
+        Keyboard: <kbd>1</kbd>–<kbd>4</kbd> pick a card · <kbd>Enter</kbd> pass · <kbd>B</kbd> buzz · <kbd>Esc</kbd> put it back
+      </p>
     </Dialog>
   );
 }

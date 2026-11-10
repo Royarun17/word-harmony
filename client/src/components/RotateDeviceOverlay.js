@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-// Phone-sized + portrait = blocked. The width cap keeps this from ever
-// triggering on tablets/desktops that happen to be tall (e.g. a portrait
-// monitor) — only genuinely phone-sized viewports get the rotate prompt.
-const QUERY = '(max-width: 900px) and (orientation: portrait)';
+// Shown only during a game session (App renders it from the waiting room
+// onward); sign-in, profile and the lobby work in portrait. The width cap
+// keeps it to phones — tablets and desktops get the stacked portrait layout.
+const QUERY = '(max-width: 767px) and (orientation: portrait)';
 
 export default function RotateDeviceOverlay() {
   const [blocked, setBlocked] = useState(
@@ -34,11 +34,11 @@ export default function RotateDeviceOverlay() {
         background: 'linear-gradient(180deg, oklch(0.17 0.025 235), oklch(0.1 0.02 240))',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         padding: 28, textAlign: 'center', color: '#fff',
-        fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
+        fontFamily: 'var(--font-body)',
       }}
     >
       <div style={{ fontSize: 60, animation: 'gp-rotate-hint 1.6s ease-in-out infinite' }} aria-hidden>📱</div>
-      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 700, marginTop: 18, marginBottom: 6 }}>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, marginTop: 18, marginBottom: 6 }}>
         Rotate your device
       </h2>
       <p style={{ fontSize: 14, opacity: 0.7, maxWidth: 280, lineHeight: 1.5, margin: 0 }}>

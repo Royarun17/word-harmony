@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged,
   RecaptchaVerifier, signInWithPhoneNumber,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,8 +17,15 @@ const firebaseConfig = {
   appId:             process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Without an API key getAuth() throws at import time and the whole app renders
+// blank. Run without auth instead, so the Welcome screen still loads locally.
+export const firebaseConfigured = !!firebaseConfig.apiKey;
+if (!firebaseConfigured) {
+  console.warn('Firebase is not configured: fill in client/.env (see .env.example). Sign-in is disabled.');
+}
+
+const app = firebaseConfigured ? initializeApp(firebaseConfig) : null;
+export const auth = app ? getAuth(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
 // Detect if running inside Capacitor native app
@@ -51,6 +59,7 @@ export {
   onAuthStateChanged,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  sendPasswordResetEmail,
 };
 
 export default app;

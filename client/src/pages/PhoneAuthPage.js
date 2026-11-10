@@ -58,7 +58,7 @@ export default function PhoneAuthPage({ onNavigate }) {
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .auth-content { flex-direction: row !important; align-items: flex-start !important; gap: 28px; padding: 16px 28px !important; overflow: hidden !important; }
           .auth-left { flex: 0 0 240px; overflow: hidden; }
           .auth-wordmark { margin-bottom: 10px !important; }
@@ -93,7 +93,7 @@ export default function PhoneAuthPage({ onNavigate }) {
 
           {/* Header */}
           <div className="auth-header-block" style={{ marginBottom: 24, animation: 'syn-rise 500ms cubic-bezier(.2,.8,.2,1) both' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.32em', color: 'var(--accent)', marginBottom: 8 }}>Phone sign-in</div>
+            <div className="eyebrow eyebrow-wide eyebrow-accent" style={{ marginBottom: 8 }}>Phone sign-in</div>
             <h1 style={{ fontSize: 34, fontWeight: 700, fontFamily: 'var(--font-display)', lineHeight: 1.05, letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: 8 }}>
               {step === 'phone' ? 'Enter phone number' : 'Verify your phone'}
             </h1>
@@ -117,7 +117,7 @@ export default function PhoneAuthPage({ onNavigate }) {
               {step === 'phone' ? (
                 <>
                   <div>
-                    <label style={{ display: 'block', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 8, color: 'var(--ink-dim)' }}>
+                    <label className="eyebrow" style={{ display: 'block', marginBottom: 8, color: 'var(--ink-dim)' }}>
                       Phone number
                     </label>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -140,7 +140,7 @@ export default function PhoneAuthPage({ onNavigate }) {
               ) : (
                 <>
                   <div>
-                    <label style={{ display: 'block', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: 10, color: 'var(--ink-dim)' }}>
+                    <label className="eyebrow" style={{ display: 'block', marginBottom: 10, color: 'var(--ink-dim)' }}>
                       Enter 6-digit code
                     </label>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>

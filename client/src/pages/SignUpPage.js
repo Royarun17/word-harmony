@@ -1,24 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   auth,
+  firebaseConfigured,
   createUserWithEmailAndPassword,
   signInWithGoogle,
 } from '../utils/firebase';
-import cleanTabletop from '../assets/signup/tabletop-base-v2.webp';
-import mayaMascot from '../assets/signup/maya-bright-glow-radiant.webp';
-import topLeftPlant from '../assets/signup/plant-top-left.webp';
-import topRightPlant from '../assets/signup/plant-top-right-v2.webp';
-import bookStack from '../assets/signup/book-stack.webp';
-import snackBowl from '../assets/signup/snack-bowl.webp';
-import leftPapers from '../assets/signup/left-papers.webp';
-import notebook from '../assets/signup/notebook-v1.webp';
-import pencil from '../assets/signup/pencil-v2.webp';
-import coffeeCup from '../assets/signup/coffee-cup.webp';
-import './SignUpPage.css';
+import {
+  AuthScene, AuthPanel, AuthField, Alert, GoldButton, LinkButton, authStyles as styles,
+} from '../components/auth/AuthKit';
+import { UserIcon, MailIcon, LockIcon, UserPlusIcon, GoogleIcon } from '../components/auth/AuthIcons';
+import background from '../assets/auth/bg-signup.webp';
+import mascot from '../assets/auth/signup-mascot.webp';
+import cardFan from '../assets/auth/fan-signup.webp';
 
-function useOnline() {
+// Figures at their painted positions in the 1672x941 reference.
+const FIGURES = [
+  { src: mascot, x: 170, y: 150, w: 500 },
+  { src: cardFan, x: 75, y: 655, w: 555 },
+];
+
+export function useOnline() {
   const [online, setOnline] = useState(true);
-
   useEffect(() => {
     setOnline(navigator.onLine);
     const handleOnline = () => setOnline(true);
@@ -30,31 +32,20 @@ function useOnline() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
   return online;
 }
 
-function SignUpField({ id, label, type = 'text', value, onChange, placeholder, autoComplete, error }) {
-  return (
-    <label className={`wh-signup-field${error ? ' wh-signup-field--error' : ''}`} htmlFor={id}>
-      <span>{label}</span>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-      />
-      {error && <small id={`${id}-error`}>{error}</small>}
-    </label>
-  );
-}
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function GoogleMark() {
-  return <span className="wh-google-mark" aria-hidden="true" />;
+function signUpError(code) {
+  switch (code) {
+    case 'auth/email-already-in-use': return 'An account with this email already exists. Try signing in.';
+    case 'auth/invalid-email': return 'That email address doesn’t look right.';
+    case 'auth/weak-password': return 'Choose a stronger password (at least 6 characters).';
+    case 'auth/network-request-failed': return 'Network problem. Check your connection and try again.';
+    case 'auth/too-many-requests': return 'Too many attempts. Wait a moment and try again.';
+    default: return 'Could not create your account. Please try again.';
+  }
 }
 
 export default function SignUpPage({ onNavigate }) {
@@ -63,7 +54,8 @@ export default function SignUpPage({ onNavigate }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [touched, setTouched] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -71,49 +63,48 @@ export default function SignUpPage({ onNavigate }) {
   const online = useOnline();
 
   const errors = useMemo(() => ({
-    name: !name.trim() ? 'Enter your display name' : '',
-    email: !/^\S+@\S+\.\S+$/.test(email) ? 'Enter a valid email' : '',
-    password: password.length < 6 ? 'Use at least 6 characters' : '',
-    confirmPassword: !confirmPassword
-      ? 'Confirm your password'
-      : confirmPassword !== password
-        ? 'Passwords do not match'
-        : '',
-  }), [name, email, password, confirmPassword]);
+    name: !name.trim() ? 'Enter your name.' : name.trim().length > 24 ? 'Keep it to 24 characters or fewer.' : '',
+    email: !email.trim() ? 'Enter your email.' : !EMAIL_RE.test(email.trim()) ? 'Enter a valid email, like you@example.com.' : '',
+    password: !password ? 'Create a password.' : password.length < 6 ? 'Use at least 6 characters.' : '',
+    confirmPassword: !confirmPassword ? 'Confirm your password.' : confirmPassword !== password ? 'Passwords don’t match.' : '',
+    agreed: agreed ? '' : 'Please agree to the terms to continue.',
+  }), [name, email, password, confirmPassword, agreed]);
 
-  const canSubmit = online
-    && agreed
-    && Object.values(errors).every((error) => !error);
-
-  const clearFormError = () => {
-    if (formError) setFormError('');
-  };
+  // Show a field's error once it has been left, or after a submit attempt.
+  const show = key => ((submitted || touched[key]) ? errors[key] : '');
+  const blur = key => () => setTouched(t => ({ ...t, [key]: true }));
+  const change = setter => event => { setter(event.target.value); if (formError) setFormError(''); };
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setTouched(true);
-    if (!canSubmit || loading || success) return;
+    setSubmitted(true);
+    if (loading || success) return;
+    const firstInvalid = ['name', 'email', 'password', 'confirmPassword', 'agreed'].find(k => errors[k]);
+    if (firstInvalid) {
+      const ids = { name: 'signup-name', email: 'signup-email', password: 'signup-password', confirmPassword: 'signup-confirm', agreed: 'signup-terms' };
+      document.getElementById(ids[firstInvalid])?.focus();
+      return;
+    }
+    if (!firebaseConfigured) { setFormError('Accounts aren’t available in this build yet (Firebase isn’t configured).'); return; }
+    if (!online) { setFormError('You’re offline. Reconnect to create your account.'); return; }
 
     setLoading(true);
     setFormError('');
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
+      const result = await createUserWithEmailAndPassword(auth, email.trim(), password);
       setSuccess(true);
-      window.setTimeout(() => onNavigate('profileSetup', {
-        user: result.user,
-        name: name.trim(),
-      }), 650);
+      window.setTimeout(() => onNavigate('profileSetup', { user: result.user, name: name.trim() }), 650);
     } catch (error) {
-      setFormError(error.code === 'auth/email-already-in-use'
-        ? 'An account with this email already exists.'
-        : 'Could not create your account. Please try again.');
+      setFormError(signUpError(error.code));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleGoogleSignUp() {
-    if (!online || googleLoading) return;
+    if (googleLoading) return;
+    if (!firebaseConfigured) { setFormError('Accounts aren’t available in this build yet (Firebase isn’t configured).'); return; }
+    if (!online) { setFormError('You’re offline. Reconnect to continue.'); return; }
     setGoogleLoading(true);
     setFormError('');
     try {
@@ -128,128 +119,57 @@ export default function SignUpPage({ onNavigate }) {
     }
   }
 
-  return (
-    <main
-      className="wh-signup"
-      style={{
-        '--signup-clean-tabletop': `url(${cleanTabletop})`,
-      }}
-    >
-      <div className="wh-signup__scene" aria-hidden="true" />
-
-      <div className="wh-signup__props" aria-hidden="true">
-        <img className="wh-signup-prop wh-signup-prop--plant-left" src={topLeftPlant} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--plant-right" src={topRightPlant} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--books" src={bookStack} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--left-papers" src={leftPapers} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--snacks" src={snackBowl} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--notebook" src={notebook} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--pencil" src={pencil} alt="" />
-        <img className="wh-signup-prop wh-signup-prop--coffee" src={coffeeCup} alt="" />
-      </div>
-
-      <button
-        className="wh-signup__back"
-        type="button"
-        aria-label="Back to Welcome"
-        onClick={() => onNavigate('welcome')}
-      />
-
-      <section className="wh-signup__mascot" aria-label="Maya holding Bright, Glow and Radiant cards">
-        <img src={mayaMascot} alt="Maya holding Bright, Glow and Radiant cards" />
-      </section>
-
-      <div className="wh-signup__ribbon" aria-hidden="true">JOIN THE TABLE</div>
-
-      <section className="wh-signup-card" aria-labelledby="signup-title">
-        <header className="wh-signup-card__header">
-          <span className="wh-signup-card__spark wh-signup-card__spark--left" aria-hidden="true" />
-          <h1 id="signup-title">CREATE ACCOUNT</h1>
-          <span className="wh-signup-card__spark wh-signup-card__spark--right" aria-hidden="true" />
-        </header>
-
-        {!online && <div className="wh-signup-alert" role="alert">You’re offline. Reconnect to continue.</div>}
-        {formError && <div className="wh-signup-alert wh-signup-alert--error" role="alert">{formError}</div>}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="wh-signup-grid">
-            <SignUpField
-              id="signup-display-name"
-              label="DISPLAY NAME"
-              value={name}
-              onChange={(event) => { setName(event.target.value); clearFormError(); }}
-              placeholder="Maya"
-              autoComplete="name"
-              error={touched ? errors.name : ''}
-            />
-            <SignUpField
-              id="signup-email"
-              label="EMAIL"
-              type="email"
-              value={email}
-              onChange={(event) => { setEmail(event.target.value); clearFormError(); }}
-              placeholder="player@example.com"
-              autoComplete="email"
-              error={touched ? errors.email : ''}
-            />
-            <SignUpField
-              id="signup-password"
-              label="PASSWORD"
-              type="password"
-              value={password}
-              onChange={(event) => { setPassword(event.target.value); clearFormError(); }}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              error={touched ? errors.password : ''}
-            />
-            <SignUpField
-              id="signup-confirm-password"
-              label="CONFIRM PASSWORD"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => { setConfirmPassword(event.target.value); clearFormError(); }}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              error={touched ? errors.confirmPassword : ''}
-            />
-          </div>
-
-          <label className="wh-signup-terms">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(event) => setAgreed(event.target.checked)}
-            />
-            <span aria-hidden="true">✓</span>
-            <strong>I AGREE TO THE TERMS</strong>
-          </label>
-
-          <button
-            className="wh-signup-button wh-signup-button--primary"
-            type="submit"
-            aria-disabled={!canSubmit || loading || success}
-          >
-            {success ? 'ACCOUNT CREATED!' : loading ? 'CREATING ACCOUNT…' : 'CREATE ACCOUNT'}
-          </button>
-        </form>
-
-        <div className="wh-signup-divider" aria-hidden="true"><span>OR</span></div>
-
+  const footer = (
+    <>
+      <GoldButton type="submit" form="signup-form" className={styles.submit} icon={<UserPlusIcon />} busy={loading} disabled={success}>
+        {success ? 'Account Created!' : loading ? 'Creating Account…' : 'Create Account'}
+      </GoldButton>
+      <div className={styles.footRow}>
+        <p>Already have an account? <LinkButton onClick={() => onNavigate('signin')}>Sign In</LinkButton></p>
+        <span className={styles.altOr} aria-hidden>or</span>
         <button
-          className="wh-signup-button wh-signup-button--google"
           type="button"
+          className={styles.googleRound}
           onClick={handleGoogleSignUp}
-          disabled={!online || googleLoading}
+          disabled={googleLoading}
+          aria-busy={googleLoading || undefined}
+          aria-label={googleLoading ? 'Connecting to Google' : 'Continue with Google'}
+          title="Continue with Google"
         >
-          <GoogleMark />
-          {googleLoading ? 'CONNECTING…' : 'CONTINUE WITH GOOGLE'}
+          {googleLoading ? <span className={styles.spinner} aria-hidden /> : <GoogleIcon />}
         </button>
+      </div>
+    </>
+  );
 
-        <p className="wh-signup-signin">
-          Already playing?{' '}
-          <button type="button" onClick={() => onNavigate('signin')}>SIGN IN</button>
-        </p>
-      </section>
-    </main>
+  return (
+    <AuthScene background={background} figures={FIGURES} onBack={() => onNavigate('welcome')}>
+      <AuthPanel title="Create Account" footer={footer}>
+        <form id="signup-form" className={styles.form} onSubmit={handleSubmit} noValidate>
+          {!online && <Alert tone="info">You’re offline. Reconnect to continue.</Alert>}
+          {formError && <Alert>{formError}</Alert>}
+          {success && <Alert tone="success">Account created! Setting up your profile…</Alert>}
+
+          <AuthField id="signup-name" icon={<UserIcon />} label="Name" autoComplete="nickname" enterKeyHint="next"
+            value={name} onChange={change(setName)} onBlur={blur('name')} error={show('name')} />
+          <AuthField id="signup-email" icon={<MailIcon />} label="Email" type="email" inputMode="email" autoComplete="email" enterKeyHint="next"
+            value={email} onChange={change(setEmail)} onBlur={blur('email')} error={show('email')} />
+          <AuthField id="signup-password" icon={<LockIcon />} label="Password" type="password" revealable autoComplete="new-password" enterKeyHint="next"
+            value={password} onChange={change(setPassword)} onBlur={blur('password')} error={show('password')}
+            hint={password && password.length < 6 ? 'At least 6 characters.' : ''} />
+          <AuthField id="signup-confirm" icon={<LockIcon />} label="Confirm Password" type="password" revealable autoComplete="new-password" enterKeyHint="done"
+            value={confirmPassword} onChange={change(setConfirmPassword)} onBlur={blur('confirmPassword')} error={show('confirmPassword')} />
+
+          <div className={styles.fieldWrap}>
+            <label className={styles.check}>
+              <input id="signup-terms" type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                aria-invalid={Boolean(show('agreed'))} aria-describedby={show('agreed') ? 'signup-terms-error' : undefined} />
+              I agree to the Terms
+            </label>
+            {show('agreed') && <p id="signup-terms-error" className={styles.fieldMsg}>{show('agreed')}</p>}
+          </div>
+        </form>
+      </AuthPanel>
+    </AuthScene>
   );
 }

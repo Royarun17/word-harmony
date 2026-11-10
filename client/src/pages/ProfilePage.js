@@ -8,7 +8,7 @@ const AVATARS = ['😎','🧠','🦊','🐯','🐸','🦁','🐧','🐉','🦋',
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.24em', color: 'var(--ink-mute)', marginBottom: 10 }}>
+    <div className="eyebrow" style={{ marginBottom: 10 }}>
       {children}
     </div>
   );
@@ -18,7 +18,7 @@ function StatCard({ value, label }) {
   return (
     <div style={{ flex: 1, background: 'oklch(0.22 0.03 232 / 0.7)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 8px', textAlign: 'center' }}>
       <div className="number-tab" style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginTop: 4, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-mute)', marginTop: 4, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
     </div>
   );
 }
@@ -87,7 +87,7 @@ export default function ProfilePage({ profile, onSignOut, onBack, onProfileUpdat
     <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
       <ThemeSwitcher />
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .pp-content { flex-direction: row !important; align-items: flex-start !important; gap: 20px; padding: 16px 24px !important; overflow: hidden !important; }
           .pp-left { flex: 0 0 200px; overflow: hidden; }
           .pp-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); }

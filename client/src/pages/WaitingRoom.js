@@ -1,135 +1,144 @@
 import React, { useState } from 'react';
 import socket from '../utils/socket';
-import { PlayerAvatar, ThemeSwitcher, Dialog, OfflineState } from '../SynapseComponents';
+import { avatarHue } from '../SynapseComponents';
+import { HomeDialog } from '../components/home/HomeScreen';
+import { FriendsIcon, PlayIcon, PencilIcon } from '../components/home/HomeIcons';
+import bg from '../assets/home/home-bg.webp';
+import home from '../components/home/home.module.css';
+import styles from '../components/home/waiting.module.css';
 
 const AVATARS = ['😎','🧠','🦊','🐯','🐸','🦁','🐧','🐉','🦋','🐺','🦅','🐬','🎭','🧩','⚡','🔥'];
+const DIFFICULTY = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
+// Players' avatars arrive as an emoji string, or { type: 'emoji' | 'photo', value }.
+function SeatAvatar({ player }) {
+  const a = player.avatar;
+  const value = typeof a === 'string' ? a : a?.value;
+  const isPhoto = typeof a === 'object' && a?.type === 'photo' && value;
+  const initials = player.name.split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  return (
+    <span className={styles.avatar} style={{ '--hue': avatarHue(player.name) }} aria-hidden>
+      {isPhoto ? <img src={value} alt="" /> : <span>{value || initials}</span>}
+    </span>
+  );
+}
 
 export default function WaitingRoom({ session, playerId, isHost, onBack }) {
   const [showAvatar, setShowAvatar] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState('');
   const players = session.players || [];
   const maxPlayers = session.maxPlayers || 4;
-  const botsNeeded = Math.max(0, maxPlayers - players.length);
+  const openSeats = Math.max(0, maxPlayers - players.length);
   const canStart = isHost && players.filter(p => !p.isBot).length >= 1;
-  const allSeats = [...players, ...Array(botsNeeded).fill(null)];
+  const modeName = session.gameMode === 'fun' ? 'Spark' : 'Syntax';
+  const settings = [
+    `${modeName} · ${session.gameMode === 'fun' ? 'associations' : 'synonyms'}`,
+    `${session.rounds} rounds`,
+    DIFFICULTY[session.difficulty] || 'Medium',
+  ];
 
   function handleStart() { socket.emit('start_submission', { sessionId: session.id }); }
-  function handleAvatarChange(av) { socket.emit('update_avatar', { sessionId: session.id, playerId, avatar: av }); setShowAvatar(false); }
-  function handleCopy() { try { navigator.clipboard.writeText(session.id); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1400); }
+  function handleLeave() { socket.disconnect(); onBack && onBack(); }
+  function handleAvatarChange(av) {
+    socket.emit('update_avatar', { sessionId: session.id, playerId, avatar: av });
+    setShowAvatar(false);
+  }
+  function flash(text) { setCopied(text); setTimeout(() => setCopied(''), 1600); }
+  async function handleCopy() {
+    try { await navigator.clipboard.writeText(session.id); flash('Code copied'); } catch { flash(`Code: ${session.id}`); }
+  }
+  async function handleShare() {
+    const text = `Join my Word Harmony room with code ${session.id}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Word Harmony', text, url: window.location.origin }); return; }
+      await navigator.clipboard.writeText(`${text}: ${window.location.origin}`);
+      flash('Invite copied');
+    } catch (e) {
+      if (!e || e.name !== 'AbortError') flash(`Code: ${session.id}`);
+    }
+  }
 
   return (
-    <div className="scene" style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <ThemeSwitcher />
-      <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
-          .wr-content { flex-direction: row !important; align-items: flex-start !important; gap: 20px; padding: 16px 20px !important; overflow: hidden !important; }
-          .wr-left { flex: 0 0 220px; overflow: hidden; }
-          .wr-code-value { font-size: 28px !important; margin-bottom: 8px !important; }
-          .wr-right { flex: 1; min-width: 0; overflow-y: auto; max-height: calc(100dvh - 32px); }
-          .wr-seat-grid { grid-template-columns: repeat(4, 1fr) !important; }
-        }
-      `}</style>
-      <div className="scene-content wr-content" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 20px 24px', overflowY: 'auto' }}>
+    <main className={`${home.home} ${styles.room}`}>
+      <img className={home.bg} src={bg} alt="" aria-hidden />
+      <div className={home.vignette} aria-hidden />
 
-        <div className="wr-left">
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-            <button onClick={() => { socket.disconnect(); onBack && onBack(); }} className="tap-target" style={{ width: 40, height: 40, borderRadius: 99, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: 'var(--ink)', fontSize: 18, cursor: 'pointer' }}>←</button>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 10, letterSpacing: '0.32em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase' }}>PRIVATE ROOM</div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>{session.gameMode === 'fun' ? 'Spark' : 'Syntax'} · {session.rounds} rounds</div>
-            </div>
-            <div style={{ width: 40, height: 40, borderRadius: 99, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', display: 'grid', placeItems: 'center', color: 'var(--ink)', fontSize: 16, cursor: 'pointer' }}>⚙</div>
-          </div>
-
-          {/* Session code */}
-          <div className="panel" style={{ padding: 20, textAlign: 'center', marginBottom: 24 }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.32em', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 8 }}>INVITE CODE</div>
-            <div className="number-tab wr-code-value" style={{ fontSize: 40, fontWeight: 700, fontFamily: 'var(--font-display)', letterSpacing: '0.24em', color: 'var(--ink)', marginBottom: 12 }}>{session.id}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-              <button onClick={handleCopy} className="btn-ghost tap-target">{copied ? '✓ Copied!' : '⎘ Copy'}</button>
-              <button className="btn-ghost tap-target">↗ Share</button>
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: 12 }}>
-            {isHost ? (
-              <button onClick={handleStart} disabled={!canStart} className="btn-cta tap-target" style={{ flex: 1, opacity: canStart ? 1 : 0.5 }}>
-                ▶ START
-              </button>
-            ) : (
-              <div className="panel" style={{ flex: 1, padding: 14, textAlign: 'center' }}>
-                <p style={{ color: 'var(--ink-dim)', fontSize: 14 }}>Waiting for host to start…</p>
-              </div>
-            )}
-          </div>
+      <header className={styles.top}>
+        <button type="button" className={home.roundBtn} onClick={handleLeave} aria-label="Leave room">←</button>
+        <div className={styles.title}>
+          <h1>Waiting Room</h1>
         </div>
+        <button type="button" className={home.roundBtn} onClick={handleShare} aria-label="Invite friends"><FriendsIcon /></button>
+      </header>
 
-        <div className="wr-right">
-          {/* Players count */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>PLAYERS</div>
-              <div style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                👥 {players.length} / {maxPlayers}
-              </div>
-            </div>
-            <span className="chip chip-accent">⟳ Waiting…</span>
-          </div>
+      <section className={styles.codeCol} aria-label="Room code">
+        <span className={styles.label}>Room code</span>
+        <button type="button" className={styles.code} onClick={handleCopy} aria-label={`Room code ${session.id.split('').join(' ')}. Tap to copy.`}>
+          {session.id.split('').map((ch, i) => (
+            <span key={i} className={styles.tile} style={{ '--i': i }}>{ch}</span>
+          ))}
+        </button>
+        <div className={styles.codeActions}>
+          <button type="button" className={styles.pill} onClick={handleCopy}>Copy</button>
+          <button type="button" className={styles.pill} onClick={handleShare}>Share</button>
+        </div>
+        <p className={styles.toast} role="status">{copied}</p>
+        <ul className={styles.settings} aria-label="Room settings">
+          {settings.map(t => <li key={t}>{t}</li>)}
+        </ul>
 
-          {/* Seat grid */}
-          <div className="wr-seat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-            {allSeats.slice(0, maxPlayers).map((p, i) => (
-              <div key={p?.id || `empty-${i}`} className="panel" style={{ padding: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', opacity: p ? 1 : 0.55, animation: 'syn-rise 400ms ease-out both' }}>
-                {p ? (
-                  <div style={{ position: 'relative' }}>
-                    <PlayerAvatar name={p.name} seed={p.name} compact size="md" active={!!p.id} />
-                    {p.id === playerId && (
-                      <button onClick={() => setShowAvatar(s => !s)} style={{ position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: 99, background: 'var(--accent)', border: 'none', cursor: 'pointer', fontSize: 8, color: 'var(--accent-ink)', fontWeight: 700 }}>✏</button>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ width: 48, height: 48, borderRadius: 99, background: 'oklch(from var(--surface-3) l c h / .5)', border: '1px dashed var(--border-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: 'var(--ink-mute)' }}>+</div>
+        {isHost ? (
+          <button type="button" className={styles.start} onClick={handleStart} disabled={!canStart}>
+            Start Game <span className={styles.startDisc} aria-hidden><PlayIcon /></span>
+          </button>
+        ) : (
+          <p className={styles.waiting}>Waiting for the host to start<span className={styles.dots} aria-hidden><i>.</i><i>.</i><i>.</i></span></p>
+        )}
+      </section>
+
+      <section className={styles.seatsCol} aria-labelledby="seats-title">
+        <div className={styles.seatsHead}>
+          <h2 id="seats-title" className={styles.label}>Players</h2>
+          <span className={styles.count}>{players.length} / {maxPlayers}</span>
+        </div>
+        <ul className={styles.seats} style={{ '--cols': maxPlayers > 4 ? 4 : maxPlayers }}>
+          {players.slice(0, maxPlayers).map(p => {
+            const me = p.id === playerId;
+            const host = p.id === session.hostId;
+            return (
+              <li key={p.id} className={`${styles.seat}${me ? ` ${styles.me}` : ''}${p.connected === false ? ` ${styles.away}` : ''}`}>
+                <SeatAvatar player={p} />
+                <span className={styles.name} title={p.name}>{p.name}</span>
+                <span className={styles.tag}>{me ? 'You' : host ? 'Host' : p.isBot ? 'Bot' : p.connected === false ? 'Away' : 'Ready'}</span>
+                {host && <span className={styles.crown} aria-label="Host">♛</span>}
+                {me && (
+                  <>
+                    <span className={styles.edit} aria-hidden><PencilIcon /></span>
+                    <button type="button" className={styles.seatBtn} onClick={() => setShowAvatar(true)} aria-label="Change your avatar" />
+                  </>
                 )}
-                <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  {p?.id === session.hostId && <span style={{ color: 'var(--accent)' }}>♛</span>}
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{p?.name || 'Empty seat'}</span>
-                </div>
-                <div style={{ fontSize: 9, marginTop: 2, letterSpacing: '0.18em', fontWeight: 600, color: p ? 'var(--win)' : 'var(--ink-mute)' }}>
-                  {p ? 'READY' : 'OPEN'}
-                </div>
-              </div>
+              </li>
+            );
+          })}
+          {Array.from({ length: openSeats }, (_, i) => (
+            <li key={`open-${i}`} className={`${styles.seat} ${styles.open}`} title="A bot takes this seat when the game starts">
+              <span className={styles.plus} aria-hidden>+</span>
+              <span className={styles.name}>Open seat</span>
+              <span className={styles.tag} aria-label="A bot takes this seat when the game starts">Bot fills</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {showAvatar && (
+        <HomeDialog title="Choose your avatar" onClose={() => setShowAvatar(false)}>
+          <div className={styles.avatarGrid}>
+            {AVATARS.map(a => (
+              <button key={a} type="button" className={styles.avatarPick} onClick={() => handleAvatarChange(a)} aria-label={`Avatar ${a}`}>{a}</button>
             ))}
           </div>
-
-          {/* Avatar picker */}
-          {showAvatar && (
-            <div className="panel" style={{ padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', color: 'var(--accent)', textTransform: 'uppercase', marginBottom: 12 }}>Choose avatar</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 6 }}>
-                {AVATARS.map(a => (
-                  <button key={a} onClick={() => handleAvatarChange(a)} style={{ aspectRatio: '1', borderRadius: 99, background: 'var(--surface-2)', border: '2px solid transparent', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{a}</button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Round rules */}
-          <div className="panel" style={{ padding: 16, marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 11, letterSpacing: '0.24em', fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase' }}>ROUND RULES</div>
-              {isHost && <span className="chip">HOST</span>}
-            </div>
-            {[['Mode', session.gameMode === 'fun' ? 'Spark · associations' : 'Syntax · synonyms'], ['Rounds', session.rounds], ['Difficulty', session.difficulty || 'Medium']].map(([l, v]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-                <span style={{ color: 'var(--ink-mute)' }}>{l}</span>
-                <span style={{ fontWeight: 600 }}>{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+        </HomeDialog>
+      )}
+    </main>
   );
 }

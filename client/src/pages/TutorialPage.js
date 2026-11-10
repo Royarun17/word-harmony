@@ -104,7 +104,7 @@ export default function TutorialPage({ onDone }) {
     <div className="scene tut-scene" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <ThemeSwitcher />
       <style>{`
-        @media (orientation: landscape) and (max-width: 900px) and (max-height: 500px) {
+        @media (orientation: landscape) and (max-height: 500px) {
           .tut-scene { padding: 12px !important; }
           .tut-card { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 14px !important; }
           .tut-card > div:first-child { margin-bottom: 8px !important; }

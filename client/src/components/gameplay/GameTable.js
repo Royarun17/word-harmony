@@ -1,108 +1,69 @@
-import React, { forwardRef, useMemo } from 'react';
-import { BuzzButton } from '../../SynapseComponents';
-import PlayerSeat from './PlayerSeat';
-import TimerBar from './TimerBar';
+import React, { forwardRef } from 'react';
 import styles from './gameplay.module.css';
 
-// Computes evenly-spaced positions around the ellipse for however many
-// opponents are seated (up to 7 — 8 players total including you). YOU always
-// stays fixed at the bottom; opponents arc across the remaining ~300°, so
-// this scales smoothly instead of relying on a fixed number of named slots.
-function seatPercent(i, n) {
-  if (n <= 0) return { left: 50, top: 50 };
-  const startDeg = -240; // top-left, going clockwise over the top to top-right
-  const sweepDeg = 300;
-  const angle = n === 1 ? -90 : startDeg + (sweepDeg * i) / (n - 1);
-  const rad = (angle * Math.PI) / 180;
-  const left = 50 + 50 * Math.cos(rad);
-  const top = 50 + 46 * Math.sin(rad);
-  return { left, top };
-}
+const ORDINAL = ['1st', '2nd', '3rd'];
+const ordinal = n => ORDINAL[n - 1] || `${n}th`;
 
+// The middle of the screen: your progress, the prompt card (which is also the
+// drop target for passing a card) and the buzzer.
 const GameTable = forwardRef(function GameTable({
-  otherPlayers, turnPlayerId, lastBuzzerId, totalScores, handCounts,
-  ready, canBuzz, buzzed, buzzerLocked, onBuzz, timerPercent, urgency,
-  buzzWindowLeft, me, myScore, myCardCount, isMyTurn, dropActive,
+  myWord, otherWords, modeNoun, timeLeft, timerPercent, urgency,
+  myScore, myRank, playerCount, hasCompleteSet, isMyTurn, turnPlayerName,
+  ready, canBuzz, buzzed, buzzerLocked, buzzWindowLeft, onBuzz, dropActive, took,
 }, ref) {
-  const statusLabel = buzzerLocked ? '🔒 Locked' : buzzed ? '✓ Buzzed' : canBuzz ? '🔓 Open' : '⏳ Waiting';
-
-  const ranks = useMemo(() => {
-    const all = [...otherPlayers.map(p => p.id), ...(me ? [me.id] : [])];
-    const sorted = [...all].sort((a, b) => (totalScores?.[b] || 0) - (totalScores?.[a] || 0));
-    const map = {};
-    sorted.forEach((id, i) => { map[id] = i + 1; });
-    return map;
-  }, [otherPlayers, me, totalScores]);
+  let status = isMyTurn ? 'Pass a card, then buzz' : 'Waiting for your turn';
+  if (buzzed) status = 'Buzzed in!';
+  else if (buzzerLocked) status = 'Unlocks after the first lap';
+  else if (buzzWindowLeft > 0) status = `Buzz now · ${buzzWindowLeft}s`;
+  else if (ready) status = 'You have a set. Buzz!';
+  else if (canBuzz) status = 'Buzzer open';
 
   return (
-    <div className={styles.tableWrap}>
-      <div ref={ref} className={`${styles.orbit}${dropActive ? ` ${styles.dropActive}` : ''}`}>
-        <div className={styles.orbitGrid} aria-hidden />
-
-        {/* Flowing direction ring — communicates "cards travel this way" */}
-        <svg className={styles.flowRing} viewBox="0 0 300 220" aria-hidden>
-          <ellipse cx="150" cy="110" rx="140" ry="100" className={styles.flowRingTrack} />
-          <ellipse cx="150" cy="110" rx="140" ry="100" className={styles.flowRingDash} />
-        </svg>
-
-        <div className={styles.centerPlinth}>
-          <BuzzButton ready={ready} disabled={!canBuzz} onClick={onBuzz} />
-          {isMyTurn && <span className={styles.pfTurnTag} style={{ position: 'static', marginTop: 8 }}>TURN</span>}
-          <div className={styles.buzzStatusRow}>
-            <span className={`chip${canBuzz ? ' chip-accent' : ''}`} style={{ fontSize: 10 }}>{statusLabel}</span>
-            {buzzWindowLeft > 0 && !buzzed && (
-              <span className="chip chip-accent" style={{ fontSize: 10 }}>⚡ {buzzWindowLeft}s</span>
-            )}
-            {dropActive && <span className="chip chip-accent" style={{ fontSize: 10 }}>↓ Release to pass</span>}
-          </div>
-          <TimerBar percent={buzzerLocked ? 100 : timerPercent} urgency={buzzerLocked ? 'normal' : urgency} />
+    <main className={styles.stage}>
+      <section className={styles.you} aria-label="Your progress">
+        <span className={`${styles.turnPill}${isMyTurn ? ` ${styles.mine}` : ''}`}>
+          {isMyTurn ? 'Your turn' : turnPlayerName ? `${turnPlayerName} is playing` : 'Waiting…'}
+        </span>
+        <div className={styles.youScore}>
+          <span className={styles.label}>Your score</span>
+          <b>{(myScore || 0).toLocaleString()}</b>
+          <span>{ordinal(myRank)} of {playerCount}</span>
         </div>
+        <span className={`${styles.setChip}${hasCompleteSet ? ` ${styles.done}` : ''}`}>
+          <span className={styles.setDot} aria-hidden>{hasCompleteSet ? '✓' : ''}</span>
+          <span className={styles.setText}>{hasCompleteSet ? 'Set complete' : 'No set yet'}</span>
+        </span>
+      </section>
 
-        {otherPlayers.map((p, i) => {
-          const { left, top } = seatPercent(i, otherPlayers.length);
-          return (
-            <PlayerSeat
-              key={p.id}
-              player={p}
-              seatStyle={{ left: `${left}%`, top: `${top}%` }}
-              isActive={p.id === turnPlayerId}
-              isBuzzing={p.id === lastBuzzerId}
-              score={totalScores?.[p.id]}
-              cardCount={handCounts?.[p.id] ?? 0}
-              rank={ranks[p.id]}
-            />
-          );
-        })}
-
-        {me && (
-          <div className={styles.seatYou}>
-            <div className={styles.seatInner}>
-              <div className={styles.orbitAvatarWrap}>
-                <div
-                  className={`${styles.orbitAvatar} ${styles.orbitAvatarMe}${isMyTurn ? ` ${styles.orbitAvatarActive}` : ''}`}
-                  style={{ animation: me.id === lastBuzzerId ? 'syn-pulse 0.7s ease-in-out infinite' : undefined }}
-                >
-                  YOU
-                </div>
-                <span className={styles.rankBadge} style={{ background: 'var(--accent-2)' }}>{ranks[me.id]}</span>
-                {isMyTurn && <span className={styles.pfTurnTag}>TURN</span>}
-              </div>
-              <div className={styles.seatName}><span>You · <span className="num">{(myScore || 0).toLocaleString()}</span></span></div>
-              <div className={styles.cardStack}>
-                {Array.from({ length: Math.min(myCardCount, 4) }).map((_, ci) => (
-                  <div
-                    key={ci}
-                    className={styles.cardBack}
-                    style={{ width: 20, height: 28, marginLeft: ci > 0 ? -8 : 0, transform: `rotate(${(ci - 1) * 8}deg)` }}
-                  />
-                ))}
-                <span className={styles.cardCountChip}>{myCardCount}</span>
-              </div>
-            </div>
+      <section ref={ref} className={`${styles.prompt}${dropActive ? ` ${styles.over}` : ''}${took ? ` ${styles.took}` : ''}`}>
+        <div className={styles.ask}>Collect 3 {modeNoun} of one word</div>
+        <div className={styles.word}>{myWord || '…'}</div>
+        {otherWords.length > 0 && (
+          <div className={styles.others} aria-label="Other words in play">
+            {otherWords.map(w => <span key={w}>{w}</span>)}
           </div>
         )}
-      </div>
-    </div>
+        <div className={`${styles.timer}${urgency !== 'normal' ? ` ${styles[urgency]}` : ''}`}>
+          <div className={styles.track}>
+            <div className={styles.fill} style={{ transform: `scaleX(${Math.max(0, Math.min(1, timerPercent / 100))})` }} />
+          </div>
+          <span className={styles.secs} aria-label={`${timeLeft} seconds left`}>{timeLeft}s</span>
+        </div>
+        <div className={styles.dropHint} aria-hidden>Drop to pass</div>
+      </section>
+
+      <section className={styles.buzzCol}>
+        <button
+          onClick={onBuzz}
+          disabled={!canBuzz}
+          aria-keyshortcuts="B"
+          className={`${styles.buzz}${ready ? ` ${styles.ready}` : ''}${buzzed ? ` ${styles.buzzed}` : ''}`}
+        >
+          {buzzed ? '✓' : 'BUZZ'}
+        </button>
+        <span className={`${styles.buzzStatus}${canBuzz && !buzzed ? ` ${styles.open}` : ''}`} aria-live="polite">{status}</span>
+      </section>
+    </main>
   );
 });
 
