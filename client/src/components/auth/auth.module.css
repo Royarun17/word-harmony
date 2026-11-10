@@ -26,19 +26,21 @@
 
   --cover: max(calc(100vw / 1672), calc(100dvh / 941));
   --contain: min(calc(100vw / 1672), calc(100dvh / 941));
-  --s: min(var(--cover), calc(var(--contain) * 1.16));
+  /* --k: how far the scene may zoom past "fit the height" (1 = never crop
+     vertically). Sign Up / Sign In crop a little off the top; Welcome
+     shows the whole height so the logo and the card fan are never cut. */
+  --k: 1.12;
+  --s: min(var(--cover), calc(var(--contain) * var(--k)));
   --sx: calc((100vw - 1672 * var(--s)) / 2);
-  --sy: max(0px, calc((100dvh - 941 * var(--s)) / 2));
-  /* Welcome Sign In: on its painted spot, but never below the screen. */
-  --signin-h: max(48px, calc(110 * var(--s)));
-  --signin-top: min(calc(var(--sy) + 731 * var(--s)), calc(100dvh - var(--signin-h) - max(8px, env(safe-area-inset-bottom))));
+  /* Spare height is split top/bottom; a crop comes off the top only. */
+  --sy: min(calc((100dvh - 941 * var(--s)) / 2), calc(100dvh - 941 * var(--s)));
 
   position: fixed; inset: 0;
   overflow: hidden;
   isolation: isolate;
   background: #3a2016;
   color: var(--ink);
-  font-family: 'Nunito', 'Trebuchet MS', system-ui, sans-serif;
+  font-family: 'Nunito Sans', 'Nunito', 'Trebuchet MS', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -48,9 +50,9 @@
 /* ---------- Stage layers ---------- */
 .bg {
   position: absolute; z-index: -2;
-  left: calc(var(--sx) - 320 * var(--s));
-  top: calc(var(--sy) - 220 * var(--s));
-  width: calc(2312 * var(--s)); height: auto;
+  left: calc(var(--sx) - 520 * var(--s));
+  top: calc(var(--sy) - 260 * var(--s));
+  width: calc(2712 * var(--s)); height: auto;
   max-width: none; pointer-events: none; user-select: none;
 }
 .layer {
@@ -64,20 +66,19 @@
 /* ---------- Logo: crisp, with only a small contact shadow ---------- */
 .logo { display: block; width: auto; max-width: none; filter: drop-shadow(0 max(2px, calc(4 * var(--s))) max(2px, calc(4 * var(--s))) rgb(40 10 20 / 40%)); }
 
-/* ---------- Back (on the reference's Back button) ---------- */
+/* ---------- Back: top-left corner ---------- */
 .back {
   position: absolute; z-index: 5;
-  left: max(env(safe-area-inset-left), calc(var(--sx) + 22 * var(--s)));
-  top: max(6px, env(safe-area-inset-top), calc(var(--sy) + 20 * var(--s)));
+  left: max(10px, calc(env(safe-area-inset-left) + 4px));
+  top: max(8px, env(safe-area-inset-top));
   display: inline-flex; align-items: center; gap: 0.4em;
-  min-width: calc(203 * var(--s));
-  height: max(var(--tap), calc(90 * var(--s)));
-  padding: 0 max(16px, calc(28 * var(--s))) 0 max(13px, calc(22 * var(--s))) !important;
+  height: clamp(var(--tap), calc(80 * var(--s)), 64px);
+  padding: 0 max(16px, calc(26 * var(--s))) 0 max(13px, calc(20 * var(--s))) !important;
   border-radius: 999px;
   background: linear-gradient(180deg, var(--plum-hi), var(--plum) 58%, var(--plum-lo)) !important;
   box-shadow: inset 0 0 0 2px #e2b14e, inset 0 2px 0 2px rgb(255 225 175 / 16%), 0 3px 0 #24091d, 0 6px 12px rgb(20 6 10 / 35%);
   color: #fff !important;
-  font-weight: 800 !important; font-size: max(17px, calc(36 * var(--s))) !important;
+  font-weight: 800 !important; font-size: clamp(17px, calc(34 * var(--s)), 26px) !important;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 .back svg { font-size: 1.1em; color: #ffd85a; }
@@ -138,36 +139,39 @@
 .plum:hover:not(:disabled) { filter: brightness(1.12); }
 .plum:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 0 0 2px #e2b14e, 0 1px 0 #24091d, 0 3px 6px rgb(20 6 10 / 30%); }
 
-/* ---------- Welcome (each element on its painted spot) ---------- */
+/* ---------- Welcome ---------- */
+.welcomeScene { --k: 1; }
 .tagline {
   position: absolute; z-index: 2; margin: 0;
   left: calc(var(--sx) + 847 * var(--s)); top: calc(var(--sy) + 337 * var(--s));
   translate: -50% 0;
   white-space: nowrap;
-  font-size: max(18px, calc(32 * var(--s))); font-weight: 800; line-height: 1.2;
+  font-size: max(17px, calc(32 * var(--s))); font-weight: 800; line-height: 1.2;
   color: #fff6e8;
   text-shadow: 0 2px 0 rgb(60 16 40 / 85%);
 }
 .welcomeCreate {
-  --h: max(84px, calc(222 * var(--s)));
+  --h: clamp(56px, calc(150 * var(--s)), 132px);
   position: absolute; z-index: 2;
   left: calc(var(--sx) + 843 * var(--s));
-  top: min(calc(var(--sy) + 474 * var(--s)), calc(var(--signin-top) - var(--h) - 10px));
+  top: calc(var(--sy) + 585 * var(--s) - var(--h) / 2);
   translate: -50% 0;
-  width: max(270px, calc(690 * var(--s)));
+  width: calc(var(--h) * 3.5);
   height: var(--h);
-  font-size: max(21px, calc(52 * var(--s))) !important;
+  font-size: clamp(18px, calc(var(--h) * 0.32), 40px) !important;
 }
-.welcomeCreate .goldLabel { flex-direction: column; gap: 0.08em; }
-.welcomeCreate .goldLabel svg { font-size: 1.5em; color: #5a2a10; }
-.welcomeCreate .btnLaurel { height: 62%; }
+.welcomeCreate .goldLabel { flex-direction: column; gap: 0.06em; }
+.welcomeCreate .goldLabel svg { font-size: 1.3em; color: #5a2a10; }
+.welcomeCreate .btnLaurel { height: 58%; }
 .welcomeSignIn {
+  --h: clamp(44px, calc(96 * var(--s)), 92px);
   position: absolute; z-index: 2;
-  left: calc(var(--sx) + 842 * var(--s)); top: var(--signin-top);
+  left: calc(var(--sx) + 842 * var(--s));
+  top: calc(var(--sy) + 786 * var(--s) - var(--h) / 2);
   translate: -50% 0;
-  width: max(200px, calc(488 * var(--s)));
-  height: var(--signin-h);
-  font-size: max(20px, calc(46 * var(--s))) !important;
+  width: calc(var(--h) * 4.3);
+  height: var(--h);
+  font-size: clamp(17px, calc(var(--h) * 0.4), 36px) !important;
 }
 .welcomeSignIn svg { font-size: 1.15em; }
 
@@ -175,20 +179,21 @@
 .column {
   --col-l: calc(var(--sx) + 650 * var(--s));
   --col-r: calc(var(--sx) + 1495 * var(--s));
-  --logo-h: min(calc(140 * var(--s)), max(34px, calc(15dvh - 22px)));
+  --logo-h: min(calc(140 * var(--s)), max(28px, calc(10dvh - 2px)));
   position: absolute; z-index: 2;
   left: var(--col-l);
-  --col-right: max(var(--col-r), min(calc(100vw - 14px), calc(var(--col-r) + 140px)));
+  --col-right: max(var(--col-r), min(calc(100vw - 14px), calc(var(--col-r) + 200px)));
   width: calc(var(--col-right) - var(--col-l));
-  top: max(6px, env(safe-area-inset-top), calc(var(--sy) + 8 * var(--s)));
-  bottom: calc(max(8px + env(safe-area-inset-bottom), 100dvh - var(--sy) - 905 * var(--s)) + var(--kb, 0px));
+  top: max(6px, env(safe-area-inset-top));
+  bottom: calc(max(6px, env(safe-area-inset-bottom)) + var(--kb, 0px));
   display: flex; flex-direction: column; align-items: center;
 }
-.panelLogo { flex: none; height: var(--logo-h); margin-bottom: max(8px, calc(16 * var(--s))); }
+.panelLogo { flex: none; height: var(--logo-h); margin-bottom: max(6px, calc(16 * var(--s))); }
 .panel {
   position: relative;
-  flex: 1 1 auto; min-height: 0; width: 100%;
+  flex: 0 1 auto; min-height: 0; width: 100%;
   display: flex; flex-direction: column;
+  container-type: inline-size;
   border-radius: max(20px, calc(44 * var(--s)));
   background:
     radial-gradient(ellipse 70% 55% at 50% 30%, #fff7ea 0%, rgb(255 247 234 / 0%) 70%),
@@ -207,8 +212,8 @@
   border-radius: 2px; background: linear-gradient(90deg, transparent, #fffbe6, transparent);
   pointer-events: none;
 }
-.signin .panel { flex: 0 1 auto; }
-.signin .panelBody { flex: 0 1 auto; padding-top: 2px; padding-bottom: 0; }
+.panelBody { flex: 0 1 auto; }
+.signin .panelBody { padding-top: 2px; padding-bottom: 0; }
 .signin .form { padding-top: 0; }
 .signin .panelHead { padding-top: max(8px, calc(26 * var(--s))); }
 .signin .divider { margin-bottom: max(4px, calc(14 * var(--s))); }
@@ -218,12 +223,14 @@
 .headRow { display: flex; align-items: center; justify-content: center; gap: max(8px, calc(18 * var(--s))); }
 .panelHead h1 {
   margin: 0; min-width: 0;
-  font-size: max(30px, calc(60 * var(--s))); font-weight: 900; line-height: 1.08; letter-spacing: -0.02em;
+  /* Reference: Nunito Sans Black, about 58% of the panel's width. */
+  font-family: 'Nunito Sans', 'Nunito', system-ui, sans-serif;
+  font-size: clamp(26px, min(7.4cqi, 9dvh), 64px); font-weight: 900; line-height: 1.05; letter-spacing: -0.01em;
   color: var(--ink); text-align: center;
   text-shadow: 0 1px 0 rgb(255 252 240 / 90%);
   white-space: nowrap;
 }
-.headLaurel { height: max(24px, calc(54 * var(--s))); width: auto; flex: none; }
+.headLaurel { height: 1.25em; width: auto; flex: none; font-size: clamp(26px, min(7.4cqi, 9dvh), 64px); }
 .divider { display: flex; align-items: center; justify-content: center; gap: 6px; margin: max(4px, calc(8 * var(--s))) auto max(6px, calc(14 * var(--s))); width: min(62%, calc(420 * var(--s))); }
 .divider span { flex: 1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, #ddaa4c); }
 .divider span:last-child { background: linear-gradient(90deg, #ddaa4c, transparent); }
@@ -235,11 +242,6 @@
   padding: max(4px, calc(6 * var(--s))) max(18px, calc(84 * var(--s))) max(6px, calc(10 * var(--s)));
   scroll-padding: 8px;
   scrollbar-width: thin; scrollbar-color: #d9aa76 transparent;
-  /* Scroll hint: a soft shadow at the bottom while more is below; the first
-     layer scrolls with the content and covers it at the end. */
-  background:
-    linear-gradient(to top, #fcebd3 45%, rgb(252 235 211 / 0%)) center bottom / 100% 26px no-repeat local,
-    radial-gradient(farthest-side at 50% 100%, rgb(120 70 20 / 28%), transparent) center bottom / 100% 12px no-repeat scroll;
 }
 .panelFoot {
   flex: none;
@@ -249,7 +251,8 @@
 
 /* ---------- Fields ---------- */
 .form { display: flex; flex-direction: column; gap: max(8px, calc(16 * var(--s))); padding-top: 2px; }
-.fieldWrap { display: flex; flex-direction: column; scroll-margin: 10px; }
+.fieldWrap { position: relative; display: flex; flex-direction: column; min-width: 0; scroll-margin: 10px; }
+.fieldGrid { display: flex; flex-direction: column; gap: inherit; }
 .field {
   display: flex; align-items: center;
   min-height: max(var(--tap), calc(70 * var(--s)));
@@ -265,10 +268,10 @@
   flex: 1; min-width: 0; align-self: stretch;
   border: 0; outline: none; background: transparent;
   padding: 0 4px 0 0;
-  font: 700 max(16px, calc(29 * var(--s))) / 1.2 'Nunito', system-ui, sans-serif !important;
+  font: 700 max(16px, calc(29 * var(--s))) / 1.2 'Nunito Sans', 'Nunito', system-ui, sans-serif !important;
   color: var(--ink);
 }
-.field input::placeholder { color: var(--ink-2); opacity: 1; font-weight: 700; }
+.field input::placeholder { color: var(--ink-2); opacity: 1; font-weight: 700; text-overflow: ellipsis; }
 .field input:focus-visible { outline: none; }
 .reveal { flex: none; display: grid; place-items: center; width: var(--tap); height: var(--tap); margin-right: max(2px, calc(8 * var(--s))); border-radius: 50%; font-size: max(20px, calc(30 * var(--s))); color: var(--ink-2) !important; }
 .reveal:hover { background: rgb(74 32 61 / 7%) !important; }
@@ -315,6 +318,44 @@
 .lead { margin: 0; font-size: max(15px, calc(27 * var(--s))); font-weight: 700; line-height: 1.35; color: var(--ink-2); text-align: center; }
 
 .srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- Landscape phones: everything fits without scrolling ---------- */
+@media (orientation: landscape) and (max-height: 560px) {
+  /* Right column a bit wider: it holds the longest placeholder (Confirm Password). */
+  .fieldGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.26fr); gap: 6px 8px; }
+  .form { gap: 6px; }
+  .panelHead { padding: 8px 14px 0; }
+  .divider { margin: 2px auto 6px; }
+  .panelBody { padding: 2px 14px 0; }
+  .panelFoot { padding: 6px 14px 6px; gap: 2px; }
+  .fieldIcon { width: 36px; font-size: 19px; }
+  .reveal { width: 40px; margin-right: 2px; }
+  .field input::placeholder { font-size: 15px; }
+  .check { min-height: 36px; }
+  .submit { min-height: 46px; font-size: 20px !important; }
+  /* Field messages sit on the field's top edge as a small label, so showing
+     them never pushes the form taller. */
+  .fieldMsg {
+    position: absolute; z-index: 1; top: -8px; right: 12px; left: auto;
+    max-width: calc(100% - 24px); margin: 0; padding: 1px 7px;
+    border-radius: 6px; background: #b42318; color: #fff;
+    font-size: 12px; line-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  .fieldHint { background: #755463; color: #fff; }
+  .check + .fieldMsg { top: 50%; translate: 0 -50%; left: 200px; right: auto; }
+}
+@media (orientation: landscape) and (max-height: 560px) and (max-width: 720px) {
+  .fieldIcon { width: 30px; font-size: 18px; }
+  .panelBody, .panelFoot { padding-left: 10px; padding-right: 10px; }
+}
+@media (orientation: landscape) and (max-height: 360px) {
+  .divider { display: none; }
+  .panelHead { padding-top: 6px; padding-bottom: 4px; }
+  .panelLogo { margin-bottom: 4px; }
+  .panelFoot { padding-top: 4px; padding-bottom: 4px; }
+  .forgot { margin-top: -10px; }
+}
 
 /* ---------- Short landscape phones (about 375px tall or less) ---------- */
 @media (orientation: landscape) and (max-height: 380px) {

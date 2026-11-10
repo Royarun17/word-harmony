@@ -17,9 +17,9 @@ export function stageStyle(x, y, w, extra) {
   return { '--x': x, '--y': y, '--w': w, ...extra };
 }
 
-export function AuthScene({ background, figures = [], onBack, children }) {
+export function AuthScene({ background, figures = [], onBack, className = '', children }) {
   return (
-    <main className={styles.scene}>
+    <main className={`${styles.scene} ${className}`}>
       <img className={styles.bg} src={background} alt="" aria-hidden />
       {figures.map(f => (
         <img key={f.src} className={styles.layer} style={stageStyle(f.x, f.y, f.w)} src={f.src} alt={f.alt || ''} aria-hidden={f.alt ? undefined : true} />

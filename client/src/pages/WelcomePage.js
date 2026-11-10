@@ -17,7 +17,7 @@ const FIGURES = [
 
 export default function WelcomePage({ onNavigate }) {
   return (
-    <AuthScene background={background} figures={FIGURES}>
+    <AuthScene background={background} figures={FIGURES} className={styles.welcomeScene}>
       <h1 className={styles.srOnly}>Word Harmony</h1>
       <p className={styles.tagline}>A Multiplayer Word Card Game</p>
       <GoldButton

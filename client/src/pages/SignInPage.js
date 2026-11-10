@@ -46,8 +46,8 @@ export default function SignInPage({ onNavigate }) {
   const [resetSent, setResetSent] = useState('');
   const online = useOnline();
 
-  const emailError = !email.trim() ? 'Enter your email.' : !EMAIL_RE.test(email.trim()) ? 'Enter a valid email, like you@example.com.' : '';
-  const pwError = !pw ? 'Enter your password.' : '';
+  const emailError = !email.trim() ? 'Enter your email' : !EMAIL_RE.test(email.trim()) ? 'Enter a valid email' : '';
+  const pwError = !pw ? 'Enter your password' : '';
   const change = setter => e => { setter(e.target.value); if (authError) setAuthError(''); };
 
   function switchMode(next) {

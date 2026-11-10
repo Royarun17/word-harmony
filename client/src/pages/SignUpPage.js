@@ -63,11 +63,11 @@ export default function SignUpPage({ onNavigate }) {
   const online = useOnline();
 
   const errors = useMemo(() => ({
-    name: !name.trim() ? 'Enter your name.' : name.trim().length > 24 ? 'Keep it to 24 characters or fewer.' : '',
-    email: !email.trim() ? 'Enter your email.' : !EMAIL_RE.test(email.trim()) ? 'Enter a valid email, like you@example.com.' : '',
-    password: !password ? 'Create a password.' : password.length < 6 ? 'Use at least 6 characters.' : '',
-    confirmPassword: !confirmPassword ? 'Confirm your password.' : confirmPassword !== password ? 'Passwords don’t match.' : '',
-    agreed: agreed ? '' : 'Please agree to the terms to continue.',
+    name: !name.trim() ? 'Enter your name' : name.trim().length > 24 ? '24 characters at most' : '',
+    email: !email.trim() ? 'Enter your email' : !EMAIL_RE.test(email.trim()) ? 'Enter a valid email' : '',
+    password: !password ? 'Create a password' : password.length < 6 ? 'At least 6 characters' : '',
+    confirmPassword: !confirmPassword ? 'Confirm your password' : confirmPassword !== password ? 'Passwords don’t match' : '',
+    agreed: agreed ? '' : 'Agree to the Terms to continue',
   }), [name, email, password, confirmPassword, agreed]);
 
   // Show a field's error once it has been left, or after a submit attempt.
@@ -150,15 +150,17 @@ export default function SignUpPage({ onNavigate }) {
           {formError && <Alert>{formError}</Alert>}
           {success && <Alert tone="success">Account created! Setting up your profile…</Alert>}
 
+          <div className={styles.fieldGrid}>
           <AuthField id="signup-name" icon={<UserIcon />} label="Name" autoComplete="nickname" enterKeyHint="next"
             value={name} onChange={change(setName)} onBlur={blur('name')} error={show('name')} />
           <AuthField id="signup-email" icon={<MailIcon />} label="Email" type="email" inputMode="email" autoComplete="email" enterKeyHint="next"
             value={email} onChange={change(setEmail)} onBlur={blur('email')} error={show('email')} />
           <AuthField id="signup-password" icon={<LockIcon />} label="Password" type="password" revealable autoComplete="new-password" enterKeyHint="next"
             value={password} onChange={change(setPassword)} onBlur={blur('password')} error={show('password')}
-            hint={password && password.length < 6 ? 'At least 6 characters.' : ''} />
+            hint={password && password.length < 6 ? 'At least 6 characters' : ''} />
           <AuthField id="signup-confirm" icon={<LockIcon />} label="Confirm Password" type="password" revealable autoComplete="new-password" enterKeyHint="done"
             value={confirmPassword} onChange={change(setConfirmPassword)} onBlur={blur('confirmPassword')} error={show('confirmPassword')} />
+          </div>
 
           <div className={styles.fieldWrap}>
             <label className={styles.check}>
